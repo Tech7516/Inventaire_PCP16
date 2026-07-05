@@ -47,7 +47,7 @@ export default function HomePage() {
             <Card
               key={lot.id}
               className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/30"
-              onClick={() => navigate(`/inventory/${lot.id}`)}
+              onClick={() => navigate(`/lot/${lot.id}`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -76,7 +76,7 @@ export default function HomePage() {
                     variant="default"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/inventory/${lot.id}`);
+                      navigate(`/lot/${lot.id}`);
                     }}
                   >
                     Démarrer l'inventaire

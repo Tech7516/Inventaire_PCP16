@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { lots, lotSections } from "@/data/lots";
+import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,10 +15,13 @@ interface InventoryEntry {
 }
 
 export default function InventoryPage() {
-  const { lotId } = useParams<{ lotId: string }>();
+  const { lotId, subId } = useParams<{ lotId: string; subId: string }>();
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
-  const sections = lotId ? lotSections[lotId] || [] : [];
+  const subEntity = lotId && subId
+    ? lotSubEntities[lotId]?.find((s) => s.id === subId)
+    : null;
+  const sections = subId ? subEntitySections[subId] || [] : [];
 
   const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
     () => {
@@ -36,11 +39,11 @@ export default function InventoryPage() {
     }
   );
 
-  if (!lot) {
+  if (!lot || !subEntity) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-lg text-muted-foreground">Lot introuvable</p>
+          <p className="text-lg text-muted-foreground">Sous-ensemble introuvable</p>
           <Button variant="outline" onClick={() => navigate("/")} className="cursor-pointer">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour à l'accueil
@@ -87,7 +90,7 @@ export default function InventoryPage() {
       return;
     }
     toast.success("Inventaire enregistré avec succès !");
-    console.log("Inventaire soumis:", { lotId, entries });
+    console.log("Inventaire soumis:", { lotId, subId, entries });
   };
 
   return (
@@ -99,7 +102,7 @@ export default function InventoryPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate("/")}
+                onClick={() => navigate(`/lot/${lotId}`)}
                 className="cursor-pointer"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -108,10 +111,10 @@ export default function InventoryPage() {
                 <ClipboardList className="h-5 w-5 text-primary" />
                 <div>
                   <h1 className="text-lg font-semibold text-foreground">
-                    {lot.name} — {lot.location}
+                    {subEntity.name}
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    {processedCount}/{allItems.length} articles traités
+                    {lot.name} — {lot.location} · {processedCount}/{allItems.length} articles traités
                   </p>
                 </div>
               </div>

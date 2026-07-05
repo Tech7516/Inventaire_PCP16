@@ -6,6 +6,12 @@ export interface Lot {
   status: "pending" | "in-progress" | "completed";
 }
 
+export interface SubEntity {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface ConsumableItem {
   id: string;
   name: string;
@@ -28,8 +34,18 @@ export const lots: Lot[] = [
   },
 ];
 
-export const lotSections: Record<string, ConsumableSection[]> = {
+export const lotSubEntities: Record<string, SubEntity[]> = {
   "lot-001": [
+    { id: "pom", name: "POM", description: "Poche oxygène médical" },
+    { id: "lot-b", name: "Lot B", description: "" },
+    { id: "caisse-1", name: "Caisse 1/2", description: "" },
+    { id: "caisse-2", name: "Caisse 2/2", description: "" },
+    { id: "materiel-comp", name: "Matériel complémentaire", description: "" },
+  ],
+};
+
+export const subEntitySections: Record<string, ConsumableSection[]> = {
+  pom: [
     {
       id: "section-1g",
       title: "1ère ligne — Pochette de gauche",
@@ -178,4 +194,8 @@ export const lotSections: Record<string, ConsumableSection[]> = {
       ],
     },
   ],
+  "lot-b": [],
+  "caisse-1": [],
+  "caisse-2": [],
+  "materiel-comp": [],
 };
