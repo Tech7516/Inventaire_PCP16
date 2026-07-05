@@ -6,10 +6,16 @@ export interface Lot {
   status: "pending" | "in-progress" | "completed";
 }
 
+export interface SubEntityVariant {
+  id: string;
+  name: string;
+}
+
 export interface SubEntity {
   id: string;
   name: string;
   description: string;
+  variants?: SubEntityVariant[];
 }
 
 export interface ConsumableItem {
@@ -37,7 +43,17 @@ export const lots: Lot[] = [
 export const lotSubEntities: Record<string, SubEntity[]> = {
   "lot-001": [
     { id: "pom", name: "POM", description: "Poche oxygène médical" },
-    { id: "lot-b", name: "Lot B", description: "" },
+    {
+      id: "lot-b",
+      name: "Lot B",
+      description: "",
+      variants: [
+        { id: "alpha", name: "Lot B Alpha" },
+        { id: "bravo", name: "Lot B Bravo" },
+        { id: "auteuil", name: "Lot B Auteuil" },
+        { id: "neuilly", name: "Lot B Neuilly" },
+      ],
+    },
     { id: "caisse-1", name: "Caisse 1/2", description: "" },
     { id: "caisse-2", name: "Caisse 2/2", description: "" },
     { id: "materiel-comp", name: "Matériel complémentaire", description: "" },
@@ -194,6 +210,7 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
       ],
     },
   ],
+  // Lot B — tous les Lot B contiennent les mêmes articles
   "lot-b": [],
   "caisse-1": [],
   "caisse-2": [],

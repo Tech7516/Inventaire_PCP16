@@ -1,6 +1,14 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, ClipboardList, Package } from "lucide-react";
 
@@ -9,6 +17,8 @@ export default function SubEntitiesPage() {
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
   const subEntities = lotId ? lotSubEntities[lotId] || [] : [];
+
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
   if (!lot) {
     return (
@@ -23,6 +33,16 @@ export default function SubEntitiesPage() {
       </div>
     );
   }
+
+  const handleInventory = (subId: string, hasVariants: boolean) => {
+    if (hasVariants) {
+      const variantId = selectedVariants[subId];
+      if (!variantId) return;
+      navigate(`/inventory/${lotId}/${subId}/${variantId}`);
+    } else {
+      navigate(`/inventory/${lotId}/${subId}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,12 +82,13 @@ export default function SubEntitiesPage() {
               (total, section) => total + section.items.length,
               0
             );
+            const hasVariants = sub.variants && sub.variants.length > 0;
+            const selectedVariant = selectedVariants[sub.id];
 
             return (
               <Card
                 key={sub.id}
-                className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/30"
-                onClick={() => navigate(`/inventory/${lotId}/${sub.id}`)}
+                className="group transition-all duration-200 hover:shadow-md hover:border-primary/30"
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-semibold text-foreground">
@@ -83,19 +104,45 @@ export default function SubEntitiesPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Package className="h-4 w-4 shrink-0" />
                     <span>
-                      {itemCount > 0
-                        ? `${itemCount} article${itemCount > 1 ? "s" : ""} à vérifier`
-                        : "Aucun article défini"}
+                      {hasVariants
+                        ? `${sub.variants!.length} variante${sub.variants!.length > 1 ? "s" : ""}`
+                        : itemCount > 0
+                          ? `${itemCount} article${itemCount > 1 ? "s" : ""} à vérifier`
+                          : "Aucun article défini"}
                     </span>
                   </div>
+
+                  {hasVariants && (
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Sélectionnez un lot :
+                      </label>
+                      <Select
+                        value={selectedVariant || ""}
+                        onValueChange={(value) =>
+                          setSelectedVariants((prev) => ({ ...prev, [sub.id]: value }))
+                        }
+                      >
+                        <SelectTrigger className="w-full cursor-pointer">
+                          <SelectValue placeholder="Choisir une variante..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sub.variants!.map((variant) => (
+                            <SelectItem key={variant.id} value={variant.id} className="cursor-pointer">
+                              {variant.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   <div className="pt-3 border-t">
                     <Button
                       className="w-full cursor-pointer"
                       variant="default"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/inventory/${lotId}/${sub.id}`);
-                      }}
+                      disabled={hasVariants ? !selectedVariant : false}
+                      onClick={() => handleInventory(sub.id, !!hasVariants)}
                     >
                       Vérifier l'inventaire
                     </Button>

@@ -18,6 +18,7 @@ const AppRoutes = () => (
     <Route path="/" element={<Index />} />
     <Route path="/lot/:lotId" element={<SubEntities />} />
     <Route path="/inventory/:lotId/:subId" element={<Inventory />} />
+    <Route path="/inventory/:lotId/:subId/:variantId" element={<Inventory />} />
     {/* <Route path="/blog/*" element={<BlogRoutes />} /> */}
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth/error" element={<AuthError />} />

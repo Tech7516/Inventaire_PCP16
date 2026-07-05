@@ -15,12 +15,13 @@ interface InventoryEntry {
 }
 
 export default function InventoryPage() {
-  const { lotId, subId } = useParams<{ lotId: string; subId: string }>();
+  const { lotId, subId, variantId } = useParams<{ lotId: string; subId: string; variantId?: string }>();
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
   const subEntity = lotId && subId
     ? lotSubEntities[lotId]?.find((s) => s.id === subId)
     : null;
+  const variant = subEntity?.variants?.find((v) => v.id === variantId);
   const sections = subId ? subEntitySections[subId] || [] : [];
 
   const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
@@ -38,6 +39,8 @@ export default function InventoryPage() {
       return initial;
     }
   );
+
+  const displayTitle = variant ? variant.name : subEntity?.name || "";
 
   if (!lot || !subEntity) {
     return (
@@ -90,7 +93,7 @@ export default function InventoryPage() {
       return;
     }
     toast.success("Inventaire enregistré avec succès !");
-    console.log("Inventaire soumis:", { lotId, subId, entries });
+    console.log("Inventaire soumis:", { lotId, subId, variantId, entries });
   };
 
   return (
@@ -111,10 +114,11 @@ export default function InventoryPage() {
                 <ClipboardList className="h-5 w-5 text-primary" />
                 <div>
                   <h1 className="text-lg font-semibold text-foreground">
-                    {subEntity.name}
+                    {displayTitle}
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    {lot.name} — {lot.location} · {processedCount}/{allItems.length} articles traités
+                    {lot.name} — {lot.location}
+                    {sections.length > 0 && ` · ${processedCount}/${allItems.length} articles traités`}
                   </p>
                 </div>
               </div>
@@ -127,76 +131,89 @@ export default function InventoryPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-8">
-          {sections.map((section) => (
-            <div key={section.id}>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                {section.title}
-              </h2>
-              <div className="space-y-2">
-                {section.items.map((item) => {
-                  const entry = entries[item.id];
-                  const isProcessed = entry.validated || entry.customQuantity.trim();
+      {sections.length === 0 ? (
+        <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center space-y-4">
+            <p className="text-lg text-muted-foreground">
+              Aucun article défini pour ce sous-ensemble.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Les consommables seront ajoutés prochainement.
+            </p>
+          </div>
+        </main>
+      ) : (
+        <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="space-y-8">
+            {sections.map((section) => (
+              <div key={section.id}>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  {section.title}
+                </h2>
+                <div className="space-y-2">
+                  {section.items.map((item) => {
+                    const entry = entries[item.id];
+                    const isProcessed = entry.validated || entry.customQuantity.trim();
 
-                  return (
-                    <Card
-                      key={item.id}
-                      className={`transition-all duration-200 ${
-                        isProcessed ? "border-emerald-200 bg-emerald-50/50" : ""
-                      }`}
-                    >
-                      <CardContent className="py-3">
-                        <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">
-                              {item.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Stock attendu : <span className="font-semibold">{item.expectedQuantity}</span>
-                            </p>
-                          </div>
-
+                    return (
+                      <Card
+                        key={item.id}
+                        className={`transition-all duration-200 ${
+                          isProcessed ? "border-emerald-200 bg-emerald-50/50" : ""
+                        }`}
+                      >
+                        <CardContent className="py-3">
                           <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                id={`validate-${item.id}`}
-                                checked={entry.validated}
-                                onCheckedChange={() => toggleValidation(item.id)}
-                                className="cursor-pointer"
-                              />
-                              <label
-                                htmlFor={`validate-${item.id}`}
-                                className="text-sm font-medium cursor-pointer select-none flex items-center gap-1"
-                              >
-                                {entry.validated && <Check className="h-3 w-3 text-emerald-600" />}
-                                Conforme ({item.expectedQuantity})
-                              </label>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">
+                                {item.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Stock attendu : <span className="font-semibold">{item.expectedQuantity}</span>
+                              </p>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground whitespace-nowrap">ou quantité :</span>
-                              <Input
-                                type="number"
-                                min={0}
-                                placeholder="Qté réelle"
-                                value={entry.customQuantity}
-                                onChange={(e) => updateCustomQuantity(item.id, e.target.value)}
-                                disabled={entry.validated}
-                                className="w-24"
-                              />
+                            <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`validate-${item.id}`}
+                                  checked={entry.validated}
+                                  onCheckedChange={() => toggleValidation(item.id)}
+                                  className="cursor-pointer"
+                                />
+                                <label
+                                  htmlFor={`validate-${item.id}`}
+                                  className="text-sm font-medium cursor-pointer select-none flex items-center gap-1"
+                                >
+                                  {entry.validated && <Check className="h-3 w-3 text-emerald-600" />}
+                                  Conforme ({item.expectedQuantity})
+                                </label>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">ou quantité :</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  placeholder="Qté réelle"
+                                  value={entry.customQuantity}
+                                  onChange={(e) => updateCustomQuantity(item.id, e.target.value)}
+                                  disabled={entry.validated}
+                                  className="w-24"
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </main>
+            ))}
+          </div>
+        </main>
+      )}
     </div>
   );
 }
