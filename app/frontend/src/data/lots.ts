@@ -32,25 +32,27 @@ export const lotSections: Record<string, ConsumableSection[]> = {
   "lot-001": [
     {
       id: "section-1",
-      title: "1ère ligne pochette de Gauche",
+      title: "1ère ligne — Pochette de gauche",
       items: [
-        { id: "item-001", name: "Sérum physiologique", expectedQuantity: 30 },
-        { id: "item-002", name: "Compresses stériles", expectedQuantity: 50 },
+        { id: "item-001", name: "BAVU adulte", expectedQuantity: 1 },
+        { id: "item-002", name: "Masque Adulte T4 et T5", expectedQuantity: 1 },
       ],
     },
     {
       id: "section-2",
-      title: "1ère ligne pochette du Milieu",
+      title: "1ère ligne — Pochette du milieu",
       items: [
-        { id: "item-003", name: "Gants nitrile (boîte)", expectedQuantity: 20 },
-        { id: "item-004", name: "Sparadrap", expectedQuantity: 15 },
+        { id: "item-003", name: "BAVU pédiatrique", expectedQuantity: 1 },
+        { id: "item-004", name: "BAVU nourrisson", expectedQuantity: 1 },
+        { id: "item-005", name: "Masque T0 T1 T2 T3", expectedQuantity: 1 },
       ],
     },
     {
       id: "section-3",
-      title: "1ère ligne pochette de Droite",
+      title: "1ère ligne — Pochette de droite",
       items: [
-        { id: "item-005", name: "Désinfectant", expectedQuantity: 10 },
+        { id: "item-006", name: "Jeu de canule", expectedQuantity: 1 },
+        { id: "item-007", name: "Recharge AMS", expectedQuantity: 1 },
       ],
     },
   ],
