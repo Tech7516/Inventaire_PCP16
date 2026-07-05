@@ -1,9 +1,15 @@
+export interface LotVariant {
+  id: string;
+  name: string;
+}
+
 export interface Lot {
   id: string;
   name: string;
   location: string;
   lastInventory: string | null;
   status: "pending" | "in-progress" | "completed";
+  variants?: LotVariant[];
 }
 
 export interface SubEntityVariant {
@@ -45,6 +51,17 @@ export const lots: Lot[] = [
     location: "Passy",
     lastInventory: null,
     status: "pending",
+  },
+  {
+    id: "lot-vps",
+    name: "VPS",
+    location: "Passy",
+    lastInventory: null,
+    status: "pending",
+    variants: [
+      { id: "auteuil", name: "VPS Auteuil" },
+      { id: "neuilly", name: "VPS Neuilly" },
+    ],
   },
 ];
 
@@ -96,6 +113,22 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
       variants: [
         { id: "alpha", name: "Caisse Alpha" },
         { id: "bravo", name: "Caisse Bravo" },
+      ],
+    },
+  ],
+  "lot-vps": [
+    { id: "vps-cellule-avant", name: "Cellule avant", description: "" },
+    { id: "vps-cellule-arriere", name: "Cellule arrière", description: "" },
+    {
+      id: "vps-lot-b",
+      name: "Lot B",
+      description: "",
+      inventoryType: "lot-b",
+      variants: [
+        { id: "alpha", name: "Lot B Alpha" },
+        { id: "bravo", name: "Lot B Bravo" },
+        { id: "auteuil", name: "Lot B Auteuil" },
+        { id: "neuilly", name: "Lot B Neuilly" },
       ],
     },
   ],
@@ -618,3 +651,13 @@ subEntitySections["pom-c"] = [
 subEntitySections["lot-b-c-soin"] = subEntitySections["lot-b-soin"];
 subEntitySections["lot-b-c-o2"] = subEntitySections["lot-b-o2"];
 subEntitySections["caisse-c"] = [];
+
+// VPS — Cellule avant
+subEntitySections["vps-cellule-avant"] = [];
+
+// VPS — Cellule arrière
+subEntitySections["vps-cellule-arriere"] = [];
+
+// VPS — Lot B (même contenu que les autres Lot B)
+subEntitySections["vps-lot-b-soin"] = subEntitySections["lot-b-soin"];
+subEntitySections["vps-lot-b-o2"] = subEntitySections["lot-b-o2"];
