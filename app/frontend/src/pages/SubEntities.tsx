@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -10,7 +11,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
-import { ArrowLeft, ClipboardList, Package } from "lucide-react";
+import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save } from "lucide-react";
+import { toast } from "sonner";
+
+function getCompletedKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem("inventory-completed");
+    if (raw) return new Set(JSON.parse(raw));
+  } catch { /* ignore */ }
+  return new Set();
+}
+
+function markCompleted(key: string) {
+  const set = getCompletedKeys();
+  set.add(key);
+  localStorage.setItem("inventory-completed", JSON.stringify([...set]));
+}
+
+export { markCompleted };
 
 export default function SubEntitiesPage() {
   const { lotId } = useParams<{ lotId: string }>();
@@ -18,7 +36,49 @@ export default function SubEntitiesPage() {
   const lot = lots.find((l) => l.id === lotId);
   const subEntities = lotId ? lotSubEntities[lotId] || [] : [];
 
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [dpsName, setDpsName] = useState(() => localStorage.getItem("dps-name") || "");
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem("selected-variants");
+      if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return {};
+  });
+  const [completedKeys, setCompletedKeys] = useState<Set<string>>(getCompletedKeys);
+
+  // Refresh completed keys when page gains focus (returning from inventory)
+  useEffect(() => {
+    const refresh = () => setCompletedKeys(getCompletedKeys());
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
+  // Also refresh on mount
+  useEffect(() => {
+    setCompletedKeys(getCompletedKeys());
+  }, []);
+
+  const persistVariant = (subId: string, value: string) => {
+    setSelectedVariants((prev) => {
+      const next = { ...prev, [subId]: value };
+      localStorage.setItem("selected-variants", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleSave = () => {
+    if (!dpsName.trim()) {
+      toast.error("Veuillez saisir le nom du DPS avant de sauvegarder.");
+      return;
+    }
+    localStorage.setItem("dps-name", dpsName.trim());
+    toast.success("Inventaire sauvegardé et envoyé !");
+    console.log("Inventaire sauvegardé:", {
+      lotId,
+      dpsName: dpsName.trim(),
+      completed: [...completedKeys],
+    });
+  };
 
   if (!lot) {
     return (
@@ -34,18 +94,21 @@ export default function SubEntitiesPage() {
     );
   }
 
-  const handleInventory = (subId: string, hasVariants: boolean) => {
-    if (hasVariants) {
-      const variantId = selectedVariants[subId];
-      if (!variantId) return;
-      navigate(`/inventory/${lotId}/${subId}/${variantId}`);
-    } else {
-      navigate(`/inventory/${lotId}/${subId}`);
-    }
+  const isSubCompleted = (subId: string, variantId?: string, sacType?: string) => {
+    const key = variantId
+      ? `${lotId}-${subId}-${variantId}-${sacType || "soin"}`
+      : `${lotId}-${subId}`;
+    return completedKeys.has(key);
+  };
+
+  const isLotBComplete = (subId: string) => {
+    const variantId = selectedVariants[subId];
+    if (!variantId) return false;
+    return isSubCompleted(subId, variantId, "soin") && isSubCompleted(subId, variantId, "o2");
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-3">
@@ -74,7 +137,22 @@ export default function SubEntitiesPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+        {/* Nom du DPS */}
+        <div className="mb-6">
+          <label htmlFor="dps-name" className="block text-sm font-medium text-muted-foreground mb-1.5">
+            Nom du DPS
+          </label>
+          <Input
+            id="dps-name"
+            type="text"
+            placeholder="Saisissez le nom du DPS..."
+            value={dpsName}
+            onChange={(e) => setDpsName(e.target.value)}
+            className="max-w-md"
+          />
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {subEntities.map((sub) => {
             const sections = subEntitySections[sub.id] || [];
@@ -84,16 +162,24 @@ export default function SubEntitiesPage() {
             );
             const hasVariants = sub.variants && sub.variants.length > 0;
             const selectedVariant = selectedVariants[sub.id];
+            const isCompleted = hasVariants ? isLotBComplete(sub.id) : isSubCompleted(sub.id);
 
             return (
               <Card
                 key={sub.id}
-                className="group transition-all duration-200 hover:shadow-md hover:border-primary/30"
+                className={`group transition-all duration-200 hover:shadow-md ${
+                  isCompleted ? "border-emerald-300 bg-emerald-50/30" : "hover:border-primary/30"
+                }`}
               >
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold text-foreground">
-                    {sub.name}
-                  </CardTitle>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg font-semibold text-foreground">
+                      {sub.name}
+                    </CardTitle>
+                    {isCompleted && (
+                      <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {sub.description && (
@@ -119,9 +205,7 @@ export default function SubEntitiesPage() {
                       </label>
                       <Select
                         value={selectedVariant || ""}
-                        onValueChange={(value) =>
-                          setSelectedVariants((prev) => ({ ...prev, [sub.id]: value }))
-                        }
+                        onValueChange={(value) => persistVariant(sub.id, value)}
                       >
                         <SelectTrigger className="w-full cursor-pointer">
                           <SelectValue placeholder="Choisir un lot B..." />
@@ -138,32 +222,46 @@ export default function SubEntitiesPage() {
                   )}
 
                   <div className="pt-3 border-t space-y-2">
-                    <Button
-                      className="w-full cursor-pointer"
-                      variant="default"
-                      disabled={hasVariants ? !selectedVariant : false}
-                      onClick={() => {
-                        if (hasVariants && selectedVariant) {
-                          navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/soin`);
-                        } else {
-                          handleInventory(sub.id, false);
-                        }
-                      }}
-                    >
-                      Vérifier le sac de soin
-                    </Button>
-                    {hasVariants && (
+                    {hasVariants ? (
+                      <>
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/soin`);
+                            }
+                          }}
+                        >
+                          {isSubCompleted(sub.id, selectedVariant, "soin") && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier le sac de soin
+                        </Button>
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/o2`);
+                            }
+                          }}
+                        >
+                          {isSubCompleted(sub.id, selectedVariant, "o2") && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier le sac d'O2
+                        </Button>
+                      </>
+                    ) : (
                       <Button
                         className="w-full cursor-pointer"
                         variant="default"
-                        disabled={!selectedVariant}
-                        onClick={() => {
-                          if (selectedVariant) {
-                            navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/o2`);
-                          }
-                        }}
+                        onClick={() => navigate(`/inventory/${lotId}/${sub.id}`)}
                       >
-                        Vérifier l'inventaire du sac d'O2
+                        Vérifier l'inventaire
                       </Button>
                     )}
                   </div>
@@ -173,6 +271,21 @@ export default function SubEntitiesPage() {
           })}
         </div>
       </main>
+
+      {/* Bouton Sauvegarder/Envoyer en bas */}
+      <footer className="border-t bg-card">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <Button
+            className="w-full sm:w-auto cursor-pointer"
+            variant="default"
+            size="lg"
+            onClick={handleSave}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Sauvegarder / Envoyer
+          </Button>
+        </div>
+      </footer>
     </div>
   );
 }

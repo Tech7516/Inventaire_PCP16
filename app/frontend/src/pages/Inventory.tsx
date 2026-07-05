@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
 import { toast } from "sonner";
+import { markCompleted } from "./SubEntities";
 
 interface InventoryEntry {
   itemId: string;
@@ -99,7 +100,12 @@ export default function InventoryPage() {
       return;
     }
     toast.success("Inventaire enregistré avec succès !");
-    console.log("Inventaire soumis:", { lotId, subId, variantId, entries });
+    // Mark this section as completed so green check appears on SubEntities page
+    const completedKey = variantId
+      ? `${lotId}-${subId}-${variantId}-${sacType || "soin"}`
+      : `${lotId}-${subId}`;
+    markCompleted(completedKey);
+    console.log("Inventaire soumis:", { lotId, subId, variantId, sacType, entries });
   };
 
   return (
