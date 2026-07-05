@@ -2,30 +2,37 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { lots } from "@/data/lots";
-import { ArrowLeft, Plus, Trash2, Save, ClipboardList } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { lots, lotConsumables } from "@/data/lots";
+import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
 import { toast } from "sonner";
 
-interface InventoryItem {
-  id: string;
-  name: string;
-  quantity: number;
-  condition: string;
-  comment: string;
+interface InventoryEntry {
+  itemId: string;
+  validated: boolean;
+  customQuantity: string;
 }
 
 export default function InventoryPage() {
   const { lotId } = useParams<{ lotId: string }>();
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
+  const consumables = lotId ? lotConsumables[lotId] || [] : [];
 
-  const [items, setItems] = useState<InventoryItem[]>([
-    { id: crypto.randomUUID(), name: "", quantity: 1, condition: "bon", comment: "" },
-  ]);
+  const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
+    () => {
+      const initial: Record<string, InventoryEntry> = {};
+      consumables.forEach((item) => {
+        initial[item.id] = {
+          itemId: item.id,
+          validated: false,
+          customQuantity: "",
+        };
+      });
+      return initial;
+    }
+  );
 
   if (!lot) {
     return (
@@ -41,38 +48,44 @@ export default function InventoryPage() {
     );
   }
 
-  const addItem = () => {
-    setItems([
-      ...items,
-      { id: crypto.randomUUID(), name: "", quantity: 1, condition: "bon", comment: "" },
-    ]);
+  const toggleValidation = (itemId: string) => {
+    setEntries((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...prev[itemId],
+        validated: !prev[itemId].validated,
+        customQuantity: !prev[itemId].validated ? "" : prev[itemId].customQuantity,
+      },
+    }));
   };
 
-  const removeItem = (id: string) => {
-    if (items.length === 1) {
-      toast.error("Vous devez garder au moins une ligne");
-      return;
-    }
-    setItems(items.filter((item) => item.id !== id));
-  };
-
-  const updateItem = (id: string, field: keyof InventoryItem, value: string | number) => {
-    setItems(
-      items.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    );
+  const updateCustomQuantity = (itemId: string, value: string) => {
+    setEntries((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...prev[itemId],
+        customQuantity: value,
+      },
+    }));
   };
 
   const handleSubmit = () => {
-    const emptyItems = items.filter((item) => !item.name.trim());
-    if (emptyItems.length > 0) {
-      toast.error("Veuillez remplir le nom de tous les articles");
+    const unprocessed = consumables.filter(
+      (item) => !entries[item.id].validated && !entries[item.id].customQuantity.trim()
+    );
+    if (unprocessed.length > 0) {
+      toast.error(
+        `${unprocessed.length} article(s) non traité(s). Validez le stock ou indiquez une quantité différente.`
+      );
       return;
     }
-    toast.success(`Inventaire enregistré avec ${items.length} article(s)`);
-    console.log("Inventaire soumis:", { lotId, items });
+    toast.success("Inventaire enregistré avec succès !");
+    console.log("Inventaire soumis:", { lotId, entries });
   };
+
+  const validatedCount = consumables.filter((item) => 
+    entries[item.id].validated || entries[item.id].customQuantity.trim()
+  ).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,7 +108,7 @@ export default function InventoryPage() {
                     {lot.name}
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    {lot.location}
+                    {validatedCount}/{consumables.length} articles traités
                   </p>
                 </div>
               </div>
@@ -109,89 +122,64 @@ export default function InventoryPage() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-4">
-          {items.map((item, index) => (
-            <Card key={item.id} className="transition-all duration-200">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Article {index + 1}
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
-                    onClick={() => removeItem(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                    <Label htmlFor={`name-${item.id}`}>Nom de l'article</Label>
-                    <Input
-                      id={`name-${item.id}`}
-                      placeholder="Ex: Ordinateur portable"
-                      value={item.name}
-                      onChange={(e) => updateItem(item.id, "name", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`quantity-${item.id}`}>Quantité</Label>
-                    <Input
-                      id={`quantity-${item.id}`}
-                      type="number"
-                      min={0}
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(item.id, "quantity", parseInt(e.target.value) || 0)
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`condition-${item.id}`}>État</Label>
-                    <Select
-                      value={item.condition}
-                      onValueChange={(value) => updateItem(item.id, "condition", value)}
-                    >
-                      <SelectTrigger id={`condition-${item.id}`} className="cursor-pointer">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bon" className="cursor-pointer">Bon état</SelectItem>
-                        <SelectItem value="use" className="cursor-pointer">Usé</SelectItem>
-                        <SelectItem value="endommage" className="cursor-pointer">Endommagé</SelectItem>
-                        <SelectItem value="hors-service" className="cursor-pointer">Hors service</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                    <Label htmlFor={`comment-${item.id}`}>Commentaire</Label>
-                    <Textarea
-                      id={`comment-${item.id}`}
-                      placeholder="Remarques..."
-                      value={item.comment}
-                      onChange={(e) => updateItem(item.id, "comment", e.target.value)}
-                      className="resize-none h-10"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <div className="space-y-3">
+          {consumables.map((item) => {
+            const entry = entries[item.id];
+            const isProcessed = entry.validated || entry.customQuantity.trim();
 
-        <div className="mt-6 flex justify-center">
-          <Button
-            variant="outline"
-            onClick={addItem}
-            className="cursor-pointer"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un article
-          </Button>
+            return (
+              <Card
+                key={item.id}
+                className={`transition-all duration-200 ${
+                  isProcessed ? "border-emerald-200 bg-emerald-50/50" : ""
+                }`}
+              >
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Stock attendu : <span className="font-semibold">{item.expectedQuantity}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`validate-${item.id}`}
+                          checked={entry.validated}
+                          onCheckedChange={() => toggleValidation(item.id)}
+                          className="cursor-pointer"
+                        />
+                        <label
+                          htmlFor={`validate-${item.id}`}
+                          className="text-sm font-medium cursor-pointer select-none flex items-center gap-1"
+                        >
+                          {entry.validated && <Check className="h-3 w-3 text-emerald-600" />}
+                          Conforme ({item.expectedQuantity})
+                        </label>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">ou quantité :</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Qté réelle"
+                          value={entry.customQuantity}
+                          onChange={(e) => updateCustomQuantity(item.id, e.target.value)}
+                          disabled={entry.validated}
+                          className="w-24"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </main>
     </div>

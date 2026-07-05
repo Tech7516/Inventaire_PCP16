@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { lots } from "@/data/lots";
-import { ClipboardList, MapPin, Package, CalendarClock } from "lucide-react";
+import { ClipboardList, MapPin, CalendarClock } from "lucide-react";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -64,10 +64,6 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 shrink-0" />
                   <span>{lot.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Package className="h-4 w-4 shrink-0" />
-                  <span>{lot.itemCount} articles attendus</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CalendarClock className="h-4 w-4 shrink-0" />
