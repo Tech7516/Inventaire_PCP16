@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { lots, lotSubEntities } from "@/data/lots";
-import { ArrowLeft, AlertTriangle, CheckCircle2, ClipboardList } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, ClipboardList, Download } from "lucide-react";
 
 interface SavedInventoryEntry {
   itemId: string;
@@ -57,6 +57,21 @@ function getVariantDisplayName(lotId: string, subId: string, variantId: string |
   return sub.name;
 }
 
+function formatDateTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 export default function ReportPage() {
   const { lotId } = useParams<{ lotId: string }>();
   const navigate = useNavigate();
@@ -65,9 +80,12 @@ export default function ReportPage() {
 
   // Collect all discrepancies for this lot
   const discrepancies: DiscrepancyItem[] = [];
+  // Also collect all saved data for this lot for the summary
+  const lotInventoryData: SavedInventory[] = [];
 
   Object.values(allData).forEach((data) => {
     if (data.lotId !== lotId) return;
+    lotInventoryData.push(data);
 
     // Build location label
     const subLabel = getVariantDisplayName(data.lotId, data.subId, data.variantId);
@@ -98,30 +116,141 @@ export default function ReportPage() {
     });
   });
 
+  const handleDownload = () => {
+    const dpsName = localStorage.getItem("dps-name") || "";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    const timeStr = now.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const lines: string[] = [];
+    lines.push("═══════════════════════════════════════════════════════");
+    lines.push(`  RAPPORT D'ÉCART — ${lot?.name || ""}${lot?.location ? ` — ${lot.location}` : ""}`);
+    lines.push(`  Date : ${dateStr} à ${timeStr}`);
+    if (dpsName) lines.push(`  DPS : ${dpsName}`);
+    lines.push("═══════════════════════════════════════════════════════");
+    lines.push("");
+
+    if (discrepancies.length === 0) {
+      lines.push("✅ Aucun écart détecté.");
+      lines.push("Tous les consommables sont conformes aux quantités attendues.");
+    } else {
+      lines.push(`⚠️  ${discrepancies.length} écart${discrepancies.length > 1 ? "s" : ""} détecté${discrepancies.length > 1 ? "s" : ""} :`);
+      lines.push("");
+      lines.push("───────────────────────────────────────────────────────");
+      discrepancies.forEach((item, idx) => {
+        const missing = item.expectedQuantity - item.actualQuantity;
+        lines.push(`${idx + 1}. ${item.itemName}`);
+        lines.push(`   Emplacement : ${item.location}`);
+        lines.push(`   Quantité attendue : ${item.expectedQuantity}`);
+        lines.push(`   Quantité réelle  : ${item.actualQuantity}`);
+        lines.push(`   Manquant${missing > 1 ? "s" : ""} : ${missing}`);
+        lines.push("───────────────────────────────────────────────────────");
+      });
+    }
+
+    lines.push("");
+    lines.push("───────────────────────────────────────────────────────");
+    lines.push("  DÉTAIL COMPLET DE L'INVENTAIRE");
+    lines.push("───────────────────────────────────────────────────────");
+
+    lotInventoryData.forEach((data) => {
+      const subLabel = getVariantDisplayName(data.lotId, data.subId, data.variantId);
+      const sacLabel =
+        data.sacType === "soin"
+          ? "Sac de soin"
+          : data.sacType === "o2"
+            ? "Sac d'O2"
+            : null;
+      const header = [subLabel, sacLabel].filter(Boolean).join(" / ");
+
+      lines.push("");
+      lines.push(`  ▸ ${header}  (${formatDateTime(data.savedAt)})`);
+      lines.push("");
+
+      // Group by section
+      const bySection: Record<string, SavedInventoryEntry[]> = {};
+      data.entries.forEach((entry) => {
+        if (!bySection[entry.sectionTitle]) bySection[entry.sectionTitle] = [];
+        bySection[entry.sectionTitle].push(entry);
+      });
+
+      Object.entries(bySection).forEach(([sectionTitle, entries]) => {
+        lines.push(`    [${sectionTitle}]`);
+        entries.forEach((entry) => {
+          if (entry.validated) {
+            lines.push(`      ✅ ${entry.itemName} : ${entry.expectedQuantity} (conforme)`);
+          } else if (entry.customQuantity.trim()) {
+            const actual = parseInt(entry.customQuantity, 10);
+            const isDiscrepancy = !isNaN(actual) && actual !== entry.expectedQuantity;
+            const icon = isDiscrepancy ? "❌" : "✅";
+            const suffix = isDiscrepancy ? ` (écart : ${actual}/${entry.expectedQuantity})` : ` (${actual}, conforme)`;
+            lines.push(`      ${icon} ${entry.itemName} :${suffix}`);
+          } else {
+            lines.push(`      ⬜ ${entry.itemName} : ${entry.expectedQuantity} (non traité)`);
+          }
+        });
+      });
+    });
+
+    lines.push("");
+    lines.push("═══════════════════════════════════════════════════════");
+    lines.push("  Fin du rapport");
+    lines.push("═══════════════════════════════════════════════════════");
+
+    const content = lines.join("\n");
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeName = (lot?.name || "rapport").replace(/\s+/g, "-").toLowerCase();
+    a.download = `rapport-ecart-${safeName}-${dateStr.replace(/\//g, "-")}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(lotId ? `/lot/${lotId}` : "/")}
-              className="cursor-pointer"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 text-primary" />
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">
-                  Rapport d'ecart
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  {lot?.name || ""}{lot?.location ? ` — ${lot.location}` : ""}
-                </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(lotId ? `/lot/${lotId}` : "/")}
+                className="cursor-pointer"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    Rapport d'écart
+                  </h1>
+                  <p className="text-xs text-muted-foreground">
+                    {lot?.name || ""}{lot?.location ? ` — ${lot.location}` : ""}
+                  </p>
+                </div>
               </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={handleDownload}
+              className="cursor-pointer"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger
+            </Button>
           </div>
         </div>
       </header>
@@ -131,17 +260,17 @@ export default function ReportPage() {
           <div className="text-center py-16 space-y-4">
             <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
             <p className="text-lg font-medium text-foreground">
-              Aucun ecart detecte
+              Aucun écart détecté
             </p>
             <p className="text-sm text-muted-foreground">
-              Tous les consommables sont conformes aux quantites attendues.
+              Tous les consommables sont conformes aux quantités attendues.
             </p>
             <Button
               variant="outline"
               onClick={() => navigate("/")}
               className="cursor-pointer"
             >
-              Retour a l'accueil
+              Retour à l'accueil
             </Button>
           </div>
         ) : (
@@ -149,7 +278,7 @@ export default function ReportPage() {
             <div className="flex items-center gap-2 text-amber-600">
               <AlertTriangle className="h-5 w-5" />
               <p className="font-medium">
-                {discrepancies.length} ecart{discrepancies.length > 1 ? "s" : ""} detecte{discrepancies.length > 1 ? "s" : ""}
+                {discrepancies.length} écart{discrepancies.length > 1 ? "s" : ""} détecté{discrepancies.length > 1 ? "s" : ""}
               </p>
             </div>
             <div className="space-y-2">
@@ -185,7 +314,7 @@ export default function ReportPage() {
                 onClick={() => navigate("/")}
                 className="cursor-pointer"
               >
-                Retour a l'accueil
+                Retour à l'accueil
               </Button>
             </div>
           </div>

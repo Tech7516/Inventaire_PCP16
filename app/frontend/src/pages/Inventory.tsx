@@ -11,6 +11,21 @@ import { markCompleted } from "./SubEntities";
 import { addLogEntry } from "./Log";
 import { saveInventoryData } from "./Report";
 
+function getCompletedKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem("inventory-completed");
+    if (raw) return new Set(JSON.parse(raw));
+  } catch { /* ignore */ }
+  return new Set();
+}
+
+function clearCompletedKeysForLot(lotId: string) {
+  const all = getCompletedKeys();
+  const keysToRemove = [...all].filter((key) => key.startsWith(`${lotId}-`));
+  keysToRemove.forEach((key) => all.delete(key));
+  localStorage.setItem("inventory-completed", JSON.stringify([...all]));
+}
+
 interface InventoryEntry {
   itemId: string;
   validated: boolean;
@@ -161,6 +176,10 @@ export default function InventoryPage() {
         completedAt: new Date().toISOString(),
         completedKey,
       });
+
+      // Reset completed keys and DPS name for this lot
+      clearCompletedKeysForLot(lotId || "");
+      localStorage.removeItem("dps-name");
 
       // Redirect to report page for direct inventory
       navigate(`/report/${lotId}`);

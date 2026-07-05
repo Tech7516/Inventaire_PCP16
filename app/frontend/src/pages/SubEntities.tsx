@@ -158,6 +158,17 @@ export default function SubEntitiesPage() {
       completed: [...completedKeys],
     });
 
+    // Reset completed keys for this lot
+    const allCompleted = getCompletedKeys();
+    const keysToRemove = [...allCompleted].filter((key) => key.startsWith(`${lotId}-`));
+    keysToRemove.forEach((key) => allCompleted.delete(key));
+    localStorage.setItem("inventory-completed", JSON.stringify([...allCompleted]));
+    setCompletedKeys(allCompleted);
+
+    // Reset DPS name
+    localStorage.removeItem("dps-name");
+    setDpsName("");
+
     // Redirect to discrepancy report page
     if (lotId) {
       navigate(`/report/${lotId}`);
