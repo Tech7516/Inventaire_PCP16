@@ -7,6 +7,7 @@ import Index from './pages/Index';
 import SubEntities from './pages/SubEntities';
 import Inventory from './pages/Inventory';
 import Log from './pages/Log';
+import Report from './pages/Report';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
 // MODULE_IMPORTS_START
@@ -22,6 +23,7 @@ const AppRoutes = () => (
     <Route path="/inventory/:lotId/:subId" element={<Inventory />} />
     <Route path="/inventory/:lotId/:subId/:variantId" element={<Inventory />} />
     <Route path="/inventory/:lotId/:subId/:variantId/:sacType" element={<Inventory />} />
+    <Route path="/report/:lotId" element={<Report />} />
     {/* <Route path="/blog/*" element={<BlogRoutes />} /> */}
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth/error" element={<AuthError />} />

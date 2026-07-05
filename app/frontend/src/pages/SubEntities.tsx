@@ -157,6 +157,11 @@ export default function SubEntitiesPage() {
       dpsName: dpsNameValue,
       completed: [...completedKeys],
     });
+
+    // Redirect to discrepancy report page
+    if (lotId) {
+      navigate(`/report/${lotId}`);
+    }
   };
 
   if (!lot) {

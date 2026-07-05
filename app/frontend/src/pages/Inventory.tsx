@@ -9,6 +9,7 @@ import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
 import { toast } from "sonner";
 import { markCompleted } from "./SubEntities";
 import { addLogEntry } from "./Log";
+import { saveInventoryData } from "./Report";
 
 interface InventoryEntry {
   itemId: string;
@@ -114,6 +115,26 @@ export default function InventoryPage() {
         : `${lotId}-${subId}`;
     markCompleted(completedKey);
 
+    // Save inventory data for discrepancy report
+    const savedEntries = sections.flatMap((section) =>
+      section.items.map((item) => ({
+        itemId: item.id,
+        validated: entries[item.id].validated,
+        customQuantity: entries[item.id].customQuantity,
+        itemName: item.name,
+        expectedQuantity: item.expectedQuantity,
+        sectionTitle: section.title,
+      }))
+    );
+    saveInventoryData({
+      lotId: lotId || "",
+      subId: subId || "",
+      variantId: variantId || null,
+      sacType: sacType || null,
+      entries: savedEntries,
+      savedAt: new Date().toISOString(),
+    });
+
     // Log only for direct inventory lots (e.g. Lot V)
     if (isDirectInventory) {
       const dpsName = localStorage.getItem("dps-name") || "";
@@ -140,6 +161,12 @@ export default function InventoryPage() {
         completedAt: new Date().toISOString(),
         completedKey,
       });
+
+      // Redirect to report page for direct inventory
+      navigate(`/report/${lotId}`);
+    } else {
+      // Go back to sub-entities page
+      navigate(`/lot/${lotId}`);
     }
 
     console.log("Inventaire soumis:", { lotId, subId, variantId, sacType, entries });

@@ -663,7 +663,18 @@ subEntitySections["pom-c"] = [
 ];
 subEntitySections["lot-b-c-soin"] = subEntitySections["lot-b-soin"];
 subEntitySections["lot-b-c-o2"] = subEntitySections["lot-b-o2"];
-subEntitySections["caisse-c"] = [];
+subEntitySections["caisse-c"] = [
+  {
+    id: "caisse-c-admin",
+    title: "Admin",
+    items: [
+      { id: "cc-001", name: "Boîte de masques chirurgicaux", expectedQuantity: 1 },
+      { id: "cc-002", name: "Eau (litres)", expectedQuantity: 3 },
+      { id: "cc-003", name: "Couverture bactériostatique", expectedQuantity: 1 },
+      { id: "cc-004", name: "Drap UU", expectedQuantity: 5 },
+    ],
+  },
+];
 
 // VPS — Cellule avant
 subEntitySections["vps-cellule-avant"] = [
