@@ -155,7 +155,7 @@ export default function SubEntitiesPage() {
                     {hasVariants && (
                       <Button
                         className="w-full cursor-pointer"
-                        variant="outline"
+                        variant="default"
                         disabled={!selectedVariant}
                         onClick={() => {
                           if (selectedVariant) {

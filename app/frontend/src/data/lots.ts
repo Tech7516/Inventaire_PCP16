@@ -211,9 +211,177 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
     },
   ],
   // Lot B — sac de soin (tous les Lot B contiennent les mêmes articles)
-  "lot-b-soin": [],
+  "lot-b-soin": [
+    {
+      id: "lb-soin-ext",
+      title: "Poche extérieure",
+      items: [
+        { id: "lb-s-001", name: "Combinaison", expectedQuantity: 1 },
+        { id: "lb-s-002", name: "Lampe frontale", expectedQuantity: 1 },
+        { id: "lb-s-003", name: "Haricot réutilisable", expectedQuantity: 1 },
+        { id: "lb-s-004", name: "Bouteille d'eau 50cl", expectedQuantity: 1 },
+        { id: "lb-s-005", name: "Gobelet", expectedQuantity: 5 },
+        { id: "lb-s-006", name: "Rouleau de rubalise", expectedQuantity: 1 },
+        { id: "lb-s-007", name: "Drap UU", expectedQuantity: 1 },
+      ],
+    },
+    {
+      id: "lb-soin-filets",
+      title: "Filets latéraux",
+      items: [
+        { id: "lb-s-008", name: "Ciseaux Jesco", expectedQuantity: 1 },
+        { id: "lb-s-009", name: "Sac vomitoire", expectedQuantity: 3 },
+        { id: "lb-s-010", name: "Couverture de survie", expectedQuantity: 1 },
+        { id: "lb-s-011", name: "Sachet de 4 paires de gants", expectedQuantity: 1 },
+        { id: "lb-s-012", name: "Gel hydroalcoolique 100 ml", expectedQuantity: 1 },
+        { id: "lb-s-013", name: "Boîte OPTC", expectedQuantity: 1 },
+        { id: "lb-s-014", name: "Sachet sucre et touillettes", expectedQuantity: 15 },
+      ],
+    },
+    {
+      id: "lb-soin-zip-noir",
+      title: "Zip Noir",
+      items: [
+        { id: "lb-s-015", name: "DASRI", expectedQuantity: 3 },
+        { id: "lb-s-016", name: "DAOM", expectedQuantity: 3 },
+        { id: "lb-s-017", name: "Bloc de fiche bil", expectedQuantity: 1 },
+        { id: "lb-s-018", name: "Paire de gants de maintenance", expectedQuantity: 2 },
+      ],
+    },
+    {
+      id: "lb-soin-rabat-rouge",
+      title: "Rabat rouge",
+      items: [
+        { id: "lb-s-019", name: "Thermomètre axillaire", expectedQuantity: 1 },
+        { id: "lb-s-020", name: "Saturomètre", expectedQuantity: 1 },
+        { id: "lb-s-021", name: "Thermomètre tympanique", expectedQuantity: 1 },
+        { id: "lb-s-022", name: "Boîte d'embouts tympaniques", expectedQuantity: 1 },
+        { id: "lb-s-023", name: "Glucomètre", expectedQuantity: 1 },
+        { id: "lb-s-024", name: "Boîte de bandelettes", expectedQuantity: 1 },
+        { id: "lb-s-025", name: "Auto-piqueur", expectedQuantity: 5 },
+      ],
+    },
+    {
+      id: "lb-soin-poche-rouge",
+      title: "Poche Rouge",
+      items: [
+        { id: "lb-s-026", name: "Pansement absorbant 20x40", expectedQuantity: 2 },
+        { id: "lb-s-027", name: "C.H.U", expectedQuantity: 1 },
+        { id: "lb-s-028", name: "Pansement israélien", expectedQuantity: 2 },
+        { id: "lb-s-029", name: "Pansement imbibé de substance hémostatique", expectedQuantity: 1 },
+        { id: "lb-s-030", name: "Garrot", expectedQuantity: 2 },
+      ],
+    },
+    {
+      id: "lb-soin-rabat-bleu",
+      title: "Rabat bleu",
+      items: [
+        { id: "lb-s-031", name: "Manomètre + brassard moyen", expectedQuantity: 1 },
+        { id: "lb-s-032", name: "Jeu de 3 brassards", expectedQuantity: 1 },
+        { id: "lb-s-033", name: "Stéthoscope", expectedQuantity: 1 },
+      ],
+    },
+    {
+      id: "lb-soin-poche-jaune",
+      title: "Poche Jaune",
+      items: [
+        { id: "lb-s-034", name: "Pince à échardes", expectedQuantity: 1 },
+        { id: "lb-s-035", name: "Tire-tique", expectedQuantity: 1 },
+        { id: "lb-s-036", name: "Rouleau de sparadrap", expectedQuantity: 2 },
+        { id: "lb-s-037", name: "Compresse stérile par 2", expectedQuantity: 20 },
+        { id: "lb-s-038", name: "Boîte de compresses non stériles", expectedQuantity: 1 },
+        { id: "lb-s-039", name: "Sérum physiologique unidose 5ml", expectedQuantity: 10 },
+        { id: "lb-s-040", name: "Boîte de pansements", expectedQuantity: 1 },
+        { id: "lb-s-041", name: "Coalgan", expectedQuantity: 2 },
+      ],
+    },
+    {
+      id: "lb-soin-poche-bleue",
+      title: "Poche Bleue",
+      items: [
+        { id: "lb-s-042", name: "Poche de froid", expectedQuantity: 3 },
+        { id: "lb-s-043", name: "Écharpe triangulaire", expectedQuantity: 2 },
+        { id: "lb-s-044", name: "Bande cohésive", expectedQuantity: 2 },
+        { id: "lb-s-045", name: "Bande 6x4", expectedQuantity: 2 },
+        { id: "lb-s-046", name: "Bande 10x4", expectedQuantity: 2 },
+      ],
+    },
+    {
+      id: "lb-soin-poche-verte",
+      title: "Poche Verte",
+      items: [
+        { id: "lb-s-047", name: "Masque chirurgical", expectedQuantity: 4 },
+        { id: "lb-s-048", name: "Masque FFP2/3", expectedQuantity: 4 },
+        { id: "lb-s-049", name: "Pansement 7,2x5", expectedQuantity: 3 },
+        { id: "lb-s-050", name: "Pansement 10x8", expectedQuantity: 3 },
+        { id: "lb-s-051", name: "Pansement 20x10", expectedQuantity: 3 },
+      ],
+    },
+  ],
   // Lot B — sac d'O2
-  "lot-b-o2": [],
+  "lot-b-o2": [
+    {
+      id: "lb-o2-ext",
+      title: "Poche extérieure",
+      items: [
+        { id: "lb-o-001", name: "Couverture bactério", expectedQuantity: 1 },
+        { id: "lb-o-002", name: "Drap UU", expectedQuantity: 1 },
+      ],
+    },
+    {
+      id: "lb-o2-filets",
+      title: "Filets",
+      items: [
+        { id: "lb-o-003", name: "Collier cervical adulte", expectedQuantity: 1 },
+        { id: "lb-o-004", name: "Collier cervical pédiatrique", expectedQuantity: 1 },
+        { id: "lb-o-005", name: "Couverture de survie", expectedQuantity: 1 },
+      ],
+    },
+    {
+      id: "lb-o2-interieur",
+      title: "Intérieur",
+      items: [
+        { id: "lb-o-006", name: "Bouteille d'O2", expectedQuantity: 1 },
+        { id: "lb-o-007", name: "Cardio-pompe", expectedQuantity: 1 },
+      ],
+    },
+    {
+      id: "lb-o2-poche-verte",
+      title: "Poche Verte",
+      items: [
+        { id: "lb-o-008", name: "MHC adulte", expectedQuantity: 2 },
+        { id: "lb-o-009", name: "MMC adulte", expectedQuantity: 2 },
+        { id: "lb-o-010", name: "Lunettes d'O2", expectedQuantity: 2 },
+      ],
+    },
+    {
+      id: "lb-o2-poche-bleue",
+      title: "Poche Bleue",
+      items: [
+        { id: "lb-o-011", name: "MHC pédiatrique", expectedQuantity: 2 },
+        { id: "lb-o-012", name: "MMC pédiatrique", expectedQuantity: 2 },
+        { id: "lb-o-013", name: "BAVU pédiatrique + T3", expectedQuantity: 1 },
+        { id: "lb-o-014", name: "Masque d'insufflation T2 et T0", expectedQuantity: 2 },
+      ],
+    },
+    {
+      id: "lb-o2-grande-poche-bleue",
+      title: "Grande poche bleue",
+      items: [
+        { id: "lb-o-015", name: "Boîte de canules de Guedel", expectedQuantity: 1 },
+        { id: "lb-o-016", name: "Paire de lunettes", expectedQuantity: 2 },
+        { id: "lb-o-017", name: "BAVU néonat + T1", expectedQuantity: 1 },
+      ],
+    },
+    {
+      id: "lb-o2-poche-superieure",
+      title: "Poche supérieure",
+      items: [
+        { id: "lb-o-018", name: "BAVU adulte relié à l'O2", expectedQuantity: 1 },
+        { id: "lb-o-019", name: "Masque d'insufflation T5 et T4", expectedQuantity: 2 },
+      ],
+    },
+  ],
   "lot-b": [],
   "caisse-1": [],
   "caisse-2": [],
