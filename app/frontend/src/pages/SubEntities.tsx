@@ -115,7 +115,7 @@ export default function SubEntitiesPage() {
                   {hasVariants && (
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-muted-foreground">
-                        Sélectionnez un lot :
+                        Choix du lot B :
                       </label>
                       <Select
                         value={selectedVariant || ""}
@@ -124,7 +124,7 @@ export default function SubEntitiesPage() {
                         }
                       >
                         <SelectTrigger className="w-full cursor-pointer">
-                          <SelectValue placeholder="Choisir une variante..." />
+                          <SelectValue placeholder="Choisir un lot B..." />
                         </SelectTrigger>
                         <SelectContent>
                           {sub.variants!.map((variant) => (
@@ -137,15 +137,35 @@ export default function SubEntitiesPage() {
                     </div>
                   )}
 
-                  <div className="pt-3 border-t">
+                  <div className="pt-3 border-t space-y-2">
                     <Button
                       className="w-full cursor-pointer"
                       variant="default"
                       disabled={hasVariants ? !selectedVariant : false}
-                      onClick={() => handleInventory(sub.id, !!hasVariants)}
+                      onClick={() => {
+                        if (hasVariants && selectedVariant) {
+                          navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/soin`);
+                        } else {
+                          handleInventory(sub.id, false);
+                        }
+                      }}
                     >
-                      Vérifier l'inventaire
+                      Vérifier le sac de soin
                     </Button>
+                    {hasVariants && (
+                      <Button
+                        className="w-full cursor-pointer"
+                        variant="outline"
+                        disabled={!selectedVariant}
+                        onClick={() => {
+                          if (selectedVariant) {
+                            navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/o2`);
+                          }
+                        }}
+                      >
+                        Vérifier l'inventaire du sac d'O2
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

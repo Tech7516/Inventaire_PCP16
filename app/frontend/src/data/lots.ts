@@ -210,7 +210,10 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
       ],
     },
   ],
-  // Lot B — tous les Lot B contiennent les mêmes articles
+  // Lot B — sac de soin (tous les Lot B contiennent les mêmes articles)
+  "lot-b-soin": [],
+  // Lot B — sac d'O2
+  "lot-b-o2": [],
   "lot-b": [],
   "caisse-1": [],
   "caisse-2": [],

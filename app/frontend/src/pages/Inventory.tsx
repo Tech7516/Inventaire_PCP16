@@ -15,14 +15,17 @@ interface InventoryEntry {
 }
 
 export default function InventoryPage() {
-  const { lotId, subId, variantId } = useParams<{ lotId: string; subId: string; variantId?: string }>();
+  const { lotId, subId, variantId, sacType } = useParams<{ lotId: string; subId: string; variantId?: string; sacType?: string }>();
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
   const subEntity = lotId && subId
     ? lotSubEntities[lotId]?.find((s) => s.id === subId)
     : null;
   const variant = subEntity?.variants?.find((v) => v.id === variantId);
-  const sections = subId ? subEntitySections[subId] || [] : [];
+
+  // Determine which sections to show based on sacType
+  const sectionKey = sacType ? `${subId}-${sacType}` : subId;
+  const sections = subId ? subEntitySections[sectionKey] || subEntitySections[subId] || [] : [];
 
   const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
     () => {
@@ -40,7 +43,10 @@ export default function InventoryPage() {
     }
   );
 
-  const displayTitle = variant ? variant.name : subEntity?.name || "";
+  const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : "";
+  const displayTitle = variant
+    ? `${variant.name} — ${sacLabel}`
+    : subEntity?.name || "";
 
   if (!lot || !subEntity) {
     return (
