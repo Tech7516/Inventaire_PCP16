@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { lots, lotConsumables } from "@/data/lots";
+import { lots, lotSections } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,17 +18,19 @@ export default function InventoryPage() {
   const { lotId } = useParams<{ lotId: string }>();
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
-  const consumables = lotId ? lotConsumables[lotId] || [] : [];
+  const sections = lotId ? lotSections[lotId] || [] : [];
 
   const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
     () => {
       const initial: Record<string, InventoryEntry> = {};
-      consumables.forEach((item) => {
-        initial[item.id] = {
-          itemId: item.id,
-          validated: false,
-          customQuantity: "",
-        };
+      sections.forEach((section) => {
+        section.items.forEach((item) => {
+          initial[item.id] = {
+            itemId: item.id,
+            validated: false,
+            customQuantity: "",
+          };
+        });
       });
       return initial;
     }
@@ -47,6 +49,11 @@ export default function InventoryPage() {
       </div>
     );
   }
+
+  const allItems = sections.flatMap((s) => s.items);
+  const processedCount = allItems.filter(
+    (item) => entries[item.id].validated || entries[item.id].customQuantity.trim()
+  ).length;
 
   const toggleValidation = (itemId: string) => {
     setEntries((prev) => ({
@@ -70,7 +77,7 @@ export default function InventoryPage() {
   };
 
   const handleSubmit = () => {
-    const unprocessed = consumables.filter(
+    const unprocessed = allItems.filter(
       (item) => !entries[item.id].validated && !entries[item.id].customQuantity.trim()
     );
     if (unprocessed.length > 0) {
@@ -82,10 +89,6 @@ export default function InventoryPage() {
     toast.success("Inventaire enregistré avec succès !");
     console.log("Inventaire soumis:", { lotId, entries });
   };
-
-  const validatedCount = consumables.filter((item) => 
-    entries[item.id].validated || entries[item.id].customQuantity.trim()
-  ).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,10 +108,10 @@ export default function InventoryPage() {
                 <ClipboardList className="h-5 w-5 text-primary" />
                 <div>
                   <h1 className="text-lg font-semibold text-foreground">
-                    {lot.name}
+                    {lot.name} — {lot.location}
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    {validatedCount}/{consumables.length} articles traités
+                    {processedCount}/{allItems.length} articles traités
                   </p>
                 </div>
               </div>
@@ -122,64 +125,73 @@ export default function InventoryPage() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-3">
-          {consumables.map((item) => {
-            const entry = entries[item.id];
-            const isProcessed = entry.validated || entry.customQuantity.trim();
+        <div className="space-y-8">
+          {sections.map((section) => (
+            <div key={section.id}>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                {section.title}
+              </h2>
+              <div className="space-y-2">
+                {section.items.map((item) => {
+                  const entry = entries[item.id];
+                  const isProcessed = entry.validated || entry.customQuantity.trim();
 
-            return (
-              <Card
-                key={item.id}
-                className={`transition-all duration-200 ${
-                  isProcessed ? "border-emerald-200 bg-emerald-50/50" : ""
-                }`}
-              >
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Stock attendu : <span className="font-semibold">{item.expectedQuantity}</span>
-                      </p>
-                    </div>
+                  return (
+                    <Card
+                      key={item.id}
+                      className={`transition-all duration-200 ${
+                        isProcessed ? "border-emerald-200 bg-emerald-50/50" : ""
+                      }`}
+                    >
+                      <CardContent className="py-3">
+                        <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">
+                              {item.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Stock attendu : <span className="font-semibold">{item.expectedQuantity}</span>
+                            </p>
+                          </div>
 
-                    <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={`validate-${item.id}`}
-                          checked={entry.validated}
-                          onCheckedChange={() => toggleValidation(item.id)}
-                          className="cursor-pointer"
-                        />
-                        <label
-                          htmlFor={`validate-${item.id}`}
-                          className="text-sm font-medium cursor-pointer select-none flex items-center gap-1"
-                        >
-                          {entry.validated && <Check className="h-3 w-3 text-emerald-600" />}
-                          Conforme ({item.expectedQuantity})
-                        </label>
-                      </div>
+                          <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id={`validate-${item.id}`}
+                                checked={entry.validated}
+                                onCheckedChange={() => toggleValidation(item.id)}
+                                className="cursor-pointer"
+                              />
+                              <label
+                                htmlFor={`validate-${item.id}`}
+                                className="text-sm font-medium cursor-pointer select-none flex items-center gap-1"
+                              >
+                                {entry.validated && <Check className="h-3 w-3 text-emerald-600" />}
+                                Conforme ({item.expectedQuantity})
+                              </label>
+                            </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">ou quantité :</span>
-                        <Input
-                          type="number"
-                          min={0}
-                          placeholder="Qté réelle"
-                          value={entry.customQuantity}
-                          onChange={(e) => updateCustomQuantity(item.id, e.target.value)}
-                          disabled={entry.validated}
-                          className="w-24"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground whitespace-nowrap">ou quantité :</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                placeholder="Qté réelle"
+                                value={entry.customQuantity}
+                                onChange={(e) => updateCustomQuantity(item.id, e.target.value)}
+                                disabled={entry.validated}
+                                className="w-24"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </main>
     </div>

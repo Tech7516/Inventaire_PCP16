@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { lots } from "@/data/lots";
@@ -56,9 +56,6 @@ export default function HomePage() {
                   </CardTitle>
                   {getStatusBadge(lot.status)}
                 </div>
-                <CardDescription className="text-sm">
-                  {lot.description}
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
