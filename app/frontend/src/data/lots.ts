@@ -653,10 +653,242 @@ subEntitySections["lot-b-c-o2"] = subEntitySections["lot-b-o2"];
 subEntitySections["caisse-c"] = [];
 
 // VPS — Cellule avant
-subEntitySections["vps-cellule-avant"] = [];
+subEntitySections["vps-cellule-avant"] = [
+  {
+    id: "vps-ca-admin",
+    title: "Admin",
+    items: [
+      { id: "vps-ca-001", name: "Lot A-B-C-VPS", expectedQuantity: 1 },
+      { id: "vps-ca-002", name: "Admin BSPP/SAMU/CSV", expectedQuantity: 1 },
+      { id: "vps-ca-003", name: "MCO + règle", expectedQuantity: 1 },
+      { id: "vps-ca-004", name: "Constats", expectedQuantity: 2 },
+      { id: "vps-ca-005", name: "Assurance + Carte grise", expectedQuantity: 1 },
+      { id: "vps-ca-006", name: "Plan", expectedQuantity: 1 },
+      { id: "vps-ca-007", name: "Carte essence (code : 7516)", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-ca-cellule",
+    title: "Cellule Avant",
+    items: [
+      { id: "vps-ca-008", name: "GHV", expectedQuantity: 3 },
+      { id: "vps-ca-009", name: "Piles plates", expectedQuantity: 5 },
+      { id: "vps-ca-010", name: "Piles AAA", expectedQuantity: 5 },
+      { id: "vps-ca-011", name: "SHA", expectedQuantity: 1 },
+      { id: "vps-ca-012", name: "Projecteur", expectedQuantity: 1 },
+      { id: "vps-ca-013", name: "Lunettes de soleil", expectedQuantity: 4 },
+      { id: "vps-ca-014", name: "Carte essence", expectedQuantity: 1 },
+      { id: "vps-ca-015", name: "Couteau", expectedQuantity: 1 },
+      { id: "vps-ca-016", name: "Anti-Lacrymo", expectedQuantity: 1 },
+      { id: "vps-ca-017", name: "Tricoises", expectedQuantity: 1 },
+      { id: "vps-ca-018", name: "Crique", expectedQuantity: 1 },
+      { id: "vps-ca-019", name: "Boîte de gants", expectedQuantity: 1 },
+      { id: "vps-ca-020", name: "Gilet Pare-Balles", expectedQuantity: 2 },
+      { id: "vps-ca-021", name: "Cales", expectedQuantity: 4 },
+      { id: "vps-ca-022", name: "Triangle", expectedQuantity: 1 },
+      { id: "vps-ca-023", name: "Carnet CH", expectedQuantity: 1 },
+      { id: "vps-ca-024", name: "Outils", expectedQuantity: 1 },
+      { id: "vps-ca-025", name: "Extincteur", expectedQuantity: 1 },
+    ],
+  },
+];
 
 // VPS — Cellule arrière
-subEntitySections["vps-cellule-arriere"] = [];
+subEntitySections["vps-cellule-arriere"] = [
+  {
+    id: "vps-cr-mat-app",
+    title: "Matériel apparent",
+    items: [
+      { id: "vps-cr-001", name: "Brancard", expectedQuantity: 1 },
+      { id: "vps-cr-002", name: "PDIT", expectedQuantity: 1 },
+      { id: "vps-cr-003", name: "T7", expectedQuantity: 1 },
+      { id: "vps-cr-004", name: "AMS + 5 CH 26 + 3 CH 12 + 2 stop vide", expectedQuantity: 1 },
+      { id: "vps-cr-005", name: "SHA", expectedQuantity: 1 },
+      { id: "vps-cr-006", name: "Boîte de gants", expectedQuantity: 2 },
+      { id: "vps-cr-007", name: "Bouteille d'O2", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-reserve1",
+    title: "Réserve 1",
+    items: [
+      { id: "vps-cr-008", name: "Bouchons d'oreilles", expectedQuantity: 20 },
+      { id: "vps-cr-009", name: "GHV", expectedQuantity: 3 },
+      { id: "vps-cr-010", name: "Drap", expectedQuantity: 5 },
+      { id: "vps-cr-011", name: "Boîte de masques FFP2", expectedQuantity: 1 },
+      { id: "vps-cr-012", name: "Boîte de masques chirurgicaux", expectedQuantity: 1 },
+      { id: "vps-cr-013", name: "Lunettes de protection", expectedQuantity: 4 },
+      { id: "vps-cr-014", name: "Caisse Réserve", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-reserve2",
+    title: "Réserve 2",
+    items: [
+      { id: "vps-cr-015", name: "Recharge AMS + Tubulures", expectedQuantity: 2 },
+      { id: "vps-cr-016", name: "Électrodes ECG", expectedQuantity: 20 },
+      { id: "vps-cr-017", name: "Boîte de gants S/M/L/XL/XL", expectedQuantity: 5 },
+      { id: "vps-cr-018", name: "OPTC", expectedQuantity: 1 },
+      { id: "vps-cr-019", name: "Gobelet", expectedQuantity: 10 },
+      { id: "vps-cr-020", name: "SHA", expectedQuantity: 1 },
+      { id: "vps-cr-021", name: "Savon liquide", expectedQuantity: 1 },
+      { id: "vps-cr-022", name: "Déodorant", expectedQuantity: 1 },
+      { id: "vps-cr-023", name: "Paquet de lingettes", expectedQuantity: 2 },
+      { id: "vps-cr-024", name: "Rouleau DAOM/DASRI", expectedQuantity: 2 },
+      { id: "vps-cr-025", name: "Surfa-Safe", expectedQuantity: 2 },
+      { id: "vps-cr-026", name: "Cardio-pompe", expectedQuantity: 1 },
+      { id: "vps-cr-027", name: "Boîte de compresses non stériles", expectedQuantity: 1 },
+      { id: "vps-cr-028", name: "Paquet de compresses stériles", expectedQuantity: 20 },
+      { id: "vps-cr-029", name: "Tensiomètre Auto/Manu", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-lat-g",
+    title: "Latérale G",
+    items: [
+      { id: "vps-cr-030", name: "Cuillère + cales tête", expectedQuantity: 1 },
+      { id: "vps-cr-031", name: "Cales tête PDIT", expectedQuantity: 1 },
+      { id: "vps-cr-032", name: "Anti-airbag et harnais pédiatrique", expectedQuantity: 1 },
+      { id: "vps-cr-033", name: "Sangle araignée", expectedQuantity: 1 },
+      { id: "vps-cr-034", name: "Kit Mater", expectedQuantity: 1 },
+      { id: "vps-cr-035", name: "Kit AERV", expectedQuantity: 1 },
+      { id: "vps-cr-036", name: "Kit SNV", expectedQuantity: 1 },
+      { id: "vps-cr-037", name: "Kit Membre arraché", expectedQuantity: 1 },
+      { id: "vps-cr-038", name: "Kit Biologique", expectedQuantity: 1 },
+      { id: "vps-cr-039", name: "Kit Pharmacie", expectedQuantity: 1 },
+      { id: "vps-cr-040", name: "Gants de déblai", expectedQuantity: 1 },
+      { id: "vps-cr-041", name: "Casque F2", expectedQuantity: 1 },
+      { id: "vps-cr-042", name: "Cône de Lübeck", expectedQuantity: 5 },
+      { id: "vps-cr-043", name: "Rubalise", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-lat-d",
+    title: "Latérale D",
+    items: [
+      { id: "vps-cr-044", name: "Sac de Soin", expectedQuantity: 1 },
+      { id: "vps-cr-045", name: "Sac d'O2", expectedQuantity: 1 },
+      { id: "vps-cr-046", name: "Chaise", expectedQuantity: 1 },
+      { id: "vps-cr-047", name: "Eau (litres)", expectedQuantity: 6 },
+    ],
+  },
+  {
+    id: "vps-cr-trauma1",
+    title: "Trauma 1",
+    items: [
+      { id: "vps-cr-048", name: "Collier adulte + pédiatrique", expectedQuantity: 1 },
+      { id: "vps-cr-049", name: "Lot Sober", expectedQuantity: 1 },
+      { id: "vps-cr-050", name: "ACT", expectedQuantity: 1 },
+      { id: "vps-cr-051", name: "Attelle + pompe", expectedQuantity: 3 },
+      { id: "vps-cr-052", name: "Gilet Pare-Balles", expectedQuantity: 3 },
+      { id: "vps-cr-053", name: "Couverture bactério", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-trauma2",
+    title: "Trauma 2",
+    items: [
+      { id: "vps-cr-054", name: "MID + pompe + drap + couverture de survie", expectedQuantity: 1 },
+      { id: "vps-cr-055", name: "Portoire souple", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-placard1",
+    title: "Placard 1",
+    items: [
+      { id: "vps-cr-056", name: "Drap", expectedQuantity: 5 },
+    ],
+  },
+  {
+    id: "vps-cr-placard2",
+    title: "Placard 2",
+    items: [
+      { id: "vps-cr-057", name: "MHC adulte", expectedQuantity: 5 },
+      { id: "vps-cr-058", name: "MMC adulte", expectedQuantity: 4 },
+      { id: "vps-cr-059", name: "MHC pédiatrique", expectedQuantity: 3 },
+      { id: "vps-cr-060", name: "MMC pédiatrique", expectedQuantity: 3 },
+      { id: "vps-cr-061", name: "Lunettes O2", expectedQuantity: 3 },
+    ],
+  },
+  {
+    id: "vps-cr-placard3",
+    title: "Placard 3",
+    items: [
+      { id: "vps-cr-062", name: "BAVU adulte/pédiatrique/néonat", expectedQuantity: 1 },
+      { id: "vps-cr-063", name: "Masque 0/1/2/3/4/5", expectedQuantity: 1 },
+      { id: "vps-cr-064", name: "Boîte de canules", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-tiroir1",
+    title: "Tiroir 1",
+    items: [
+      { id: "vps-cr-065", name: "OPTC", expectedQuantity: 1 },
+      { id: "vps-cr-066", name: "Jesco", expectedQuantity: 1 },
+      { id: "vps-cr-067", name: "Oxymètre", expectedQuantity: 1 },
+      { id: "vps-cr-068", name: "Thermomètre tympanique + 2 boîtes d'embouts", expectedQuantity: 1 },
+      { id: "vps-cr-069", name: "Glucomètre", expectedQuantity: 1 },
+      { id: "vps-cr-070", name: "Pince à échardes + tire-tique", expectedQuantity: 1 },
+      { id: "vps-cr-071", name: "Électrodes ECG", expectedQuantity: 30 },
+      { id: "vps-cr-072", name: "Boîte de compresses non stériles", expectedQuantity: 1 },
+      { id: "vps-cr-073", name: "Sérum physiologique", expectedQuantity: 20 },
+      { id: "vps-cr-074", name: "Auto-piqueur", expectedQuantity: 30 },
+      { id: "vps-cr-075", name: "Paquet de compresses stériles", expectedQuantity: 30 },
+      { id: "vps-cr-076", name: "Haricot réutilisable", expectedQuantity: 1 },
+      { id: "vps-cr-077", name: "Sparadrap", expectedQuantity: 3 },
+      { id: "vps-cr-078", name: "Boîte de lancettes gly", expectedQuantity: 2 },
+    ],
+  },
+  {
+    id: "vps-cr-tiroir2",
+    title: "Tiroir 2",
+    items: [
+      { id: "vps-cr-079", name: "Couverture de survie", expectedQuantity: 6 },
+      { id: "vps-cr-080", name: "Sac vomitoire", expectedQuantity: 20 },
+      { id: "vps-cr-081", name: "Bande cohésive L/S", expectedQuantity: 3 },
+      { id: "vps-cr-082", name: "Bande L/S", expectedQuantity: 6 },
+      { id: "vps-cr-083", name: "Filet tubulaire", expectedQuantity: 3 },
+      { id: "vps-cr-084", name: "Boîte de pansements", expectedQuantity: 1 },
+      { id: "vps-cr-085", name: "Pansement 7,5x5", expectedQuantity: 3 },
+      { id: "vps-cr-086", name: "Pansement 5x10", expectedQuantity: 3 },
+      { id: "vps-cr-087", name: "Pansement 10x20", expectedQuantity: 3 },
+    ],
+  },
+  {
+    id: "vps-cr-tiroir3",
+    title: "Tiroir 3",
+    items: [
+      { id: "vps-cr-088", name: "Poche de froid", expectedQuantity: 5 },
+      { id: "vps-cr-089", name: "Écharpe", expectedQuantity: 4 },
+      { id: "vps-cr-090", name: "Sucre + touillette", expectedQuantity: 20 },
+      { id: "vps-cr-091", name: "Pansement brûlure L", expectedQuantity: 1 },
+      { id: "vps-cr-092", name: "Pansement brûlure S", expectedQuantity: 2 },
+      { id: "vps-cr-093", name: "Champ stérile 10x10", expectedQuantity: 2 },
+    ],
+  },
+  {
+    id: "vps-cr-tiroir4",
+    title: "Tiroir 4",
+    items: [
+      { id: "vps-cr-094", name: "Américain", expectedQuantity: 5 },
+      { id: "vps-cr-095", name: "CHU", expectedQuantity: 1 },
+      { id: "vps-cr-096", name: "Garrot", expectedQuantity: 2 },
+      { id: "vps-cr-097", name: "Pansement israélien", expectedQuantity: 2 },
+      { id: "vps-cr-098", name: "GISH", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "vps-cr-caisse-reserve",
+    title: "Caisse Réserve",
+    items: [
+      { id: "vps-cr-099", name: "Poche de froid", expectedQuantity: 10 },
+      { id: "vps-cr-100", name: "Couverture de survie", expectedQuantity: 10 },
+      { id: "vps-cr-101", name: "Sérum physiologique", expectedQuantity: 20 },
+      { id: "vps-cr-102", name: "Écharpe", expectedQuantity: 6 },
+      { id: "vps-cr-103", name: "Boîte de pansements", expectedQuantity: 1 },
+    ],
+  },
+];
 
 // VPS — Lot B (même contenu que les autres Lot B)
 subEntitySections["vps-lot-b-soin"] = subEntitySections["lot-b-soin"];
