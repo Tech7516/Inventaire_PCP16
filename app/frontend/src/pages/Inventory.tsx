@@ -8,6 +8,7 @@ import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
 import { toast } from "sonner";
 import { markCompleted } from "./SubEntities";
+import { addLogEntry } from "./Log";
 
 interface InventoryEntry {
   itemId: string;
@@ -112,6 +113,39 @@ export default function InventoryPage() {
         ? `${lotId}-${subId}-${variantId}`
         : `${lotId}-${subId}`;
     markCompleted(completedKey);
+
+    // Log the completion
+    const dpsName = localStorage.getItem("dps-name") || "";
+    const lotVariantRaw = localStorage.getItem("lot-variants");
+    let lotVariantName: string | null = null;
+    if (lot?.variants && lotVariantRaw) {
+      try {
+        const lotVariants = JSON.parse(lotVariantRaw);
+        const selectedVId = lotVariants[lotId];
+        if (selectedVId) {
+          const v = lot.variants.find((vv) => vv.id === selectedVId);
+          if (v) lotVariantName = v.name;
+        }
+      } catch { /* ignore */ }
+    }
+
+    const subEntityName = isDirectInventory
+      ? (lotVariantName || lot?.name || "")
+      : (subEntity?.name || subId || "");
+
+    const variantName = variant?.name || lotVariantName || null;
+
+    addLogEntry({
+      lotId: lotId || "",
+      lotName: lot?.name || "",
+      subEntityName,
+      variantName,
+      sacType: sacType || null,
+      dpsName,
+      completedAt: new Date().toISOString(),
+      completedKey,
+    });
+
     console.log("Inventaire soumis:", { lotId, subId, variantId, sacType, entries });
   };
 

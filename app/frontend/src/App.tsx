@@ -6,6 +6,7 @@ import BlogRoutes from './blog-routes';
 import Index from './pages/Index';
 import SubEntities from './pages/SubEntities';
 import Inventory from './pages/Inventory';
+import Log from './pages/Log';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
 // MODULE_IMPORTS_START
@@ -16,6 +17,7 @@ const queryClient = new QueryClient();
 const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Index />} />
+    <Route path="/log" element={<Log />} />
     <Route path="/lot/:lotId" element={<SubEntities />} />
     <Route path="/inventory/:lotId/:subId" element={<Inventory />} />
     <Route path="/inventory/:lotId/:subId/:variantId" element={<Inventory />} />
