@@ -397,8 +397,8 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
       ],
     },
     {
-      id: "c1-pansements",
-      title: "Pansements et compresses",
+      id: "c1-reserve",
+      title: "Caisse Réserve",
       items: [
         { id: "c1-007", name: "Pansement 20x10", expectedQuantity: 5 },
         { id: "c1-008", name: "Pansement 10x8", expectedQuantity: 5 },
@@ -407,12 +407,6 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
         { id: "c1-011", name: "Compresses stériles par 2", expectedQuantity: 50 },
         { id: "c1-012", name: "Sac vomitoire", expectedQuantity: 10 },
         { id: "c1-013", name: "Poche de froid", expectedQuantity: 5 },
-      ],
-    },
-    {
-      id: "c1-reserve",
-      title: "Caisse Réserve",
-      items: [
         { id: "c1-014", name: "Rouleau de sparadrap", expectedQuantity: 2 },
         { id: "c1-015", name: "Protection auditive", expectedQuantity: 20 },
         { id: "c1-016", name: "Bande élastique", expectedQuantity: 3 },
