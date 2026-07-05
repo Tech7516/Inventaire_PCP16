@@ -95,9 +95,14 @@ export default function SubEntitiesPage() {
   }
 
   const isSubCompleted = (subId: string, variantId?: string, sacType?: string) => {
-    const key = variantId
-      ? `${lotId}-${subId}-${variantId}-${sacType || "soin"}`
-      : `${lotId}-${subId}`;
+    let key: string;
+    if (variantId && sacType) {
+      key = `${lotId}-${subId}-${variantId}-${sacType}`;
+    } else if (variantId) {
+      key = `${lotId}-${subId}-${variantId}`;
+    } else {
+      key = `${lotId}-${subId}`;
+    }
     return completedKeys.has(key);
   };
 
@@ -105,6 +110,12 @@ export default function SubEntitiesPage() {
     const variantId = selectedVariants[subId];
     if (!variantId) return false;
     return isSubCompleted(subId, variantId, "soin") && isSubCompleted(subId, variantId, "o2");
+  };
+
+  const isVariantComplete = (subId: string) => {
+    const variantId = selectedVariants[subId];
+    if (!variantId) return false;
+    return isSubCompleted(subId, variantId);
   };
 
   return (
@@ -162,7 +173,11 @@ export default function SubEntitiesPage() {
             );
             const hasVariants = sub.variants && sub.variants.length > 0;
             const selectedVariant = selectedVariants[sub.id];
-            const isCompleted = hasVariants ? isLotBComplete(sub.id) : isSubCompleted(sub.id);
+            const isCompleted = hasVariants
+              ? sub.inventoryType === "lot-b"
+                ? isLotBComplete(sub.id)
+                : isVariantComplete(sub.id)
+              : isSubCompleted(sub.id);
 
             return (
               <Card
@@ -201,14 +216,14 @@ export default function SubEntitiesPage() {
                   {hasVariants && (
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-muted-foreground">
-                        Choix du lot B :
+                        {sub.inventoryType === "lot-b" ? "Choix du lot B :" : `Choix du ${sub.name.toLowerCase()} :`}
                       </label>
                       <Select
                         value={selectedVariant || ""}
                         onValueChange={(value) => persistVariant(sub.id, value)}
                       >
                         <SelectTrigger className="w-full cursor-pointer">
-                          <SelectValue placeholder="Choisir un lot B..." />
+                          <SelectValue placeholder={`Choisir ${sub.inventoryType === "lot-b" ? "un lot B" : `un ${sub.name.toLowerCase()}`}...`} />
                         </SelectTrigger>
                         <SelectContent>
                           {sub.variants!.map((variant) => (
@@ -222,7 +237,7 @@ export default function SubEntitiesPage() {
                   )}
 
                   <div className="pt-3 border-t space-y-2">
-                    {hasVariants ? (
+                    {hasVariants && sub.inventoryType === "lot-b" ? (
                       <>
                         <Button
                           className="w-full cursor-pointer"
@@ -255,6 +270,19 @@ export default function SubEntitiesPage() {
                           Vérifier le sac d'O2
                         </Button>
                       </>
+                    ) : hasVariants ? (
+                      <Button
+                        className="w-full cursor-pointer"
+                        variant="default"
+                        disabled={!selectedVariant}
+                        onClick={() => {
+                          if (selectedVariant) {
+                            navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}`);
+                          }
+                        }}
+                      >
+                        Vérifier l'inventaire
+                      </Button>
                     ) : (
                       <Button
                         className="w-full cursor-pointer"

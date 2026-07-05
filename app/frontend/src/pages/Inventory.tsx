@@ -46,7 +46,7 @@ export default function InventoryPage() {
 
   const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : "";
   const displayTitle = variant
-    ? `${variant.name} — ${sacLabel}`
+    ? sacLabel ? `${variant.name} — ${sacLabel}` : variant.name
     : subEntity?.name || "";
 
   if (!lot || !subEntity) {
@@ -101,9 +101,11 @@ export default function InventoryPage() {
     }
     toast.success("Inventaire enregistré avec succès !");
     // Mark this section as completed so green check appears on SubEntities page
-    const completedKey = variantId
-      ? `${lotId}-${subId}-${variantId}-${sacType || "soin"}`
-      : `${lotId}-${subId}`;
+    const completedKey = variantId && sacType
+      ? `${lotId}-${subId}-${variantId}-${sacType}`
+      : variantId
+        ? `${lotId}-${subId}-${variantId}`
+        : `${lotId}-${subId}`;
     markCompleted(completedKey);
     console.log("Inventaire soumis:", { lotId, subId, variantId, sacType, entries });
   };

@@ -16,6 +16,7 @@ export interface SubEntity {
   name: string;
   description: string;
   variants?: SubEntityVariant[];
+  inventoryType?: "standard" | "lot-b";
 }
 
 export interface ConsumableItem {
@@ -34,6 +35,13 @@ export const lots: Lot[] = [
   {
     id: "lot-001",
     name: "Lot A",
+    location: "Passy",
+    lastInventory: null,
+    status: "pending",
+  },
+  {
+    id: "lot-003",
+    name: "Lot C",
     location: "Passy",
     lastInventory: null,
     status: "pending",
@@ -57,6 +65,38 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
     { id: "caisse-1", name: "Caisse 1/2", description: "" },
     { id: "caisse-2", name: "Caisse 2/2", description: "" },
     { id: "materiel-comp", name: "Matériel complémentaire", description: "" },
+  ],
+  "lot-003": [
+    {
+      id: "pom-c",
+      name: "POM",
+      description: "",
+      variants: [
+        { id: "alpha", name: "POM Alpha" },
+        { id: "bravo", name: "POM Bravo" },
+      ],
+    },
+    {
+      id: "lot-b-c",
+      name: "Lot B",
+      description: "",
+      inventoryType: "lot-b",
+      variants: [
+        { id: "alpha", name: "Lot B Alpha" },
+        { id: "bravo", name: "Lot B Bravo" },
+        { id: "auteuil", name: "Lot B Auteuil" },
+        { id: "neuilly", name: "Lot B Neuilly" },
+      ],
+    },
+    {
+      id: "caisse-c",
+      name: "Caisse",
+      description: "",
+      variants: [
+        { id: "alpha", name: "Caisse Alpha" },
+        { id: "bravo", name: "Caisse Bravo" },
+      ],
+    },
   ],
 };
 
@@ -478,3 +518,9 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
     },
   ],
 };
+
+// Lot C — reuse same sections as Lot A
+subEntitySections["pom-c"] = subEntitySections["pom"];
+subEntitySections["lot-b-c-soin"] = subEntitySections["lot-b-soin"];
+subEntitySections["lot-b-c-o2"] = subEntitySections["lot-b-o2"];
+subEntitySections["caisse-c"] = [];
