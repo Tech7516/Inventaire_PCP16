@@ -125,7 +125,13 @@ export default function HomePage() {
                       className="w-full cursor-pointer"
                       variant="default"
                       disabled={hasVariants && !selectedVariant}
-                      onClick={() => navigate(`/lot/${lot.id}`)}
+                      onClick={() => {
+                        if (lot.directInventory) {
+                          navigate(`/inventory/${lot.id}/${lot.id}`);
+                        } else {
+                          navigate(`/lot/${lot.id}`);
+                        }
+                      }}
                     >
                       Démarrer l'inventaire
                     </Button>

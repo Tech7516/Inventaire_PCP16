@@ -10,6 +10,7 @@ export interface Lot {
   lastInventory: string | null;
   status: "pending" | "in-progress" | "completed";
   variants?: LotVariant[];
+  directInventory?: boolean;
 }
 
 export interface SubEntityVariant {
@@ -62,6 +63,18 @@ export const lots: Lot[] = [
       { id: "auteuil", name: "VPS Auteuil" },
       { id: "neuilly", name: "VPS Neuilly" },
     ],
+  },
+  {
+    id: "lot-v",
+    name: "Lot V",
+    location: "Passy",
+    lastInventory: null,
+    status: "pending",
+    variants: [
+      { id: "vl-poussin", name: "VL Poussin" },
+      { id: "vtp-passy", name: "VTP Passy" },
+    ],
+    directInventory: true,
   },
 ];
 
@@ -893,3 +906,71 @@ subEntitySections["vps-cellule-arriere"] = [
 // VPS — Lot B (même contenu que les autres Lot B)
 subEntitySections["vps-lot-b-soin"] = subEntitySections["lot-b-soin"];
 subEntitySections["vps-lot-b-o2"] = subEntitySections["lot-b-o2"];
+
+// Lot V — inventaire direct (pas de page intermédiaire)
+subEntitySections["lot-v"] = [
+  {
+    id: "lv-securite",
+    title: "Sécurité, Hygiène",
+    items: [
+      { id: "lv-001", name: "Extincteur ABC 1kg à poudre", expectedQuantity: 1 },
+      { id: "lv-002", name: "Rouleau de rubalise", expectedQuantity: 1 },
+      { id: "lv-003", name: "Brise-vitre", expectedQuantity: 1 },
+      { id: "lv-004", name: "Coupe-ceinture", expectedQuantity: 1 },
+      { id: "lv-005", name: "Chasuble haute visibilité", expectedQuantity: 2 },
+      { id: "lv-006", name: "Lampe torche", expectedQuantity: 1 },
+      { id: "lv-007", name: "Triangle de pré-signalisation", expectedQuantity: 1 },
+      { id: "lv-008", name: "Paire de gants de manutention", expectedQuantity: 1 },
+      { id: "lv-009", name: "Solution hydro-alcoolique 100mL", expectedQuantity: 1 },
+      { id: "lv-010", name: "Lot de serviettes jetables", expectedQuantity: 1 },
+      { id: "lv-011", name: "Masque chirurgical", expectedQuantity: 2 },
+      { id: "lv-012", name: "Masque FFP2", expectedQuantity: 2 },
+    ],
+  },
+  {
+    id: "lv-reanimation",
+    title: "Réanimation",
+    items: [
+      { id: "lv-013", name: "BAVU adulte + masque insufflateur", expectedQuantity: 1 },
+      { id: "lv-014", name: "BAVU pédiatrique + masque insufflateur", expectedQuantity: 1 },
+      { id: "lv-015", name: "Filtre antibactérien et antiviral", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "lv-hemorragies",
+    title: "Hémorragies",
+    items: [
+      { id: "lv-016", name: "Garrot tourniquet", expectedQuantity: 2 },
+      { id: "lv-017", name: "Pansement compressif d'urgence", expectedQuantity: 2 },
+      { id: "lv-018", name: "Pansement absorbant 20x40", expectedQuantity: 4 },
+      { id: "lv-019", name: "Bande de contention élastique non stérile", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "lv-soins",
+    title: "Soins, Protection",
+    items: [
+      { id: "lv-020", name: "Sérum physiologique unidose 5ml", expectedQuantity: 10 },
+      { id: "lv-021", name: "Paire de ciseaux Jesco", expectedQuantity: 1 },
+      { id: "lv-022", name: "Bande extensible", expectedQuantity: 4 },
+      { id: "lv-023", name: "Lot de 2 compresses stériles", expectedQuantity: 10 },
+      { id: "lv-024", name: "Boîte de pansement", expectedQuantity: 1 },
+      { id: "lv-025", name: "Rouleau de sparadrap", expectedQuantity: 1 },
+      { id: "lv-026", name: "Couverture de survie", expectedQuantity: 4 },
+      { id: "lv-027", name: "Paire de gants", expectedQuantity: 10 },
+    ],
+  },
+  {
+    id: "lv-divers",
+    title: "Divers",
+    items: [
+      { id: "lv-028", name: "Eau en bouteille 50cL", expectedQuantity: 2 },
+      { id: "lv-029", name: "Drap à usage unique", expectedQuantity: 1 },
+      { id: "lv-030", name: "Sac vomitoire", expectedQuantity: 2 },
+      { id: "lv-031", name: "Lot de sucres emballés individuellement", expectedQuantity: 1 },
+      { id: "lv-032", name: "Sac DASRI", expectedQuantity: 2 },
+      { id: "lv-033", name: "Sac DAOM", expectedQuantity: 2 },
+      { id: "lv-034", name: "Kit accident exposition risque viral", expectedQuantity: 1 },
+    ],
+  },
+];

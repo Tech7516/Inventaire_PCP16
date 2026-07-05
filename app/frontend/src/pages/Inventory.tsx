@@ -19,14 +19,17 @@ export default function InventoryPage() {
   const { lotId, subId, variantId, sacType } = useParams<{ lotId: string; subId: string; variantId?: string; sacType?: string }>();
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
-  const subEntity = lotId && subId
+  const isDirectInventory = lot?.directInventory === true;
+  const subEntity = lotId && subId && !isDirectInventory
     ? lotSubEntities[lotId]?.find((s) => s.id === subId)
     : null;
   const variant = subEntity?.variants?.find((v) => v.id === variantId);
 
   // Determine which sections to show based on sacType
   const sectionKey = sacType ? `${subId}-${sacType}` : subId;
-  const sections = subId ? subEntitySections[sectionKey] || subEntitySections[subId] || [] : [];
+  const sections = isDirectInventory
+    ? subEntitySections[lotId] || []
+    : subId ? subEntitySections[sectionKey] || subEntitySections[subId] || [] : [];
 
   const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
     () => {
@@ -45,11 +48,13 @@ export default function InventoryPage() {
   );
 
   const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : "";
-  const displayTitle = variant
-    ? sacLabel ? `${variant.name} — ${sacLabel}` : variant.name
-    : subEntity?.name || "";
+  const displayTitle = isDirectInventory
+    ? lot?.name || ""
+    : variant
+      ? sacLabel ? `${variant.name} — ${sacLabel}` : variant.name
+      : subEntity?.name || "";
 
-  if (!lot || !subEntity) {
+  if (!lot || (!isDirectInventory && !subEntity)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -119,7 +124,7 @@ export default function InventoryPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(`/lot/${lotId}`)}
+                onClick={() => isDirectInventory ? navigate("/") : navigate(`/lot/${lotId}`)}
                 className="cursor-pointer"
               >
                 <ArrowLeft className="h-5 w-5" />
