@@ -39,7 +39,7 @@ export default function InventoryPage() {
         section.items.forEach((item) => {
           initial[item.id] = {
             itemId: item.id,
-            validated: false,
+            validated: true,
             customQuantity: "",
           };
         });
@@ -114,37 +114,33 @@ export default function InventoryPage() {
         : `${lotId}-${subId}`;
     markCompleted(completedKey);
 
-    // Log the completion
-    const dpsName = localStorage.getItem("dps-name") || "";
-    const lotVariantRaw = localStorage.getItem("lot-variants");
-    let lotVariantName: string | null = null;
-    if (lot?.variants && lotVariantRaw) {
-      try {
-        const lotVariants = JSON.parse(lotVariantRaw);
-        const selectedVId = lotVariants[lotId];
-        if (selectedVId) {
-          const v = lot.variants.find((vv) => vv.id === selectedVId);
-          if (v) lotVariantName = v.name;
-        }
-      } catch { /* ignore */ }
+    // Log only for direct inventory lots (e.g. Lot V)
+    if (isDirectInventory) {
+      const dpsName = localStorage.getItem("dps-name") || "";
+      const lotVariantRaw = localStorage.getItem("lot-variants");
+      let lotVariantName: string | null = null;
+      if (lot?.variants && lotVariantRaw) {
+        try {
+          const lotVariants = JSON.parse(lotVariantRaw);
+          const selectedVId = lotVariants[lotId];
+          if (selectedVId) {
+            const v = lot.variants.find((vv) => vv.id === selectedVId);
+            if (v) lotVariantName = v.name;
+          }
+        } catch { /* ignore */ }
+      }
+
+      addLogEntry({
+        lotId: lotId || "",
+        lotName: lot?.name || "",
+        subEntityName: lotVariantName || lot?.name || "",
+        variantName: lotVariantName,
+        sacType: null,
+        dpsName,
+        completedAt: new Date().toISOString(),
+        completedKey,
+      });
     }
-
-    const subEntityName = isDirectInventory
-      ? (lotVariantName || lot?.name || "")
-      : (subEntity?.name || subId || "");
-
-    const variantName = variant?.name || lotVariantName || null;
-
-    addLogEntry({
-      lotId: lotId || "",
-      lotName: lot?.name || "",
-      subEntityName,
-      variantName,
-      sacType: sacType || null,
-      dpsName,
-      completedAt: new Date().toISOString(),
-      completedKey,
-    });
 
     console.log("Inventaire soumis:", { lotId, subId, variantId, sacType, entries });
   };

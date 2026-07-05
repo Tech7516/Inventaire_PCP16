@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { lots, lotSubEntities } from "@/data/lots";
-import { ArrowLeft, ScrollText, User, Clock, Trash2 } from "lucide-react";
+import { ArrowLeft, ScrollText, Clock, Trash2 } from "lucide-react";
 
 export interface LogEntry {
   lotId: string;
@@ -193,9 +193,8 @@ export default function LogPage() {
                                   {detailLine}
                                 </p>
                                 <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <User className="h-3.5 w-3.5" />
-                                    {entry.dpsName || "—"}
+                                  <span>
+                                    DPS : {entry.dpsName || "—"}
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Clock className="h-3.5 w-3.5" />

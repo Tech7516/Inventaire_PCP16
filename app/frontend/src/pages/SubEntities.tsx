@@ -13,6 +13,7 @@ import {
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { addLogEntry } from "./Log";
 
 function getCompletedKeys(): Set<string> {
   try {
@@ -72,10 +73,88 @@ export default function SubEntitiesPage() {
       return;
     }
     localStorage.setItem("dps-name", dpsName.trim());
+
+    // Log each completed sub-entity for this lot
+    const dpsNameValue = dpsName.trim();
+    subEntities.forEach((sub) => {
+      const hasVariants = sub.variants && sub.variants.length > 0;
+      const selectedVariant = selectedVariants[sub.id];
+
+      if (hasVariants && sub.inventoryType === "lot-b") {
+        // Lot B type: check both sac de soin and sac d'O2
+        if (selectedVariant) {
+          const soinKey = `${lotId}-${sub.id}-${selectedVariant}-soin`;
+          const o2Key = `${lotId}-${sub.id}-${selectedVariant}-o2`;
+          const soinDone = completedKeys.has(soinKey);
+          const o2Done = completedKeys.has(o2Key);
+
+          if (soinDone) {
+            const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
+            addLogEntry({
+              lotId: lotId || "",
+              lotName: lot?.name || "",
+              subEntityName: sub.name,
+              variantName: variantObj?.name || null,
+              sacType: "soin",
+              dpsName: dpsNameValue,
+              completedAt: new Date().toISOString(),
+              completedKey: soinKey,
+            });
+          }
+          if (o2Done) {
+            const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
+            addLogEntry({
+              lotId: lotId || "",
+              lotName: lot?.name || "",
+              subEntityName: sub.name,
+              variantName: variantObj?.name || null,
+              sacType: "o2",
+              dpsName: dpsNameValue,
+              completedAt: new Date().toISOString(),
+              completedKey: o2Key,
+            });
+          }
+        }
+      } else if (hasVariants) {
+        // Variant type (e.g. POM, Caisse)
+        if (selectedVariant) {
+          const key = `${lotId}-${sub.id}-${selectedVariant}`;
+          if (completedKeys.has(key)) {
+            const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
+            addLogEntry({
+              lotId: lotId || "",
+              lotName: lot?.name || "",
+              subEntityName: sub.name,
+              variantName: variantObj?.name || null,
+              sacType: null,
+              dpsName: dpsNameValue,
+              completedAt: new Date().toISOString(),
+              completedKey: key,
+            });
+          }
+        }
+      } else {
+        // No variants
+        const key = `${lotId}-${sub.id}`;
+        if (completedKeys.has(key)) {
+          addLogEntry({
+            lotId: lotId || "",
+            lotName: lot?.name || "",
+            subEntityName: sub.name,
+            variantName: null,
+            sacType: null,
+            dpsName: dpsNameValue,
+            completedAt: new Date().toISOString(),
+            completedKey: key,
+          });
+        }
+      }
+    });
+
     toast.success("Inventaire sauvegardé et envoyé !");
     console.log("Inventaire sauvegardé:", {
       lotId,
-      dpsName: dpsName.trim(),
+      dpsName: dpsNameValue,
       completed: [...completedKeys],
     });
   };
