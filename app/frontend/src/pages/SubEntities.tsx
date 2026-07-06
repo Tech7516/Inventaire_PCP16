@@ -39,11 +39,23 @@ export default function SubEntitiesPage() {
 
   const [dpsName, setDpsName] = useState(() => localStorage.getItem("dps-name") || "");
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
     try {
       const raw = localStorage.getItem("selected-variants");
-      if (raw) return JSON.parse(raw);
+      if (raw) Object.assign(initial, JSON.parse(raw));
     } catch { /* ignore */ }
-    return {};
+    // Pre-select Lot B variant for VPS based on homepage variant selection
+    if (lotId === "lot-vps" && !initial["vps-lot-b"]) {
+      try {
+        const lotVars = localStorage.getItem("lot-variants");
+        if (lotVars) {
+          const parsed = JSON.parse(lotVars);
+          const vpsVariant = parsed["lot-vps"];
+          if (vpsVariant) initial["vps-lot-b"] = vpsVariant;
+        }
+      } catch { /* ignore */ }
+    }
+    return initial;
   });
   const [completedKeys, setCompletedKeys] = useState<Set<string>>(getCompletedKeys);
 
@@ -232,7 +244,24 @@ export default function SubEntitiesPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-                  {lot.name} — {lot.location}
+                  {lotId === "lot-001"
+                    ? `${lot.name} — ${lot.location}`
+                    : lot.variants && lot.variants.length > 0
+                      ? (() => {
+                          try {
+                            const lotVars = localStorage.getItem("lot-variants");
+                            if (lotVars) {
+                              const parsed = JSON.parse(lotVars);
+                              const variantId = parsed[lotId || ""];
+                              if (variantId) {
+                                const variantObj = lot.variants.find((v) => v.id === variantId);
+                                if (variantObj) return variantObj.name;
+                              }
+                            }
+                          } catch { /* ignore */ }
+                          return lot.name;
+                        })()
+                      : lot.name}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   Sélectionnez un sous-ensemble à inventorier
