@@ -292,6 +292,7 @@ export interface InventoryLogData {
   lot_name: string;
   sub_entity_name: string;
   variant_name: string | null;
+  lot_variant_name: string | null;
   sac_type: string | null;
   dps_name: string;
   completed_key: string;
@@ -303,6 +304,7 @@ export async function addLogEntryToDb(entry: {
   lot_name: string;
   sub_entity_name: string;
   variant_name?: string | null;
+  lot_variant_name?: string | null;
   sac_type?: string | null;
   dps_name: string;
   completed_key: string;
@@ -320,6 +322,7 @@ export async function addLogEntryToDb(entry: {
         lot_name: entry.lot_name,
         sub_entity_name: entry.sub_entity_name,
         variant_name: entry.variant_name || undefined,
+        lot_variant_name: entry.lot_variant_name || undefined,
         sac_type: entry.sac_type || undefined,
         dps_name: entry.dps_name,
       });
@@ -336,6 +339,7 @@ export async function addLogEntryToDb(entry: {
     lot_name: entry.lot_name,
     sub_entity_name: entry.sub_entity_name,
     variant_name: entry.variant_name || undefined,
+    lot_variant_name: entry.lot_variant_name || undefined,
     sac_type: entry.sac_type || undefined,
     dps_name: entry.dps_name,
     completed_key: entry.completed_key,
@@ -431,8 +435,9 @@ export async function saveDiscrepancyReportToDb(report: {
   discrepancies: DiscrepancyItem[];
   fullInventory: SavedInventory[];
   hasDiscrepancies: boolean;
+  reportKeyOverride?: string;
 }): Promise<DiscrepancyReportData> {
-  const reportKey = `${report.lotId}::${report.variantId || ""}`;
+  const reportKey = report.reportKeyOverride || `${report.lotId}::${report.variantId || ""}`;
 
   // Try to fetch existing report to merge sub-entity data
   let existingReport: DiscrepancyReportData | null = null;
@@ -543,6 +548,39 @@ export async function getDiscrepancyReportsForLot(
       query: { lot_id: lotId },
       sort: "-updated_at",
       limit: 100,
+    });
+    return (res.data?.items || []) as DiscrepancyReportData[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get a single discrepancy report by its report_key.
+ */
+export async function getDiscrepancyReportByKey(
+  key: string
+): Promise<DiscrepancyReportData | null> {
+  try {
+    const res = await client.entities.discrepancy_reports.query({
+      query: { report_key: key },
+      limit: 1,
+    });
+    const items = (res.data?.items || []) as DiscrepancyReportData[];
+    return items.length > 0 ? items[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get all discrepancy reports (for log page to check existence).
+ */
+export async function getAllDiscrepancyReports(): Promise<DiscrepancyReportData[]> {
+  try {
+    const res = await client.entities.discrepancy_reports.query({
+      sort: "-updated_at",
+      limit: 500,
     });
     return (res.data?.items || []) as DiscrepancyReportData[];
   } catch {

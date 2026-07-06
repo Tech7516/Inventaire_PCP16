@@ -12,6 +12,7 @@ class Inventory_logs(Base):
     lot_name = Column(String, nullable=False)
     sub_entity_name = Column(String, nullable=False)
     variant_name = Column(String, nullable=True)
+    lot_variant_name = Column(String, nullable=True)
     sac_type = Column(String, nullable=True)
     dps_name = Column(String, nullable=False)
     completed_key = Column(String, nullable=False)

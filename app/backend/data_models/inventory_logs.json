@@ -3,36 +3,31 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": "integer",
-            "autoIncrement": true
+            "type": "integer"
         },
         "lot_id": {
-            "type": "string",
-            "description": "Lot identifier"
+            "type": "string"
         },
         "lot_name": {
-            "type": "string",
-            "description": "Lot display name"
+            "type": "string"
         },
         "sub_entity_name": {
-            "type": "string",
-            "description": "Sub-entity name"
+            "type": "string"
         },
         "variant_name": {
-            "type": "string",
-            "description": "Variant name, can be empty"
+            "type": "string"
+        },
+        "lot_variant_name": {
+            "type": "string"
         },
         "sac_type": {
-            "type": "string",
-            "description": "Sac type (soin/o2), can be empty"
+            "type": "string"
         },
         "dps_name": {
-            "type": "string",
-            "description": "DPS operator name"
+            "type": "string"
         },
         "completed_key": {
-            "type": "string",
-            "description": "Unique key to avoid duplicates"
+            "type": "string"
         }
     },
     "required": [

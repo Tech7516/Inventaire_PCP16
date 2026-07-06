@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
-import { ArrowLeft, Save, ClipboardList, Check, Users } from "lucide-react";
+import { ArrowLeft, Save, ClipboardList, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   saveInventoryItems,
@@ -56,6 +56,18 @@ export default function InventoryPage() {
           const v = lot.variants.find((vv) => vv.id === selectedVId);
           if (v) return v.name;
         }
+      }
+    } catch { /* ignore */ }
+    return null;
+  })();
+
+  // Get the selected lot variant ID
+  const lotVariantId = (() => {
+    try {
+      const lotVars = localStorage.getItem("lot-variants");
+      if (lotVars) {
+        const parsed = JSON.parse(lotVars);
+        return parsed[lotId || ""] || null;
       }
     } catch { /* ignore */ }
     return null;
@@ -149,8 +161,6 @@ export default function InventoryPage() {
         [itemId]: {
           ...prev[itemId],
           validated: !wasValidated,
-          // When unchecking (non-conforme), default quantity to "0"
-          // When checking (conforme), clear the custom quantity
           customQuantity: wasValidated ? "0" : "",
         },
       };
@@ -166,6 +176,9 @@ export default function InventoryPage() {
       },
     }));
   };
+
+  // Determine if this sub-entity is a Lot B
+  const isLotB = subEntity?.inventoryType === "lot-b";
 
   const handleSubmit = async () => {
     const unprocessed = allItems.filter(
@@ -221,7 +234,7 @@ export default function InventoryPage() {
 
       toast.success("Inventaire enregistré avec succès !");
 
-      // Save discrepancy report to DB (1 per lot+variant, keeps only latest)
+      // Build discrepancy items for the report
       const discrepancyEntries = sections.flatMap((section) =>
         section.items
           .filter((item) => !entries[item.id].validated || entries[item.id].customQuantity.trim())
@@ -235,7 +248,6 @@ export default function InventoryPage() {
           }))
       );
 
-      // Build discrepancy items for the report
       const discrepancyItems = discrepancyEntries
         .filter((entry) => !entry.validated && entry.customQuantity.trim())
         .map((entry) => {
@@ -250,12 +262,12 @@ export default function InventoryPage() {
             }
             return sub.name;
           })();
-          const sacLabel =
+          const sacLbl =
             sacType === "soin" ? "Sac de soin" : sacType === "o2" ? "Sac d'O2" : null;
           const locationParts: string[] = [];
           if (lotVariantName) locationParts.push(lotVariantName);
           if (subLabel) locationParts.push(subLabel);
-          if (sacLabel) locationParts.push(sacLabel);
+          if (sacLbl) locationParts.push(sacLbl);
           locationParts.push(entry.sectionTitle);
 
           return {
@@ -279,17 +291,33 @@ export default function InventoryPage() {
         savedAt: new Date().toISOString(),
       }];
 
-      // Use lot variant (from homepage selection) for report_key, not sub-entity variant
-      const lotVariantId = (() => {
-        try {
-          const lotVars = localStorage.getItem("lot-variants");
-          if (lotVars) {
-            const parsed = JSON.parse(lotVars);
-            return parsed[lotId || ""] || null;
-          }
-        } catch { /* ignore */ }
-        return null;
-      })();
+      // Determine report_key:
+      // - Lot B: separate report per variant (e.g. "lot-b::alpha", "lot-b::bravo")
+      // - Lot V: separate report per variant
+      // - VPS Auteuil/Neuilly: centralized report (without Lot B)
+      // - Lot A: centralized report (without Lot B)
+      // - Lot C Alpha/Bravo: centralized report (without Lot B)
+      // - Lot CAI: centralized report
+      let reportKeyOverride: string | undefined;
+      if (isLotB) {
+        // Lot B gets its own report key based on the Lot B variant
+        const lotBVariantId = variantId || "";
+        reportKeyOverride = `lot-b::${lotBVariantId}`;
+      } else if (lotId === "lot-vps" && lotVariantName) {
+        const lower = lotVariantName.toLowerCase();
+        if (lower.includes("auteuil")) reportKeyOverride = "vps-auteuil-central";
+        else if (lower.includes("neuilly")) reportKeyOverride = "vps-neuilly-central";
+      } else if (lotId === "lot-001") {
+        reportKeyOverride = "lot-a-central";
+      } else if (lotId === "lot-003" && lotVariantName) {
+        const lower = lotVariantName.toLowerCase();
+        if (lower.includes("alpha")) reportKeyOverride = "lot-c-alpha-central";
+        else if (lower.includes("bravo")) reportKeyOverride = "lot-c-bravo-central";
+      } else if (lotId === "lot-cai") {
+        reportKeyOverride = "lot-cai-central";
+      } else if (lotId === "lot-v" && lotVariantId) {
+        reportKeyOverride = `lot-v::${lotVariantId}`;
+      }
 
       saveDiscrepancyReportToDb({
         lotId: lotId || "",
@@ -300,6 +328,7 @@ export default function InventoryPage() {
         discrepancies: discrepancyItems,
         fullInventory: fullInventoryData,
         hasDiscrepancies: discrepancyItems.length > 0,
+        reportKeyOverride,
       });
 
       // Log for direct inventory lots (e.g. Lot V, Lot CAI)
@@ -315,6 +344,7 @@ export default function InventoryPage() {
           lot_name: lot?.name || "",
           sub_entity_name: lotVariantName || lot?.name || "",
           variant_name: lotVariantName,
+          lot_variant_name: lotVariantName,
           sac_type: null,
           dps_name: dpsName.trim(),
           completed_key: completedKey,
@@ -419,20 +449,43 @@ export default function InventoryPage() {
                 <div className="space-y-2">
                   {section.items.map((item) => {
                     const entry = entries[item.id];
-                    const isProcessed = entry.validated || entry.customQuantity.trim();
+
+                    // Determine discrepancy status for coloring
+                    let discrepancyClass = "";
+                    let discrepancyBadge = null;
+                    if (!entry.validated && entry.customQuantity.trim()) {
+                      const actual = parseInt(entry.customQuantity, 10);
+                      if (!isNaN(actual) && actual !== item.expectedQuantity) {
+                        const diff = actual - item.expectedQuantity;
+                        if (diff > 0) {
+                          discrepancyClass = "border-blue-200 bg-blue-50/30";
+                          discrepancyBadge = (
+                            <span className="text-xs text-blue-600 font-semibold ml-2 whitespace-nowrap">
+                              Excédent : +{diff}
+                            </span>
+                          );
+                        } else {
+                          discrepancyClass = "border-amber-200 bg-amber-50/30";
+                          discrepancyBadge = (
+                            <span className="text-xs text-amber-600 font-semibold ml-2 whitespace-nowrap">
+                              Manque : {Math.abs(diff)}
+                            </span>
+                          );
+                        }
+                      }
+                    }
 
                     return (
                       <Card
                         key={item.id}
-                        className={`transition-all duration-200 ${
-                          isProcessed ? "border-emerald-200 bg-emerald-50/50" : ""
-                        }`}
+                        className={`transition-all duration-200 ${discrepancyClass}`}
                       >
                         <CardContent className="py-3">
                           <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-foreground truncate">
                                 {item.name}
+                                {discrepancyBadge}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 Stock attendu : <span className="font-semibold">{item.expectedQuantity}</span>
@@ -449,9 +502,8 @@ export default function InventoryPage() {
                                 />
                                 <label
                                   htmlFor={`validate-${item.id}`}
-                                  className="text-sm font-medium cursor-pointer select-none flex items-center gap-1"
+                                  className="text-sm font-medium cursor-pointer select-none"
                                 >
-                                  {entry.validated && <Check className="h-3 w-3 text-emerald-600" />}
                                   Conforme ({item.expectedQuantity})
                                 </label>
                               </div>

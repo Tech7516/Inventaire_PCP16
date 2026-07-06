@@ -24,6 +24,7 @@ class Inventory_logsData(BaseModel):
     lot_name: str
     sub_entity_name: str
     variant_name: str = None
+    lot_variant_name: str = None
     sac_type: str = None
     dps_name: str
     completed_key: str
@@ -35,6 +36,7 @@ class Inventory_logsUpdateData(BaseModel):
     lot_name: Optional[str] = None
     sub_entity_name: Optional[str] = None
     variant_name: Optional[str] = None
+    lot_variant_name: Optional[str] = None
     sac_type: Optional[str] = None
     dps_name: Optional[str] = None
     completed_key: Optional[str] = None
@@ -47,6 +49,7 @@ class Inventory_logsResponse(BaseModel):
     lot_name: str
     sub_entity_name: str
     variant_name: Optional[str] = None
+    lot_variant_name: Optional[str] = None
     sac_type: Optional[str] = None
     dps_name: str
     completed_key: str

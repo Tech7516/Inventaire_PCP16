@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { lots, lotSubEntities } from "@/data/lots";
 import { ArrowLeft, AlertTriangle, CheckCircle2, ClipboardList, Download, Loader2 } from "lucide-react";
 import {
   getDiscrepancyReportsForLot,
+  getDiscrepancyReportByKey,
   type DiscrepancyReportData,
   type DiscrepancyItem,
   type SavedInventoryEntry,
@@ -38,10 +39,40 @@ function formatDateTime(iso: string): string {
   }
 }
 
+// Map report_key to a display label
+function getReportLabel(reportKey: string): string {
+  const map: Record<string, string> = {
+    "vps-auteuil-central": "VPS Auteuil",
+    "vps-neuilly-central": "VPS Neuilly",
+    "lot-a-central": "Lot A",
+    "lot-c-alpha-central": "Lot C Alpha",
+    "lot-c-bravo-central": "Lot C Bravo",
+    "lot-cai-central": "Lot CAI",
+  };
+  if (map[reportKey]) return map[reportKey];
+  // Lot B variants
+  if (reportKey.startsWith("lot-b::")) {
+    const variant = reportKey.replace("lot-b::", "");
+    const capitalized = variant.charAt(0).toUpperCase() + variant.slice(1);
+    return `Lot B ${capitalized}`;
+  }
+  // Lot V variants
+  if (reportKey.startsWith("lot-v::")) {
+    const variant = reportKey.replace("lot-v::", "");
+    if (variant === "vl-poussin") return "VL Poussin";
+    if (variant === "vtp-passy") return "VTP Passy";
+    return variant;
+  }
+  return reportKey;
+}
+
 export default function ReportPage() {
-  const { lotId } = useParams<{ lotId: string }>();
+  const { lotId, reportKey } = useParams<{ lotId?: string; reportKey?: string }>();
   const navigate = useNavigate();
-  const lot = lots.find((l) => l.id === lotId);
+  const [searchParams] = useSearchParams();
+  const fromLog = searchParams.get("from") === "log";
+
+  const lot = lotId ? lots.find((l) => l.id === lotId) : null;
 
   const [loading, setLoading] = useState(true);
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>([]);
@@ -49,61 +80,74 @@ export default function ReportPage() {
   const [reportDate, setReportDate] = useState<string>("");
   const [dpsName, setDpsName] = useState<string>("");
   const [variantName, setVariantName] = useState<string>("");
+  const [displayLabel, setDisplayLabel] = useState<string>("");
 
   useEffect(() => {
     const loadReports = async () => {
-      if (!lotId) {
-        setLoading(false);
-        return;
+      setLoading(true);
+
+      let reports: DiscrepancyReportData[] = [];
+
+      if (reportKey) {
+        // Load by report_key
+        const report = await getDiscrepancyReportByKey(decodeURIComponent(reportKey));
+        if (report) reports = [report];
+        setDisplayLabel(getReportLabel(decodeURIComponent(reportKey)));
+      } else if (lotId) {
+        // Load by lotId (legacy route)
+        reports = await getDiscrepancyReportsForLot(lotId);
+        setDisplayLabel(lot?.name || "");
       }
-      try {
-        const reports = await getDiscrepancyReportsForLot(lotId);
 
-        // Collect all discrepancies and full inventory from all reports for this lot
-        const allDiscrepancies: DiscrepancyItem[] = [];
-        const allInventory: SavedInventory[] = [];
-        let latestDate = "";
-        let latestDpsName = "";
-        let latestVariantName = "";
+      // Collect all discrepancies and full inventory from all reports
+      const allDiscrepancies: DiscrepancyItem[] = [];
+      const allInventory: SavedInventory[] = [];
+      let latestDate = "";
+      let latestDpsName = "";
+      let latestVariantName = "";
 
-        for (const report of reports) {
-          // Parse discrepancies
-          if (report.discrepancies_json) {
-            try {
-              const items: DiscrepancyItem[] = JSON.parse(report.discrepancies_json);
-              allDiscrepancies.push(...items);
-            } catch { /* ignore parse errors */ }
-          }
-
-          // Parse full inventory
-          if (report.full_inventory_json) {
-            try {
-              const inventories: SavedInventory[] = JSON.parse(report.full_inventory_json);
-              allInventory.push(...inventories);
-            } catch { /* ignore parse errors */ }
-          }
-
-          // Track latest report date, dps_name, variant_name
-          const date = report.updated_at || report.created_at || "";
-          if (date > latestDate) {
-            latestDate = date;
-            latestDpsName = report.dps_name || "";
-            latestVariantName = report.variant_name || "";
-          }
+      for (const report of reports) {
+        if (report.discrepancies_json) {
+          try {
+            const items: DiscrepancyItem[] = JSON.parse(report.discrepancies_json);
+            allDiscrepancies.push(...items);
+          } catch { /* ignore parse errors */ }
         }
 
-        setDiscrepancies(allDiscrepancies);
-        setLotInventoryData(allInventory);
-        setReportDate(latestDate);
-        setDpsName(latestDpsName);
-        setVariantName(latestVariantName);
-      } catch {
-        /* ignore */
+        if (report.full_inventory_json) {
+          try {
+            const inventories: SavedInventory[] = JSON.parse(report.full_inventory_json);
+            allInventory.push(...inventories);
+          } catch { /* ignore parse errors */ }
+        }
+
+        const date = report.updated_at || report.created_at || "";
+        if (date > latestDate) {
+          latestDate = date;
+          latestDpsName = report.dps_name || "";
+          latestVariantName = report.variant_name || "";
+        }
       }
+
+      setDiscrepancies(allDiscrepancies);
+      setLotInventoryData(allInventory);
+      setReportDate(latestDate);
+      setDpsName(latestDpsName);
+      setVariantName(latestVariantName);
       setLoading(false);
     };
     loadReports();
-  }, [lotId]);
+  }, [lotId, reportKey]);
+
+  const handleBack = () => {
+    if (fromLog) {
+      navigate("/log");
+    } else if (lotId) {
+      navigate(`/lot/${lotId}`);
+    } else {
+      navigate("/");
+    }
+  };
 
   const handleDownload = () => {
     const now = new Date();
@@ -119,7 +163,7 @@ export default function ReportPage() {
 
     const lines: string[] = [];
     lines.push("═══════════════════════════════════════════════════════");
-    lines.push(`  RAPPORT D'ÉCART — ${lot?.name || ""}${lot?.location ? ` — ${lot.location}` : ""}${variantName ? ` — ${variantName}` : ""}`);
+    lines.push(`  RAPPORT D'ÉCART — ${displayLabel}${variantName ? ` — ${variantName}` : ""}`);
     lines.push(`  Date : ${dateStr} à ${timeStr}`);
     if (dpsName) lines.push(`  DPS : ${dpsName}`);
     lines.push("═══════════════════════════════════════════════════════");
@@ -209,7 +253,7 @@ export default function ReportPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const safeName = (lot?.name || "rapport").replace(/\s+/g, "-").toLowerCase();
+    const safeName = displayLabel.replace(/\s+/g, "-").toLowerCase();
     a.download = `rapport-ecart-${safeName}-${dateStr.replace(/\//g, "-")}.txt`;
     document.body.appendChild(a);
     a.click();
@@ -234,7 +278,7 @@ export default function ReportPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(lotId ? `/lot/${lotId}` : "/")}
+                onClick={handleBack}
                 className="cursor-pointer"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -246,7 +290,7 @@ export default function ReportPage() {
                     Rapport d'écart
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    {lot?.name || ""}{lot?.location ? ` — ${lot.location}` : ""}
+                    {displayLabel}
                     {variantName && ` · ${variantName}`}
                     {dpsName && ` · DPS : ${dpsName}`}
                     {reportDate && ` · ${formatDateTime(reportDate)}`}
@@ -278,10 +322,10 @@ export default function ReportPage() {
             </p>
             <Button
               variant="outline"
-              onClick={() => navigate("/")}
+              onClick={handleBack}
               className="cursor-pointer"
             >
-              Retour à l'accueil
+              Retour
             </Button>
           </div>
         ) : (
@@ -354,10 +398,10 @@ export default function ReportPage() {
             <div className="pt-4">
               <Button
                 variant="outline"
-                onClick={() => navigate("/")}
+                onClick={handleBack}
                 className="cursor-pointer"
               >
-                Retour à l'accueil
+                Retour
               </Button>
             </div>
           </div>

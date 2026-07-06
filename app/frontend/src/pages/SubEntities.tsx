@@ -224,6 +224,23 @@ export default function SubEntitiesPage() {
 
       // Log each checked sub-entity
       const dpsNameValue = session.dps_name;
+      // Get lot variant name for logging
+      const currentLotVariantName = (() => {
+        if (!lot?.variants) return null;
+        try {
+          const lotVars = localStorage.getItem("lot-variants");
+          if (lotVars) {
+            const parsed = JSON.parse(lotVars);
+            const selectedVId = parsed[lotId || ""];
+            if (selectedVId) {
+              const v = lot.variants.find((vv) => vv.id === selectedVId);
+              if (v) return v.name;
+            }
+          }
+        } catch { /* ignore */ }
+        return null;
+      })();
+
       subEntities.forEach((sub) => {
         const hasVariants = sub.variants && sub.variants.length > 0;
         const selectedVariant = selectedVariants[sub.id];
@@ -244,6 +261,7 @@ export default function SubEntitiesPage() {
                 lot_name: lot?.name || "",
                 sub_entity_name: sub.name,
                 variant_name: variantObj?.name || null,
+                lot_variant_name: currentLotVariantName,
                 sac_type: "soin",
                 dps_name: dpsNameValue,
                 completed_key: `${lotId}-${sub.id}-${selectedVariant}-soin`,
@@ -256,6 +274,7 @@ export default function SubEntitiesPage() {
                 lot_name: lot?.name || "",
                 sub_entity_name: sub.name,
                 variant_name: variantObj?.name || null,
+                lot_variant_name: currentLotVariantName,
                 sac_type: "o2",
                 dps_name: dpsNameValue,
                 completed_key: `${lotId}-${sub.id}-${selectedVariant}-o2`,
@@ -274,6 +293,7 @@ export default function SubEntitiesPage() {
                 lot_name: lot?.name || "",
                 sub_entity_name: sub.name,
                 variant_name: variantObj?.name || null,
+                lot_variant_name: currentLotVariantName,
                 sac_type: null,
                 dps_name: dpsNameValue,
                 completed_key: `${lotId}-${sub.id}-${selectedVariant}`,
@@ -290,6 +310,7 @@ export default function SubEntitiesPage() {
               lot_name: lot?.name || "",
               sub_entity_name: sub.name,
               variant_name: null,
+              lot_variant_name: currentLotVariantName,
               sac_type: null,
               dps_name: dpsNameValue,
               completed_key: `${lotId}-${sub.id}`,
@@ -305,8 +326,28 @@ export default function SubEntitiesPage() {
 
       toast.success("Inventaire sauvegardé et envoyé !");
 
+      // Navigate to the centralized report
       if (lotId) {
-        navigate(`/report/${lotId}`);
+        let reportNavKey = "";
+        if (lotId === "lot-vps" && currentLotVariantName) {
+          const lower = currentLotVariantName.toLowerCase();
+          if (lower.includes("auteuil")) reportNavKey = "vps-auteuil-central";
+          else if (lower.includes("neuilly")) reportNavKey = "vps-neuilly-central";
+        } else if (lotId === "lot-001") {
+          reportNavKey = "lot-a-central";
+        } else if (lotId === "lot-003" && currentLotVariantName) {
+          const lower = currentLotVariantName.toLowerCase();
+          if (lower.includes("alpha")) reportNavKey = "lot-c-alpha-central";
+          else if (lower.includes("bravo")) reportNavKey = "lot-c-bravo-central";
+        } else if (lotId === "lot-cai") {
+          reportNavKey = "lot-cai-central";
+        }
+
+        if (reportNavKey) {
+          navigate(`/report/key/${encodeURIComponent(reportNavKey)}`);
+        } else {
+          navigate(`/report/${lotId}`);
+        }
       }
     } catch (e: any) {
       toast.error(e?.data?.detail || "Erreur lors de la sauvegarde");

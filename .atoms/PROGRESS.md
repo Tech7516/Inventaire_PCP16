@@ -40,8 +40,14 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Migrer rapports d'écart de localStorage vers BDD (1 rapport par lot+variante, seule la dernière version conservée)
 - [x] Rapport d'écart : ajouter variante lot (VPS Auteuil/Neuilly, Lot B Alpha/Bravo) dans localisation
 - [x] Rapport d'écart : afficher nom du DPS
+- [x] Inventaire : enlever vert, ajouter orange (manque) et bleu (excédent) sur les consommables
+- [x] Journal : corriger navigation retour (vers log au lieu de DPS)
+- [x] Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V)
+- [x] Journal : rapport centralisé par groupe (sans Lot B) + rapport par variante pour Lot B et Lot V
+- [x] Journal : afficher "Pas de rapport disponible" quand aucun rapport n'existe
 
 ## Progress Log
+- 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
 - 2026-07-06: Rapport d'écart : ajout variante lot (VPS Auteuil/Neuilly, Lot B Alpha/Bravo) dans localisation + affichage nom du DPS depuis BDD
 - 2026-07-06: Migré rapports d'écart de localStorage vers BDD — table discrepancy_reports, 1 rapport par lot+variante (report_key), fusion automatique des sous-ensembles, seule dernière version conservée
 - 2026-07-06: Migré journal inventaire de localStorage vers DB - Log.tsx, Index.tsx, Inventory.tsx, SubEntities.tsx utilisent addLogEntryToDb/getLogEntriesFromDb/clearLogEntriesFromDb
