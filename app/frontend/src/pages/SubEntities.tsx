@@ -45,12 +45,13 @@ export default function SubEntitiesPage() {
       if (raw) Object.assign(initial, JSON.parse(raw));
     } catch { /* ignore */ }
     // Pre-select sub-entity variants based on homepage lot variant selection
+    // ALWAYS override with homepage choice (not just when empty)
     try {
       const lotVars = localStorage.getItem("lot-variants");
       if (lotVars) {
         const parsed = JSON.parse(lotVars);
         // VPS: pre-select Lot B based on VPS variant (Auteuil/Neuilly)
-        if (lotId === "lot-vps" && !initial["vps-lot-b"]) {
+        if (lotId === "lot-vps") {
           const vpsVariant = parsed["lot-vps"];
           if (vpsVariant) initial["vps-lot-b"] = vpsVariant;
         }
@@ -58,13 +59,22 @@ export default function SubEntitiesPage() {
         if (lotId === "lot-003") {
           const lotCVariant = parsed["lot-003"];
           if (lotCVariant && (lotCVariant === "alpha" || lotCVariant === "bravo")) {
-            if (!initial["pom-c"]) initial["pom-c"] = lotCVariant;
-            if (!initial["lot-b-c"]) initial["lot-b-c"] = lotCVariant;
-            if (!initial["caisse-c"]) initial["caisse-c"] = lotCVariant;
+            initial["pom-c"] = lotCVariant;
+            initial["lot-b-c"] = lotCVariant;
+            initial["caisse-c"] = lotCVariant;
+          }
+        }
+        // Lot A: pre-select Lot B based on Lot A variant if applicable
+        if (lotId === "lot-001") {
+          const lotAVariant = parsed["lot-001"];
+          if (lotAVariant && (lotAVariant === "alpha" || lotAVariant === "bravo" || lotAVariant === "auteuil" || lotAVariant === "neuilly")) {
+            initial["lot-b"] = lotAVariant;
           }
         }
       }
     } catch { /* ignore */ }
+    // Persist the pre-selected values so they're saved
+    localStorage.setItem("selected-variants", JSON.stringify(initial));
     return initial;
   });
   const [completedKeys, setCompletedKeys] = useState<Set<string>>(getCompletedKeys);
