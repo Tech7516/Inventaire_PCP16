@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
-import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
+import { ArrowLeft, Save, ClipboardList, Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { addLogEntry } from "./Log";
 import { saveInventoryData } from "./Report";
@@ -40,6 +40,26 @@ export default function InventoryPage() {
   const sections = isDirectInventory
     ? subEntitySections[lotId] || []
     : subId ? subEntitySections[sectionKey] || subEntitySections[subId] || [] : [];
+
+  // DPS name for direct inventory lots (Lot CAI, Lot V)
+  const [dpsName, setDpsName] = useState(() => localStorage.getItem("dps-name") || "");
+
+  // Get the selected lot variant name for display (e.g. "VL Poussin")
+  const lotVariantName = (() => {
+    if (!lot?.variants) return null;
+    try {
+      const lotVars = localStorage.getItem("lot-variants");
+      if (lotVars) {
+        const parsed = JSON.parse(lotVars);
+        const selectedVId = parsed[lotId || ""];
+        if (selectedVId) {
+          const v = lot.variants.find((vv) => vv.id === selectedVId);
+          if (v) return v.name;
+        }
+      }
+    } catch { /* ignore */ }
+    return null;
+  })();
 
   const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
     () => {
@@ -97,7 +117,7 @@ export default function InventoryPage() {
 
   const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : "";
   const displayTitle = isDirectInventory
-    ? lot?.name || ""
+    ? lotVariantName || lot?.name || ""
     : variant
       ? sacLabel ? `${variant.name} — ${sacLabel}` : variant.name
       : subEntity?.name || "";
@@ -153,32 +173,42 @@ export default function InventoryPage() {
       return;
     }
 
+    // For direct inventory, DPS name is required
+    if (isDirectInventory && !dpsName.trim()) {
+      toast.error("Veuillez saisir le nom du DPS.");
+      return;
+    }
+
     setSaving(true);
 
     try {
-      // Save items to DB if session exists
+      // Save only discrepancies (non-conforming items) to DB
       if (sessionId) {
-        const dpsName = localStorage.getItem("dps-name") || "";
-        const itemsPayload = allItems.map((item) => ({
+        const discrepancies = allItems.filter(
+          (item) => !entries[item.id].validated || entries[item.id].customQuantity.trim()
+        );
+        const itemsPayload = discrepancies.map((item) => ({
           item_id: item.id,
           validated: entries[item.id].validated,
           custom_quantity: entries[item.id].customQuantity || null,
         }));
 
-        await saveInventoryItems(
-          sessionId,
-          subId || lotId || "",
-          itemsPayload,
-          dpsName,
-          variantId || null,
-          sacType || null
-        );
+        if (itemsPayload.length > 0) {
+          await saveInventoryItems(
+            sessionId,
+            subId || lotId || "",
+            itemsPayload,
+            dpsName.trim(),
+            variantId || null,
+            sacType || null
+          );
+        }
 
         // Mark sub-entity as checked
         await markSubEntity(
           sessionId,
           subId || lotId || "",
-          dpsName,
+          dpsName.trim(),
           variantId || null,
           sacType || null
         );
@@ -186,42 +216,30 @@ export default function InventoryPage() {
 
       toast.success("Inventaire enregistré avec succès !");
 
-      // Save inventory data for discrepancy report (localStorage fallback)
-      const savedEntries = sections.flatMap((section) =>
-        section.items.map((item) => ({
-          itemId: item.id,
-          validated: entries[item.id].validated,
-          customQuantity: entries[item.id].customQuantity,
-          itemName: item.name,
-          expectedQuantity: item.expectedQuantity,
-          sectionTitle: section.title,
-        }))
+      // Save only discrepancies for discrepancy report (localStorage fallback)
+      const discrepancyEntries = sections.flatMap((section) =>
+        section.items
+          .filter((item) => !entries[item.id].validated || entries[item.id].customQuantity.trim())
+          .map((item) => ({
+            itemId: item.id,
+            validated: entries[item.id].validated,
+            customQuantity: entries[item.id].customQuantity,
+            itemName: item.name,
+            expectedQuantity: item.expectedQuantity,
+            sectionTitle: section.title,
+          }))
       );
       saveInventoryData({
         lotId: lotId || "",
         subId: subId || "",
         variantId: variantId || null,
         sacType: sacType || null,
-        entries: savedEntries,
+        entries: discrepancyEntries,
         savedAt: new Date().toISOString(),
       });
 
-      // Log only for direct inventory lots (e.g. Lot V)
+      // Log for direct inventory lots (e.g. Lot V, Lot CAI)
       if (isDirectInventory) {
-        const dpsName = localStorage.getItem("dps-name") || "";
-        const lotVariantRaw = localStorage.getItem("lot-variants");
-        let lotVariantName: string | null = null;
-        if (lot?.variants && lotVariantRaw) {
-          try {
-            const lotVariants = JSON.parse(lotVariantRaw);
-            const selectedVId = lotVariants[lotId];
-            if (selectedVId) {
-              const v = lot.variants.find((vv) => vv.id === selectedVId);
-              if (v) lotVariantName = v.name;
-            }
-          } catch { /* ignore */ }
-        }
-
         const completedKey = variantId && sacType
           ? `${lotId}-${subId}-${variantId}-${sacType}`
           : variantId
@@ -234,7 +252,7 @@ export default function InventoryPage() {
           subEntityName: lotVariantName || lot?.name || "",
           variantName: lotVariantName,
           sacType: null,
-          dpsName,
+          dpsName: dpsName.trim(),
           completedAt: new Date().toISOString(),
           completedKey,
         });
@@ -280,7 +298,7 @@ export default function InventoryPage() {
                     {displayTitle}
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    {lot.name} — {lot.location}
+                    {isDirectInventory ? (lotVariantName || lot.name) : `${lot.name} — ${lot.location}`}
                     {sections.length > 0 && ` · ${processedCount}/${allItems.length} articles traités`}
                   </p>
                 </div>
@@ -307,6 +325,28 @@ export default function InventoryPage() {
         </main>
       ) : (
         <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* DPS name field for direct inventory lots */}
+          {isDirectInventory && (
+            <div className="mb-6 bg-primary/5 rounded-lg px-4 py-3 flex items-center gap-3">
+              <Users className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1">
+                <label htmlFor="dps-name-direct" className="block text-sm font-medium text-muted-foreground mb-1">
+                  Nom du DPS
+                </label>
+                <Input
+                  id="dps-name-direct"
+                  type="text"
+                  placeholder="Saisissez le nom du DPS..."
+                  value={dpsName}
+                  onChange={(e) => {
+                    setDpsName(e.target.value);
+                    localStorage.setItem("dps-name", e.target.value);
+                  }}
+                  className="max-w-md"
+                />
+              </div>
+            </div>
+          )}
           <div className="space-y-8">
             {sections.map((section) => (
               <div key={section.id}>

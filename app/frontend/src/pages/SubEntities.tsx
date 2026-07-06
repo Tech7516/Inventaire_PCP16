@@ -76,30 +76,52 @@ export default function SubEntitiesPage() {
     return initial;
   });
 
-  // Load or create session on mount
+  // Load or create session on mount — use cached data first, then verify in background
   useEffect(() => {
     const initSession = async () => {
       if (!lotId) return;
       setSessionLoading(true);
       try {
-        // Check localStorage for existing session ID
+        // Check localStorage for cached session data (instant display)
         const storedSessionId = localStorage.getItem("active-session-id");
-        if (storedSessionId) {
-          // Verify the session is still active
-          const activeSession = await getActiveSession(lotId);
-          if (activeSession && activeSession.id === parseInt(storedSessionId) && activeSession.status === "active") {
-            setSession(activeSession);
-            setDpsName(activeSession.dps_name);
-            localStorage.setItem("dps-name", activeSession.dps_name);
-            // Load checks
-            const checksData = await getSubEntityChecks(activeSession.id);
-            setChecks(checksData);
-            setSessionLoading(false);
-            return;
-          }
+        const storedDpsName = localStorage.getItem("active-session-dps");
+        if (storedSessionId && storedDpsName) {
+          // Show cached session immediately
+          const cachedSession: SessionData = {
+            id: parseInt(storedSessionId),
+            lot_id: lotId,
+            variant_id: null,
+            dps_name: storedDpsName,
+            status: "active",
+            completed_at: null,
+            created_at: null,
+          };
+          setSession(cachedSession);
+          setDpsName(storedDpsName);
+          setSessionLoading(false);
+
+          // Verify in background and load checks
+          try {
+            const activeSession = await getActiveSession(lotId);
+            if (activeSession && activeSession.id === parseInt(storedSessionId) && activeSession.status === "active") {
+              setSession(activeSession);
+              setDpsName(activeSession.dps_name);
+              localStorage.setItem("dps-name", activeSession.dps_name);
+              const checksData = await getSubEntityChecks(activeSession.id);
+              setChecks(checksData);
+            } else {
+              // Session no longer active — clear cache
+              setSession(null);
+              setDpsName("");
+              localStorage.removeItem("active-session-id");
+              localStorage.removeItem("active-session-dps");
+              localStorage.removeItem("dps-name");
+            }
+          } catch { /* ignore background verification failure */ }
+          return;
         }
 
-        // Check if there's an active session for this lot
+        // No cached session — check API
         const activeSession = await getActiveSession(lotId);
         if (activeSession && activeSession.status === "active") {
           setSession(activeSession);
@@ -107,7 +129,6 @@ export default function SubEntitiesPage() {
           localStorage.setItem("dps-name", activeSession.dps_name);
           localStorage.setItem("active-session-id", String(activeSession.id));
           localStorage.setItem("active-session-dps", activeSession.dps_name);
-          // Load checks
           const checksData = await getSubEntityChecks(activeSession.id);
           setChecks(checksData);
         }

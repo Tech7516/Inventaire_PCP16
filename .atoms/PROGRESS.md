@@ -26,6 +26,10 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Lint + build + vérification
 - [x] Supprimer mention "Vérifié par" (pas d'authentification = pas pertinent)
 - [x] Optimiser lenteur : remplacer N appels API séquentiels par 1 appel batch /active-sessions
+- [x] Optimiser fluidité : ne stocker que les écarts (non-conformes) au lieu de tous les articles consommés
+- [x] Ajouter champ "Nom du DPS" sur la page inventaire direct (Lot CAI, Lot V)
+- [x] Corriger titre sous-titre inventaire direct (afficher variante au lieu de "Lot V — Passy")
+- [x] Optimiser SubEntities : affichage instantané via cache localStorage, vérification en arrière-plan
 
 ## Progress Log
 - 2026-07-06: Supprimé mention "Vérifié par : [nom]" sur SubEntities.tsx (pas d'authentification, le nom du DPS n'est pas le nom du vérificateur)
