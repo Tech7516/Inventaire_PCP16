@@ -30,6 +30,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Ajouter champ "Nom du DPS" sur la page inventaire direct (Lot CAI, Lot V)
 - [x] Corriger titre sous-titre inventaire direct (afficher variante au lieu de "Lot V — Passy")
 - [x] Optimiser SubEntities : affichage instantané via cache localStorage, vérification en arrière-plan
+- [x] Corriger 404 /api/v1/inventory/active-sessions : remplacer client.apiCall.invoke par client.entities.* (CRUD auto-déployé)
 
 ## Progress Log
 - 2026-07-06: Supprimé mention "Vérifié par : [nom]" sur SubEntities.tsx (pas d'authentification, le nom du DPS n'est pas le nom du vérificateur)
