@@ -282,3 +282,90 @@ export async function getSession(sessionId: number): Promise<SessionData> {
   });
   return res.data as SessionData;
 }
+
+// ---------- Inventory Logs (DB-backed, shared across users) ----------
+
+export interface InventoryLogData {
+  id: number;
+  lot_id: string;
+  lot_name: string;
+  sub_entity_name: string;
+  variant_name: string | null;
+  sac_type: string | null;
+  dps_name: string;
+  completed_key: string;
+  created_at: string | null;
+}
+
+export async function addLogEntryToDb(entry: {
+  lot_id: string;
+  lot_name: string;
+  sub_entity_name: string;
+  variant_name?: string | null;
+  sac_type?: string | null;
+  dps_name: string;
+  completed_key: string;
+}): Promise<InventoryLogData> {
+  // Idempotent: check for existing entry with same completed_key
+  try {
+    const existing = await client.entities.inventory_logs.query({
+      query: { completed_key: entry.completed_key },
+      limit: 1,
+    });
+    const items = (existing.data?.items || []) as InventoryLogData[];
+    if (items.length > 0) {
+      // Update existing entry
+      const updateData = stripNulls({
+        lot_name: entry.lot_name,
+        sub_entity_name: entry.sub_entity_name,
+        variant_name: entry.variant_name || undefined,
+        sac_type: entry.sac_type || undefined,
+        dps_name: entry.dps_name,
+      });
+      const res = await client.entities.inventory_logs.update({
+        id: String(items[0].id),
+        data: updateData,
+      });
+      return res.data as InventoryLogData;
+    }
+  } catch { /* proceed to create */ }
+
+  const data = stripNulls({
+    lot_id: entry.lot_id,
+    lot_name: entry.lot_name,
+    sub_entity_name: entry.sub_entity_name,
+    variant_name: entry.variant_name || undefined,
+    sac_type: entry.sac_type || undefined,
+    dps_name: entry.dps_name,
+    completed_key: entry.completed_key,
+  });
+
+  const res = await client.entities.inventory_logs.create({ data });
+  return res.data as InventoryLogData;
+}
+
+export async function getLogEntriesFromDb(lotId?: string): Promise<InventoryLogData[]> {
+  try {
+    const query: Record<string, string> = {};
+    if (lotId) query.lot_id = lotId;
+
+    const res = await client.entities.inventory_logs.query({
+      query: Object.keys(query).length > 0 ? query : undefined,
+      sort: "-created_at",
+      limit: 500,
+    });
+    return (res.data?.items || []) as InventoryLogData[];
+  } catch {
+    return [];
+  }
+}
+
+export async function clearLogEntriesFromDb(): Promise<void> {
+  try {
+    const res = await client.entities.inventory_logs.query({ limit: 500 });
+    const items = (res.data?.items || []) as InventoryLogData[];
+    for (const item of items) {
+      await client.entities.inventory_logs.delete({ id: String(item.id) });
+    }
+  } catch { /* ignore */ }
+}

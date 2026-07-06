@@ -2,45 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { lots, lotSubEntities } from "@/data/lots";
-import { ArrowLeft, ScrollText, Clock, Trash2, FileText } from "lucide-react";
-
-export interface LogEntry {
-  lotId: string;
-  lotName: string;
-  subEntityName: string;
-  variantName: string | null;
-  sacType: string | null;
-  dpsName: string;
-  completedAt: string;
-  completedKey: string;
-}
-
-const LOG_KEY = "inventory-log";
-
-export function getLogEntries(): LogEntry[] {
-  try {
-    const raw = localStorage.getItem(LOG_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return [];
-}
-
-export function addLogEntry(entry: LogEntry) {
-  const entries = getLogEntries();
-  // Avoid duplicate entries for the same completedKey
-  const existingIndex = entries.findIndex((e) => e.completedKey === entry.completedKey);
-  if (existingIndex >= 0) {
-    entries[existingIndex] = entry;
-  } else {
-    entries.push(entry);
-  }
-  localStorage.setItem(LOG_KEY, JSON.stringify(entries));
-}
-
-export function clearLogEntries() {
-  localStorage.removeItem(LOG_KEY);
-}
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2 } from "lucide-react";
+import {
+  getLogEntriesFromDb,
+  clearLogEntriesFromDb,
+  type InventoryLogData,
+} from "@/lib/inventory-api";
 
 function formatDateTime(iso: string): string {
   try {
@@ -57,52 +24,56 @@ function formatDateTime(iso: string): string {
   }
 }
 
-function getLotDisplayName(lotId: string): string {
-  const lot = lots.find((l) => l.id === lotId);
-  return lot?.name || lotId;
-}
-
-function getSubEntityDisplayName(lotId: string, subId: string): string {
-  const subs = lotSubEntities[lotId] || [];
-  const sub = subs.find((s) => s.id === subId);
-  return sub?.name || subId;
-}
-
 export default function LogPage() {
   const navigate = useNavigate();
-  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [entries, setEntries] = useState<InventoryLogData[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setEntries(getLogEntries());
+    const load = async () => {
+      setLoading(true);
+      const data = await getLogEntriesFromDb();
+      setEntries(data);
+      setLoading(false);
+    };
+    load();
   }, []);
 
-  const handleClear = () => {
-    clearLogEntries();
+  const handleClear = async () => {
+    await clearLogEntriesFromDb();
     setEntries([]);
   };
 
   // Group entries by lot
-  const groupedByLot: Record<string, LogEntry[]> = {};
+  const groupedByLot: Record<string, InventoryLogData[]> = {};
   entries.forEach((entry) => {
-    if (!groupedByLot[entry.lotId]) {
-      groupedByLot[entry.lotId] = [];
+    if (!groupedByLot[entry.lot_id]) {
+      groupedByLot[entry.lot_id] = [];
     }
-    groupedByLot[entry.lotId].push(entry);
+    groupedByLot[entry.lot_id].push(entry);
   });
 
   // Sort entries within each group by date (newest first)
   Object.keys(groupedByLot).forEach((key) => {
     groupedByLot[key].sort(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+      (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
     );
   });
 
   // Sort lots by their most recent entry
   const sortedLotIds = Object.keys(groupedByLot).sort((a, b) => {
-    const aLatest = groupedByLot[a][0]?.completedAt || "";
-    const bLatest = groupedByLot[b][0]?.completedAt || "";
+    const aLatest = groupedByLot[a][0]?.created_at || "";
+    const bLatest = groupedByLot[b][0]?.created_at || "";
     return new Date(bLatest).getTime() - new Date(aLatest).getTime();
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -160,7 +131,7 @@ export default function LogPage() {
           <div className="space-y-8">
             {sortedLotIds.map((lotId) => {
               const lotEntries = groupedByLot[lotId];
-              const lotName = lotEntries[0]?.lotName || getLotDisplayName(lotId);
+              const lotName = lotEntries[0]?.lot_name || lotId;
 
               return (
                 <div key={lotId}>
@@ -169,13 +140,13 @@ export default function LogPage() {
                     {lotName}
                   </h2>
                   <div className="space-y-2">
-                    {lotEntries.map((entry, idx) => {
-                      const subLabel = entry.subEntityName;
-                      const variantLabel = entry.variantName;
+                    {lotEntries.map((entry) => {
+                      const subLabel = entry.sub_entity_name;
+                      const variantLabel = entry.variant_name;
                       const sacLabel =
-                        entry.sacType === "soin"
+                        entry.sac_type === "soin"
                           ? "Sac de soin"
-                          : entry.sacType === "o2"
+                          : entry.sac_type === "o2"
                             ? "Sac d'O2"
                             : null;
 
@@ -185,7 +156,7 @@ export default function LogPage() {
                       const detailLine = detailParts.join(" — ");
 
                       return (
-                        <Card key={idx} className="transition-all">
+                        <Card key={entry.id} className="transition-all">
                           <CardContent className="py-3">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
@@ -194,18 +165,18 @@ export default function LogPage() {
                                 </p>
                                 <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                                   <span>
-                                    DPS : {entry.dpsName || "—"}
+                                    DPS : {entry.dps_name || "—"}
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Clock className="h-3.5 w-3.5" />
-                                    {formatDateTime(entry.completedAt)}
+                                    {formatDateTime(entry.created_at || "")}
                                   </span>
                                 </div>
                               </div>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/report/${entry.lotId}`)}
+                                onClick={() => navigate(`/report/${entry.lot_id}`)}
                                 className="cursor-pointer shrink-0"
                               >
                                 <FileText className="h-4 w-4 mr-1.5" />

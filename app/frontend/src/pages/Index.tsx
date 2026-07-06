@@ -10,9 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { lots } from "@/data/lots";
-import { getLogEntries } from "@/pages/Log";
 import { ClipboardList, MapPin, CalendarClock, ScrollText, Users } from "lucide-react";
-import { getAllActiveSessions } from "@/lib/inventory-api";
+import { getAllActiveSessions, getLogEntriesFromDb, type InventoryLogData } from "@/lib/inventory-api";
 
 function formatDateTimeShort(iso: string): string {
   try {
@@ -29,11 +28,11 @@ function formatDateTimeShort(iso: string): string {
   }
 }
 
-function getLastVerificationDate(lotId: string): string | null {
-  const entries = getLogEntries().filter((e) => e.lotId === lotId);
+function getLastVerificationDate(logEntries: InventoryLogData[], lotId: string): string | null {
+  const entries = logEntries.filter((e) => e.lot_id === lotId);
   if (entries.length === 0) return null;
-  entries.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
-  return formatDateTimeShort(entries[0].completedAt);
+  entries.sort((a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime());
+  return formatDateTimeShort(entries[0].created_at || "");
 }
 
 export default function HomePage() {
@@ -46,6 +45,7 @@ export default function HomePage() {
     return {};
   });
   const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string }>>({});
+  const [logEntries, setLogEntries] = useState<InventoryLogData[]>([]);
 
   const persistLotVariant = (lotId: string, value: string) => {
     setSelectedLotVariants((prev) => {
@@ -55,11 +55,14 @@ export default function HomePage() {
     });
   };
 
-  // Check for active sessions on mount — single batch call
+  // Check for active sessions and log entries on mount
   useEffect(() => {
-    const checkSessions = async () => {
+    const loadData = async () => {
       try {
-        const allSessions = await getAllActiveSessions();
+        const [allSessions, allLogs] = await Promise.all([
+          getAllActiveSessions(),
+          getLogEntriesFromDb(),
+        ]);
         const sessions: Record<string, { id: number; dps_name: string }> = {};
         for (const s of allSessions) {
           if (s.status === "active") {
@@ -67,9 +70,10 @@ export default function HomePage() {
           }
         }
         setActiveSessions(sessions);
+        setLogEntries(allLogs);
       } catch { /* ignore */ }
     };
-    checkSessions();
+    loadData();
   }, []);
 
   const handleStartInventory = (lotId: string) => {
@@ -147,8 +151,8 @@ export default function HomePage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CalendarClock className="h-4 w-4 shrink-0" />
                     <span>
-                      {getLastVerificationDate(lot.id)
-                        ? `Dernière vérification : ${getLastVerificationDate(lot.id)}`
+                      {getLastVerificationDate(logEntries, lot.id)
+                        ? `Dernière vérification : ${getLastVerificationDate(logEntries, lot.id)}`
                         : "Aucune vérification effectuée"}
                     </span>
                   </div>

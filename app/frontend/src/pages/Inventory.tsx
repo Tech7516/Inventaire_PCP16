@@ -7,12 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Check, Users } from "lucide-react";
 import { toast } from "sonner";
-import { addLogEntry } from "./Log";
 import { saveInventoryData } from "./Report";
 import {
   saveInventoryItems,
   markSubEntity,
   getInventoryItems,
+  addLogEntryToDb,
   type InventoryItemData,
 } from "@/lib/inventory-api";
 
@@ -251,15 +251,14 @@ export default function InventoryPage() {
             ? `${lotId}-${subId}-${variantId}`
             : `${lotId}-${subId}`;
 
-        addLogEntry({
-          lotId: lotId || "",
-          lotName: lot?.name || "",
-          subEntityName: lotVariantName || lot?.name || "",
-          variantName: lotVariantName,
-          sacType: null,
-          dpsName: dpsName.trim(),
-          completedAt: new Date().toISOString(),
-          completedKey,
+        addLogEntryToDb({
+          lot_id: lotId || "",
+          lot_name: lot?.name || "",
+          sub_entity_name: lotVariantName || lot?.name || "",
+          variant_name: lotVariantName,
+          sac_type: null,
+          dps_name: dpsName.trim(),
+          completed_key: completedKey,
         });
 
         navigate(`/report/${lotId}`);

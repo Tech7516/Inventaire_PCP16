@@ -13,7 +13,6 @@ import {
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users } from "lucide-react";
 import { toast } from "sonner";
-import { addLogEntry } from "./Log";
 import {
   getActiveSession,
   createSession,
@@ -21,6 +20,7 @@ import {
   completeSession,
   getSubEntityChecks,
   markSubEntity,
+  addLogEntryToDb,
   type SessionData,
   type SubEntityCheckData,
 } from "@/lib/inventory-api";
@@ -239,28 +239,26 @@ export default function SubEntitiesPage() {
 
             if (soinCheck) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
-              addLogEntry({
-                lotId: lotId || "",
-                lotName: lot?.name || "",
-                subEntityName: sub.name,
-                variantName: variantObj?.name || null,
-                sacType: "soin",
-                dpsName: dpsNameValue,
-                completedAt: new Date().toISOString(),
-                completedKey: `${lotId}-${sub.id}-${selectedVariant}-soin`,
+              addLogEntryToDb({
+                lot_id: lotId || "",
+                lot_name: lot?.name || "",
+                sub_entity_name: sub.name,
+                variant_name: variantObj?.name || null,
+                sac_type: "soin",
+                dps_name: dpsNameValue,
+                completed_key: `${lotId}-${sub.id}-${selectedVariant}-soin`,
               });
             }
             if (o2Check) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
-              addLogEntry({
-                lotId: lotId || "",
-                lotName: lot?.name || "",
-                subEntityName: sub.name,
-                variantName: variantObj?.name || null,
-                sacType: "o2",
-                dpsName: dpsNameValue,
-                completedAt: new Date().toISOString(),
-                completedKey: `${lotId}-${sub.id}-${selectedVariant}-o2`,
+              addLogEntryToDb({
+                lot_id: lotId || "",
+                lot_name: lot?.name || "",
+                sub_entity_name: sub.name,
+                variant_name: variantObj?.name || null,
+                sac_type: "o2",
+                dps_name: dpsNameValue,
+                completed_key: `${lotId}-${sub.id}-${selectedVariant}-o2`,
               });
             }
           }
@@ -271,15 +269,14 @@ export default function SubEntitiesPage() {
             );
             if (check) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
-              addLogEntry({
-                lotId: lotId || "",
-                lotName: lot?.name || "",
-                subEntityName: sub.name,
-                variantName: variantObj?.name || null,
-                sacType: null,
-                dpsName: dpsNameValue,
-                completedAt: new Date().toISOString(),
-                completedKey: `${lotId}-${sub.id}-${selectedVariant}`,
+              addLogEntryToDb({
+                lot_id: lotId || "",
+                lot_name: lot?.name || "",
+                sub_entity_name: sub.name,
+                variant_name: variantObj?.name || null,
+                sac_type: null,
+                dps_name: dpsNameValue,
+                completed_key: `${lotId}-${sub.id}-${selectedVariant}`,
               });
             }
           }
@@ -288,15 +285,14 @@ export default function SubEntitiesPage() {
             (c) => c.sub_entity_id === sub.id && !c.variant_id && !c.sac_type
           );
           if (check) {
-            addLogEntry({
-              lotId: lotId || "",
-              lotName: lot?.name || "",
-              subEntityName: sub.name,
-              variantName: null,
-              sacType: null,
-              dpsName: dpsNameValue,
-              completedAt: new Date().toISOString(),
-              completedKey: `${lotId}-${sub.id}`,
+            addLogEntryToDb({
+              lot_id: lotId || "",
+              lot_name: lot?.name || "",
+              sub_entity_name: sub.name,
+              variant_name: null,
+              sac_type: null,
+              dps_name: dpsNameValue,
+              completed_key: `${lotId}-${sub.id}`,
             });
           }
         }

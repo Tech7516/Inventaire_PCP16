@@ -1,0 +1,45 @@
+{
+    "title": "inventory_logs",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "autoIncrement": true
+        },
+        "lot_id": {
+            "type": "string",
+            "description": "Lot identifier"
+        },
+        "lot_name": {
+            "type": "string",
+            "description": "Lot display name"
+        },
+        "sub_entity_name": {
+            "type": "string",
+            "description": "Sub-entity name"
+        },
+        "variant_name": {
+            "type": "string",
+            "description": "Variant name, can be empty"
+        },
+        "sac_type": {
+            "type": "string",
+            "description": "Sac type (soin/o2), can be empty"
+        },
+        "dps_name": {
+            "type": "string",
+            "description": "DPS operator name"
+        },
+        "completed_key": {
+            "type": "string",
+            "description": "Unique key to avoid duplicates"
+        }
+    },
+    "required": [
+        "lot_id",
+        "lot_name",
+        "sub_entity_name",
+        "dps_name",
+        "completed_key"
+    ]
+}
