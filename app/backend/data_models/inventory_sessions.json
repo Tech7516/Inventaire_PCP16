@@ -1,0 +1,29 @@
+{
+    "title": "inventory_sessions",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "lot_id": {
+            "type": "string"
+        },
+        "variant_id": {
+            "type": "string"
+        },
+        "dps_name": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string",
+            "default": "active"
+        },
+        "completed_at": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "lot_id",
+        "dps_name"
+    ]
+}

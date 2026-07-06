@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,24 +7,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Check } from "lucide-react";
 import { toast } from "sonner";
-import { markCompleted } from "./SubEntities";
 import { addLogEntry } from "./Log";
 import { saveInventoryData } from "./Report";
-
-function getCompletedKeys(): Set<string> {
-  try {
-    const raw = localStorage.getItem("inventory-completed");
-    if (raw) return new Set(JSON.parse(raw));
-  } catch { /* ignore */ }
-  return new Set();
-}
-
-function clearCompletedKeysForLot(lotId: string) {
-  const all = getCompletedKeys();
-  const keysToRemove = [...all].filter((key) => key.startsWith(`${lotId}-`));
-  keysToRemove.forEach((key) => all.delete(key));
-  localStorage.setItem("inventory-completed", JSON.stringify([...all]));
-}
+import {
+  saveInventoryItems,
+  markSubEntity,
+  getInventoryItems,
+  type InventoryItemData,
+} from "@/lib/inventory-api";
 
 interface InventoryEntry {
   itemId: string;
@@ -35,6 +25,9 @@ interface InventoryEntry {
 export default function InventoryPage() {
   const { lotId, subId, variantId, sacType } = useParams<{ lotId: string; subId: string; variantId?: string; sacType?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get("session") ? parseInt(searchParams.get("session")!) : null;
+
   const lot = lots.find((l) => l.id === lotId);
   const isDirectInventory = lot?.directInventory === true;
   const subEntity = lotId && subId && !isDirectInventory
@@ -63,6 +56,44 @@ export default function InventoryPage() {
       return initial;
     }
   );
+
+  const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(true);
+
+  // Load existing items from DB if session exists
+  useEffect(() => {
+    const loadExisting = async () => {
+      if (!sessionId) {
+        setLoadingExisting(false);
+        return;
+      }
+      try {
+        const existingItems = await getInventoryItems(
+          sessionId,
+          subId,
+          variantId || undefined,
+          sacType || undefined
+        );
+        if (existingItems.length > 0) {
+          setEntries((prev) => {
+            const updated = { ...prev };
+            existingItems.forEach((item: InventoryItemData) => {
+              if (updated[item.item_id]) {
+                updated[item.item_id] = {
+                  itemId: item.item_id,
+                  validated: item.validated ?? true,
+                  customQuantity: item.custom_quantity || "",
+                };
+              }
+            });
+            return updated;
+          });
+        }
+      } catch { /* ignore */ }
+      setLoadingExisting(false);
+    };
+    loadExisting();
+  }, [sessionId, subId, variantId, sacType]);
 
   const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : "";
   const displayTitle = isDirectInventory
@@ -111,7 +142,7 @@ export default function InventoryPage() {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const unprocessed = allItems.filter(
       (item) => !entries[item.id].validated && !entries[item.id].customQuantity.trim()
     );
@@ -121,75 +152,112 @@ export default function InventoryPage() {
       );
       return;
     }
-    toast.success("Inventaire enregistré avec succès !");
-    // Mark this section as completed so green check appears on SubEntities page
-    const completedKey = variantId && sacType
-      ? `${lotId}-${subId}-${variantId}-${sacType}`
-      : variantId
-        ? `${lotId}-${subId}-${variantId}`
-        : `${lotId}-${subId}`;
-    markCompleted(completedKey);
 
-    // Save inventory data for discrepancy report
-    const savedEntries = sections.flatMap((section) =>
-      section.items.map((item) => ({
-        itemId: item.id,
-        validated: entries[item.id].validated,
-        customQuantity: entries[item.id].customQuantity,
-        itemName: item.name,
-        expectedQuantity: item.expectedQuantity,
-        sectionTitle: section.title,
-      }))
-    );
-    saveInventoryData({
-      lotId: lotId || "",
-      subId: subId || "",
-      variantId: variantId || null,
-      sacType: sacType || null,
-      entries: savedEntries,
-      savedAt: new Date().toISOString(),
-    });
+    setSaving(true);
 
-    // Log only for direct inventory lots (e.g. Lot V)
-    if (isDirectInventory) {
-      const dpsName = localStorage.getItem("dps-name") || "";
-      const lotVariantRaw = localStorage.getItem("lot-variants");
-      let lotVariantName: string | null = null;
-      if (lot?.variants && lotVariantRaw) {
-        try {
-          const lotVariants = JSON.parse(lotVariantRaw);
-          const selectedVId = lotVariants[lotId];
-          if (selectedVId) {
-            const v = lot.variants.find((vv) => vv.id === selectedVId);
-            if (v) lotVariantName = v.name;
-          }
-        } catch { /* ignore */ }
+    try {
+      // Save items to DB if session exists
+      if (sessionId) {
+        const dpsName = localStorage.getItem("dps-name") || "";
+        const itemsPayload = allItems.map((item) => ({
+          item_id: item.id,
+          validated: entries[item.id].validated,
+          custom_quantity: entries[item.id].customQuantity || null,
+        }));
+
+        await saveInventoryItems(
+          sessionId,
+          subId || lotId || "",
+          itemsPayload,
+          dpsName,
+          variantId || null,
+          sacType || null
+        );
+
+        // Mark sub-entity as checked
+        await markSubEntity(
+          sessionId,
+          subId || lotId || "",
+          dpsName,
+          variantId || null,
+          sacType || null
+        );
       }
 
-      addLogEntry({
+      toast.success("Inventaire enregistré avec succès !");
+
+      // Save inventory data for discrepancy report (localStorage fallback)
+      const savedEntries = sections.flatMap((section) =>
+        section.items.map((item) => ({
+          itemId: item.id,
+          validated: entries[item.id].validated,
+          customQuantity: entries[item.id].customQuantity,
+          itemName: item.name,
+          expectedQuantity: item.expectedQuantity,
+          sectionTitle: section.title,
+        }))
+      );
+      saveInventoryData({
         lotId: lotId || "",
-        lotName: lot?.name || "",
-        subEntityName: lotVariantName || lot?.name || "",
-        variantName: lotVariantName,
-        sacType: null,
-        dpsName,
-        completedAt: new Date().toISOString(),
-        completedKey,
+        subId: subId || "",
+        variantId: variantId || null,
+        sacType: sacType || null,
+        entries: savedEntries,
+        savedAt: new Date().toISOString(),
       });
 
-      // Reset completed keys and DPS name for this lot
-      clearCompletedKeysForLot(lotId || "");
-      localStorage.removeItem("dps-name");
+      // Log only for direct inventory lots (e.g. Lot V)
+      if (isDirectInventory) {
+        const dpsName = localStorage.getItem("dps-name") || "";
+        const lotVariantRaw = localStorage.getItem("lot-variants");
+        let lotVariantName: string | null = null;
+        if (lot?.variants && lotVariantRaw) {
+          try {
+            const lotVariants = JSON.parse(lotVariantRaw);
+            const selectedVId = lotVariants[lotId];
+            if (selectedVId) {
+              const v = lot.variants.find((vv) => vv.id === selectedVId);
+              if (v) lotVariantName = v.name;
+            }
+          } catch { /* ignore */ }
+        }
 
-      // Redirect to report page for direct inventory
-      navigate(`/report/${lotId}`);
-    } else {
-      // Go back to sub-entities page
-      navigate(`/lot/${lotId}`);
+        const completedKey = variantId && sacType
+          ? `${lotId}-${subId}-${variantId}-${sacType}`
+          : variantId
+            ? `${lotId}-${subId}-${variantId}`
+            : `${lotId}-${subId}`;
+
+        addLogEntry({
+          lotId: lotId || "",
+          lotName: lot?.name || "",
+          subEntityName: lotVariantName || lot?.name || "",
+          variantName: lotVariantName,
+          sacType: null,
+          dpsName,
+          completedAt: new Date().toISOString(),
+          completedKey,
+        });
+
+        navigate(`/report/${lotId}`);
+      } else {
+        // Go back to sub-entities page
+        navigate(`/lot/${lotId}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.data?.detail || "Erreur lors de l'enregistrement");
+    } finally {
+      setSaving(false);
     }
-
-    console.log("Inventaire soumis:", { lotId, subId, variantId, sacType, entries });
   };
+
+  if (loadingExisting) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Chargement des données existantes...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -218,9 +286,9 @@ export default function InventoryPage() {
                 </div>
               </div>
             </div>
-            <Button onClick={handleSubmit} className="cursor-pointer">
+            <Button onClick={handleSubmit} disabled={saving} className="cursor-pointer">
               <Save className="h-4 w-4 mr-2" />
-              Enregistrer
+              {saving ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>
         </div>

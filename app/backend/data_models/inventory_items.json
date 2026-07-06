@@ -1,0 +1,39 @@
+{
+    "title": "inventory_items",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "session_id": {
+            "type": "integer"
+        },
+        "sub_entity_id": {
+            "type": "string"
+        },
+        "variant_id": {
+            "type": "string"
+        },
+        "sac_type": {
+            "type": "string"
+        },
+        "item_id": {
+            "type": "string"
+        },
+        "validated": {
+            "type": "boolean",
+            "default": true
+        },
+        "custom_quantity": {
+            "type": "string"
+        },
+        "checker_name": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "session_id",
+        "sub_entity_id",
+        "item_id"
+    ]
+}

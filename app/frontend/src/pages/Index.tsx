@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/select";
 import { lots } from "@/data/lots";
 import { getLogEntries } from "@/pages/Log";
-import { ClipboardList, MapPin, CalendarClock, ScrollText } from "lucide-react";
+import { ClipboardList, MapPin, CalendarClock, ScrollText, Users } from "lucide-react";
+import { getActiveSession } from "@/lib/inventory-api";
 
 function formatDateTimeShort(iso: string): string {
   try {
@@ -44,6 +45,8 @@ export default function HomePage() {
     } catch { /* ignore */ }
     return {};
   });
+  const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string }>>({});
+  const [loadingLot, setLoadingLot] = useState<string | null>(null);
 
   const persistLotVariant = (lotId: string, value: string) => {
     setSelectedLotVariants((prev) => {
@@ -51,6 +54,61 @@ export default function HomePage() {
       localStorage.setItem("lot-variants", JSON.stringify(next));
       return next;
     });
+  };
+
+  // Check for active sessions on mount
+  useEffect(() => {
+    const checkSessions = async () => {
+      const sessions: Record<string, { id: number; dps_name: string }> = {};
+      for (const lot of lots) {
+        try {
+          const session = await getActiveSession(lot.id);
+          if (session && session.status === "active") {
+            sessions[lot.id] = { id: session.id, dps_name: session.dps_name };
+          }
+        } catch { /* ignore */ }
+      }
+      setActiveSessions(sessions);
+    };
+    checkSessions();
+  }, []);
+
+  const handleStartInventory = async (lotId: string) => {
+    setLoadingLot(lotId);
+    try {
+      const session = await getActiveSession(lotId);
+      if (session && session.status === "active") {
+        // Session exists — store session ID and go to sub-entities
+        localStorage.setItem("active-session-id", String(session.id));
+        localStorage.setItem("active-session-dps", session.dps_name);
+        const lot = lots.find((l) => l.id === lotId);
+        if (lot?.directInventory) {
+          navigate(`/inventory/${lotId}/${lotId}`);
+        } else {
+          navigate(`/lot/${lotId}`);
+        }
+      } else {
+        // No active session — go to DPS name entry
+        localStorage.removeItem("active-session-id");
+        localStorage.removeItem("active-session-dps");
+        const lot = lots.find((l) => l.id === lotId);
+        if (lot?.directInventory) {
+          navigate(`/inventory/${lotId}/${lotId}`);
+        } else {
+          navigate(`/lot/${lotId}`);
+        }
+      }
+    } catch {
+      // Fallback: go to sub-entities without session
+      const lot = lots.find((l) => l.id === lotId);
+      if (lot?.directInventory) {
+        navigate(`/inventory/${lotId}/${lotId}`);
+      } else {
+        navigate(`/lot/${lotId}`);
+      }
+    } finally {
+      setLoadingLot(null);
+    }
   };
 
   return (
@@ -89,6 +147,8 @@ export default function HomePage() {
             const hasVariants = lot.variants && lot.variants.length > 0;
             const selectedVariant = selectedLotVariants[lot.id];
             const showLocation = lot.id === "lot-001";
+            const activeSession = activeSessions[lot.id];
+            const isLoading = loadingLot === lot.id;
 
             return (
               <Card
@@ -116,6 +176,15 @@ export default function HomePage() {
                     </span>
                   </div>
 
+                  {activeSession && (
+                    <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-md px-3 py-2">
+                      <Users className="h-4 w-4 shrink-0" />
+                      <span>
+                        En cours — DPS : {activeSession.dps_name}
+                      </span>
+                    </div>
+                  )}
+
                   {hasVariants && (
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-muted-foreground">
@@ -142,17 +211,15 @@ export default function HomePage() {
                   <div className="pt-3 border-t">
                     <Button
                       className="w-full cursor-pointer"
-                      variant="default"
-                      disabled={hasVariants && !selectedVariant}
-                      onClick={() => {
-                        if (lot.directInventory) {
-                          navigate(`/inventory/${lot.id}/${lot.id}`);
-                        } else {
-                          navigate(`/lot/${lot.id}`);
-                        }
-                      }}
+                      variant={activeSession ? "outline" : "default"}
+                      disabled={(hasVariants && !selectedVariant) || isLoading}
+                      onClick={() => handleStartInventory(lot.id)}
                     >
-                      Démarrer l'inventaire
+                      {isLoading
+                        ? "Chargement..."
+                        : activeSession
+                          ? "Rejoindre l'inventaire"
+                          : "Démarrer l'inventaire"}
                     </Button>
                   </div>
                 </CardContent>

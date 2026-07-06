@@ -18,8 +18,15 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Créer la page formulaire d'inventaire
 - [x] Configurer le routing entre les pages
 - [x] Vérifier lint et build
+- [x] Créer les tables DB (inventory_sessions, sub_entity_checks, inventory_items)
+- [x] Créer l'API backend custom pour la gestion collaborative des sessions
+- [x] Modifier Index.tsx — vérifier session active, rediriger vers DPS en cours
+- [x] Modifier SubEntities.tsx — charger état depuis DB, polling, bouton Abandonner
+- [x] Modifier Inventory.tsx — sauvegarder items en DB au lieu de localStorage
+- [x] Lint + build + vérification
 
 ## Progress Log
+- 2026-07-06: Implemented collaborative inventory — DB tables (inventory_sessions, sub_entity_checks, inventory_items), custom backend API, frontend pages updated: Index.tsx checks active sessions, SubEntities.tsx requires DPS validation + shows abandon button + polls checks, Inventory.tsx saves items to DB
 - 2026-07-05: Journal n'enregistre que lors du clic Sauvegarder/Envoyer (SubEntities) ou enregistrement direct (Lot V); nom DPS inclus; icone utilisateur supprimee; consommables pre-coches conformes par defaut
 - 2026-07-05: Added discrepancy report page (/report/:lotId) — lists consumables with differing quantities and their locations; redirects from Sauvegarder/Envoyer (SubEntities) and Enregistrer (Lot V direct inventory); inventory data saved to localStorage for report generation
 - 2026-07-05: Added "Télécharger" button on report page to download full inventory summary as .txt file; reset green check marks and DPS name after Sauvegarder/Envoyer
