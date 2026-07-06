@@ -47,6 +47,8 @@ export default function ReportPage() {
   const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>([]);
   const [lotInventoryData, setLotInventoryData] = useState<SavedInventory[]>([]);
   const [reportDate, setReportDate] = useState<string>("");
+  const [dpsName, setDpsName] = useState<string>("");
+  const [variantName, setVariantName] = useState<string>("");
 
   useEffect(() => {
     const loadReports = async () => {
@@ -61,6 +63,8 @@ export default function ReportPage() {
         const allDiscrepancies: DiscrepancyItem[] = [];
         const allInventory: SavedInventory[] = [];
         let latestDate = "";
+        let latestDpsName = "";
+        let latestVariantName = "";
 
         for (const report of reports) {
           // Parse discrepancies
@@ -79,14 +83,20 @@ export default function ReportPage() {
             } catch { /* ignore parse errors */ }
           }
 
-          // Track latest report date
+          // Track latest report date, dps_name, variant_name
           const date = report.updated_at || report.created_at || "";
-          if (date > latestDate) latestDate = date;
+          if (date > latestDate) {
+            latestDate = date;
+            latestDpsName = report.dps_name || "";
+            latestVariantName = report.variant_name || "";
+          }
         }
 
         setDiscrepancies(allDiscrepancies);
         setLotInventoryData(allInventory);
         setReportDate(latestDate);
+        setDpsName(latestDpsName);
+        setVariantName(latestVariantName);
       } catch {
         /* ignore */
       }
@@ -96,7 +106,6 @@ export default function ReportPage() {
   }, [lotId]);
 
   const handleDownload = () => {
-    const dpsName = localStorage.getItem("dps-name") || "";
     const now = new Date();
     const dateStr = now.toLocaleDateString("fr-FR", {
       day: "2-digit",
@@ -110,7 +119,7 @@ export default function ReportPage() {
 
     const lines: string[] = [];
     lines.push("═══════════════════════════════════════════════════════");
-    lines.push(`  RAPPORT D'ÉCART — ${lot?.name || ""}${lot?.location ? ` — ${lot.location}` : ""}`);
+    lines.push(`  RAPPORT D'ÉCART — ${lot?.name || ""}${lot?.location ? ` — ${lot.location}` : ""}${variantName ? ` — ${variantName}` : ""}`);
     lines.push(`  Date : ${dateStr} à ${timeStr}`);
     if (dpsName) lines.push(`  DPS : ${dpsName}`);
     lines.push("═══════════════════════════════════════════════════════");
@@ -149,10 +158,15 @@ export default function ReportPage() {
           : data.sacType === "o2"
             ? "Sac d'O2"
             : null;
-      const header = [subLabel, sacLabel].filter(Boolean).join(" / ");
+      const headerParts: string[] = [];
+      if (data.lotVariantName) headerParts.push(data.lotVariantName);
+      if (subLabel) headerParts.push(subLabel);
+      if (sacLabel) headerParts.push(sacLabel);
+      const header = headerParts.join(" / ");
+      const dpsInfo = data.dpsName ? ` — DPS : ${data.dpsName}` : "";
 
       lines.push("");
-      lines.push(`  ▸ ${header}  (${formatDateTime(data.savedAt)})`);
+      lines.push(`  ▸ ${header}${dpsInfo}  (${formatDateTime(data.savedAt)})`);
       lines.push("");
 
       // Group by section
@@ -233,7 +247,9 @@ export default function ReportPage() {
                   </h1>
                   <p className="text-xs text-muted-foreground">
                     {lot?.name || ""}{lot?.location ? ` — ${lot.location}` : ""}
-                    {reportDate && ` · Dernière vérification : ${formatDateTime(reportDate)}`}
+                    {variantName && ` · ${variantName}`}
+                    {dpsName && ` · DPS : ${dpsName}`}
+                    {reportDate && ` · ${formatDateTime(reportDate)}`}
                   </p>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { createClient } from "@metagptx/web-sdk";
+import { lotSubEntities } from "@/data/lots";
 
 const client = createClient();
 
@@ -392,6 +393,7 @@ export interface DiscrepancyItem {
   expectedQuantity: number;
   actualQuantity: number;
   location: string;
+  subEntityKey?: string;
 }
 
 export interface SavedInventoryEntry {
@@ -408,6 +410,8 @@ export interface SavedInventory {
   subId: string;
   variantId: string | null;
   sacType: string | null;
+  lotVariantName: string | null;
+  dpsName: string | null;
   entries: SavedInventoryEntry[];
   savedAt: string;
 }
@@ -462,13 +466,27 @@ export async function saveDiscrepancyReportToDb(report: {
     } catch { /* use new data if parse fails */ }
   }
 
-  // Recalculate all discrepancies from merged inventory
+  // Recalculate all discrepancies from merged inventory using resolved display names
   const allDiscrepancies: DiscrepancyItem[] = [];
   mergedInventory.forEach((data) => {
-    const subLabel = data.subId; // simplified — Report.tsx will resolve display names
+    // Resolve sub-entity display name
+    const subs = lotSubEntities[data.lotId] || [];
+    const sub = subs.find((s) => s.id === data.subId);
+    let subLabel = data.subId;
+    if (sub) {
+      if (data.variantId) {
+        const v = sub.variants?.find((vv) => vv.id === data.variantId);
+        subLabel = v?.name || data.variantId;
+      } else {
+        subLabel = sub.name;
+      }
+    }
+    // Include lot variant name (e.g. "VPS Auteuil") for lots with variants
+    const lotVariantPart = data.lotVariantName || null;
     const sacLabel =
       data.sacType === "soin" ? "Sac de soin" : data.sacType === "o2" ? "Sac d'O2" : null;
     const locationParts: string[] = [];
+    if (lotVariantPart) locationParts.push(lotVariantPart);
     if (subLabel) locationParts.push(subLabel);
     if (sacLabel) locationParts.push(sacLabel);
 
@@ -481,6 +499,7 @@ export async function saveDiscrepancyReportToDb(report: {
             expectedQuantity: entry.expectedQuantity,
             actualQuantity: actual,
             location: [...locationParts, entry.sectionTitle].join(" / "),
+            subEntityKey: `${data.subId}::${data.variantId || ""}::${data.sacType || ""}`,
           });
         }
       }

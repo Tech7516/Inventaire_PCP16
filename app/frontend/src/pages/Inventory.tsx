@@ -253,6 +253,7 @@ export default function InventoryPage() {
           const sacLabel =
             sacType === "soin" ? "Sac de soin" : sacType === "o2" ? "Sac d'O2" : null;
           const locationParts: string[] = [];
+          if (lotVariantName) locationParts.push(lotVariantName);
           if (subLabel) locationParts.push(subLabel);
           if (sacLabel) locationParts.push(sacLabel);
           locationParts.push(entry.sectionTitle);
@@ -272,6 +273,8 @@ export default function InventoryPage() {
         subId: subId || "",
         variantId: variantId || null,
         sacType: sacType || null,
+        lotVariantName: lotVariantName || null,
+        dpsName: dpsName.trim() || null,
         entries: discrepancyEntries,
         savedAt: new Date().toISOString(),
       }];
