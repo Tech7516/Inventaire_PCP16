@@ -149,17 +149,25 @@ export default function InventoryPage() {
   }
 
   const allItems = sections.flatMap((s) => s.items);
+  // Ensure all items have an entry in state (safety net for dynamic section changes)
+  const safeEntries = { ...entries };
+  allItems.forEach((item) => {
+    if (!safeEntries[item.id]) {
+      safeEntries[item.id] = { itemId: item.id, validated: true, customQuantity: "" };
+    }
+  });
   const processedCount = allItems.filter(
-    (item) => entries[item.id].validated || entries[item.id].customQuantity.trim()
+    (item) => safeEntries[item.id]?.validated || safeEntries[item.id]?.customQuantity?.trim()
   ).length;
 
   const toggleValidation = (itemId: string) => {
     setEntries((prev) => {
-      const wasValidated = prev[itemId].validated;
+      const existing = prev[itemId] || { itemId, validated: true, customQuantity: "" };
+      const wasValidated = existing.validated;
       return {
         ...prev,
         [itemId]: {
-          ...prev[itemId],
+          ...existing,
           validated: !wasValidated,
           customQuantity: wasValidated ? "0" : "",
         },
@@ -168,13 +176,16 @@ export default function InventoryPage() {
   };
 
   const updateCustomQuantity = (itemId: string, value: string) => {
-    setEntries((prev) => ({
-      ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        customQuantity: value,
-      },
-    }));
+    setEntries((prev) => {
+      const existing = prev[itemId] || { itemId, validated: true, customQuantity: "" };
+      return {
+        ...prev,
+        [itemId]: {
+          ...existing,
+          customQuantity: value,
+        },
+      };
+    });
   };
 
   // Determine if this sub-entity is a Lot B
@@ -182,7 +193,7 @@ export default function InventoryPage() {
 
   const handleSubmit = async () => {
     const unprocessed = allItems.filter(
-      (item) => !entries[item.id].validated && !entries[item.id].customQuantity.trim()
+      (item) => !safeEntries[item.id]?.validated && !safeEntries[item.id]?.customQuantity?.trim()
     );
     if (unprocessed.length > 0) {
       toast.error(
@@ -203,12 +214,12 @@ export default function InventoryPage() {
       // Save only discrepancies (non-conforming items) to DB
       if (sessionId) {
         const discrepancies = allItems.filter(
-          (item) => !entries[item.id].validated || entries[item.id].customQuantity.trim()
+          (item) => !safeEntries[item.id]?.validated || safeEntries[item.id]?.customQuantity?.trim()
         );
         const itemsPayload = discrepancies.map((item) => ({
           item_id: item.id,
-          validated: entries[item.id].validated,
-          custom_quantity: entries[item.id].customQuantity || null,
+          validated: safeEntries[item.id]?.validated ?? true,
+          custom_quantity: safeEntries[item.id]?.customQuantity || null,
         }));
 
         if (itemsPayload.length > 0) {
@@ -237,11 +248,11 @@ export default function InventoryPage() {
       // Build discrepancy items for the report
       const discrepancyEntries = sections.flatMap((section) =>
         section.items
-          .filter((item) => !entries[item.id].validated || entries[item.id].customQuantity.trim())
+          .filter((item) => !safeEntries[item.id]?.validated || safeEntries[item.id]?.customQuantity?.trim())
           .map((item) => ({
             itemId: item.id,
-            validated: entries[item.id].validated,
-            customQuantity: entries[item.id].customQuantity,
+            validated: safeEntries[item.id]?.validated ?? true,
+            customQuantity: safeEntries[item.id]?.customQuantity || "",
             itemName: item.name,
             expectedQuantity: item.expectedQuantity,
             sectionTitle: section.title,
@@ -448,7 +459,7 @@ export default function InventoryPage() {
                 </h2>
                 <div className="space-y-2">
                   {section.items.map((item) => {
-                    const entry = entries[item.id];
+                    const entry = safeEntries[item.id] || { itemId: item.id, validated: true, customQuantity: "" };
 
                     // Determine discrepancy status for coloring
                     let discrepancyClass = "";

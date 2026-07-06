@@ -46,6 +46,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal : rapport centralisé par groupe (sans Lot B) + rapport par variante pour Lot B et Lot V
 - [x] Corriger ecran blanc : ajout ErrorBoundary pour capturer les erreurs de rendu
 - [x] Corriger 404 : ajout page NotFound + route catch-all
+- [x] Corriger ecran blanc recurrent : ErrorBoundary capture unhandled promise rejections + acces securise entries dans Inventory.tsx
 - [x] Journal : Cellule avant/arriere va dans VPS Auteuil ou VPS Neuilly selon la variante
 - [x] Journal : tous les Lot B (VPS, Lot A, Lot C) regroupes dans la section Lot B
 - [x] Journal : afficher "Pas de rapport disponible" quand aucun rapport n'existe

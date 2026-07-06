@@ -12,6 +12,8 @@ interface State {
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
+  private unhandledRejectionHandler: ((event: PromiseRejectionEvent) => void) | null = null;
+
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -23,6 +25,25 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  componentDidMount() {
+    // Catch unhandled promise rejections that bypass React's error boundary
+    this.unhandledRejectionHandler = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled promise rejection:", event.reason);
+      const error = event.reason instanceof Error
+        ? event.reason
+        : new Error(String(event.reason));
+      this.setState({ hasError: true, error });
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", this.unhandledRejectionHandler);
+  }
+
+  componentWillUnmount() {
+    if (this.unhandledRejectionHandler) {
+      window.removeEventListener("unhandledrejection", this.unhandledRejectionHandler);
+    }
   }
 
   handleReload = () => {
@@ -40,12 +61,12 @@ export default class ErrorBoundary extends Component<Props, State> {
               Une erreur est survenue
             </h1>
             <p className="text-sm text-muted-foreground">
-              L'application a rencontré une erreur inattendue. Veuillez réessayer.
+              L&apos;application a rencontré une erreur inattendue. Veuillez réessayer.
             </p>
             {this.state.error && (
               <details className="text-left text-xs text-muted-foreground bg-muted/50 rounded-md p-3 mt-2">
                 <summary className="cursor-pointer font-medium">
-                  Détails de l'erreur
+                  Détails de l&apos;erreur
                 </summary>
                 <pre className="mt-2 whitespace-pre-wrap break-all">
                   {this.state.error.message}
@@ -57,7 +78,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 Réessayer
               </Button>
               <Button onClick={this.handleReload} className="cursor-pointer">
-                Retour à l'accueil
+                Retour à l&apos;accueil
               </Button>
             </div>
           </div>
