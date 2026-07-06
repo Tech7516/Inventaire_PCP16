@@ -37,8 +37,10 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Rapport d'écart : distinguer surplus (bleu, "Excédent : +N") vs manque (ambre, "Manque : N")
 - [x] Journal : ajouter bouton "Rapport" pour revoir les rapports d'écart précédents
 - [x] Migrer journal de localStorage vers base de données (visibilité partagée entre utilisateurs)
+- [x] Migrer rapports d'écart de localStorage vers BDD (1 rapport par lot+variante, seule la dernière version conservée)
 
 ## Progress Log
+- 2026-07-06: Migré rapports d'écart de localStorage vers BDD — table discrepancy_reports, 1 rapport par lot+variante (report_key), fusion automatique des sous-ensembles, seule dernière version conservée
 - 2026-07-06: Migré journal inventaire de localStorage vers DB - Log.tsx, Index.tsx, Inventory.tsx, SubEntities.tsx utilisent addLogEntryToDb/getLogEntriesFromDb/clearLogEntriesFromDb
 - 2026-07-06: Supprimé mention Vérifié par sur SubEntities.tsx (pas d'authentification, le nom du DPS n'est pas le nom du vérificateur)
 - 2026-07-06: Optimisé lenteur homepage : remplacé N appels API séquentiels (1 par lot) par 1 seul appel batch GET /active-sessions ; handleStartInventory utilise les données déjà chargées au lieu d'un appel API supplémentaire

@@ -369,3 +369,164 @@ export async function clearLogEntriesFromDb(): Promise<void> {
     }
   } catch { /* ignore */ }
 }
+
+// ---------- Discrepancy Reports (DB-backed, 1 per lot+variant) ----------
+
+export interface DiscrepancyReportData {
+  id: number;
+  lot_id: string;
+  variant_id: string | null;
+  report_key: string;
+  lot_name: string;
+  variant_name: string | null;
+  dps_name: string;
+  discrepancies_json: string | null;
+  full_inventory_json: string | null;
+  has_discrepancies: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface DiscrepancyItem {
+  itemName: string;
+  expectedQuantity: number;
+  actualQuantity: number;
+  location: string;
+}
+
+export interface SavedInventoryEntry {
+  itemId: string;
+  validated: boolean;
+  customQuantity: string;
+  itemName: string;
+  expectedQuantity: number;
+  sectionTitle: string;
+}
+
+export interface SavedInventory {
+  lotId: string;
+  subId: string;
+  variantId: string | null;
+  sacType: string | null;
+  entries: SavedInventoryEntry[];
+  savedAt: string;
+}
+
+/**
+ * Save a discrepancy report to DB. 1 report per lot+variant (report_key).
+ * If a report with the same report_key exists, the new sub-entity data is merged
+ * into the existing report (replacing the entry for the same subId+variantId+sacType).
+ * This way, the report accumulates data from all sub-entities verified.
+ */
+export async function saveDiscrepancyReportToDb(report: {
+  lotId: string;
+  variantId: string | null;
+  lotName: string;
+  variantName: string | null;
+  dpsName: string;
+  discrepancies: DiscrepancyItem[];
+  fullInventory: SavedInventory[];
+  hasDiscrepancies: boolean;
+}): Promise<DiscrepancyReportData> {
+  const reportKey = `${report.lotId}::${report.variantId || ""}`;
+
+  // Try to fetch existing report to merge sub-entity data
+  let existingReport: DiscrepancyReportData | null = null;
+  try {
+    const existing = await client.entities.discrepancy_reports.query({
+      query: { report_key: reportKey },
+      limit: 1,
+    });
+    const items = (existing.data?.items || []) as DiscrepancyReportData[];
+    if (items.length > 0) {
+      existingReport = items[0];
+    }
+  } catch { /* proceed without existing */ }
+
+  let mergedInventory = report.fullInventory;
+
+  if (existingReport?.full_inventory_json) {
+    try {
+      const existingInventory: SavedInventory[] = JSON.parse(existingReport.full_inventory_json);
+      // Merge: for each new inventory entry, replace existing one with same subId+variantId+sacType key
+      const newKeys = new Set(
+        report.fullInventory.map(
+          (inv) => `${inv.subId}::${inv.variantId || ""}::${inv.sacType || ""}`
+        )
+      );
+      // Keep existing entries that are NOT being replaced
+      const kept = existingInventory.filter(
+        (inv) => !newKeys.has(`${inv.subId}::${inv.variantId || ""}::${inv.sacType || ""}`)
+      );
+      mergedInventory = [...kept, ...report.fullInventory];
+    } catch { /* use new data if parse fails */ }
+  }
+
+  // Recalculate all discrepancies from merged inventory
+  const allDiscrepancies: DiscrepancyItem[] = [];
+  mergedInventory.forEach((data) => {
+    const subLabel = data.subId; // simplified — Report.tsx will resolve display names
+    const sacLabel =
+      data.sacType === "soin" ? "Sac de soin" : data.sacType === "o2" ? "Sac d'O2" : null;
+    const locationParts: string[] = [];
+    if (subLabel) locationParts.push(subLabel);
+    if (sacLabel) locationParts.push(sacLabel);
+
+    data.entries.forEach((entry) => {
+      if (!entry.validated && entry.customQuantity.trim()) {
+        const actual = parseInt(entry.customQuantity, 10);
+        if (!isNaN(actual) && actual !== entry.expectedQuantity) {
+          allDiscrepancies.push({
+            itemName: entry.itemName,
+            expectedQuantity: entry.expectedQuantity,
+            actualQuantity: actual,
+            location: [...locationParts, entry.sectionTitle].join(" / "),
+          });
+        }
+      }
+    });
+  });
+
+  const payload = stripNulls({
+    lot_id: report.lotId,
+    variant_id: report.variantId || undefined,
+    report_key: reportKey,
+    lot_name: report.lotName,
+    variant_name: report.variantName || undefined,
+    dps_name: report.dpsName,
+    discrepancies_json: JSON.stringify(allDiscrepancies),
+    full_inventory_json: JSON.stringify(mergedInventory),
+    has_discrepancies: allDiscrepancies.length > 0,
+  });
+
+  if (existingReport) {
+    // Update existing report with merged data
+    const res = await client.entities.discrepancy_reports.update({
+      id: String(existingReport.id),
+      data: payload,
+    });
+    return res.data as DiscrepancyReportData;
+  }
+
+  // Create new report
+  const res = await client.entities.discrepancy_reports.create({ data: payload });
+  return res.data as DiscrepancyReportData;
+}
+
+/**
+ * Get all discrepancy reports for a given lot.
+ */
+export async function getDiscrepancyReportsForLot(
+  lotId: string
+): Promise<DiscrepancyReportData[]> {
+  try {
+    const res = await client.entities.discrepancy_reports.query({
+      query: { lot_id: lotId },
+      sort: "-updated_at",
+      limit: 100,
+    });
+    return (res.data?.items || []) as DiscrepancyReportData[];
+  } catch {
+    return [];
+  }
+}

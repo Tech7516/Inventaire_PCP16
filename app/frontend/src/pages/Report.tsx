@@ -1,50 +1,16 @@
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { lots, lotSubEntities } from "@/data/lots";
-import { ArrowLeft, AlertTriangle, CheckCircle2, ClipboardList, Download } from "lucide-react";
-
-interface SavedInventoryEntry {
-  itemId: string;
-  validated: boolean;
-  customQuantity: string;
-  itemName: string;
-  expectedQuantity: number;
-  sectionTitle: string;
-}
-
-interface SavedInventory {
-  lotId: string;
-  subId: string;
-  variantId: string | null;
-  sacType: string | null;
-  entries: SavedInventoryEntry[];
-  savedAt: string;
-}
-
-const INVENTORY_DATA_KEY = "inventory-data";
-
-export function saveInventoryData(data: SavedInventory) {
-  const all = getAllInventoryData();
-  const key = `${data.lotId}::${data.subId}::${data.variantId || ""}::${data.sacType || ""}`;
-  all[key] = data;
-  localStorage.setItem(INVENTORY_DATA_KEY, JSON.stringify(all));
-}
-
-export function getAllInventoryData(): Record<string, SavedInventory> {
-  try {
-    const raw = localStorage.getItem(INVENTORY_DATA_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return {};
-}
-
-interface DiscrepancyItem {
-  itemName: string;
-  expectedQuantity: number;
-  actualQuantity: number;
-  location: string;
-}
+import { ArrowLeft, AlertTriangle, CheckCircle2, ClipboardList, Download, Loader2 } from "lucide-react";
+import {
+  getDiscrepancyReportsForLot,
+  type DiscrepancyReportData,
+  type DiscrepancyItem,
+  type SavedInventoryEntry,
+  type SavedInventory,
+} from "@/lib/inventory-api";
 
 function getVariantDisplayName(lotId: string, subId: string, variantId: string | null): string {
   const subs = lotSubEntities[lotId] || [];
@@ -76,45 +42,58 @@ export default function ReportPage() {
   const { lotId } = useParams<{ lotId: string }>();
   const navigate = useNavigate();
   const lot = lots.find((l) => l.id === lotId);
-  const allData = getAllInventoryData();
 
-  // Collect all discrepancies for this lot
-  const discrepancies: DiscrepancyItem[] = [];
-  // Also collect all saved data for this lot for the summary
-  const lotInventoryData: SavedInventory[] = [];
+  const [loading, setLoading] = useState(true);
+  const [discrepancies, setDiscrepancies] = useState<DiscrepancyItem[]>([]);
+  const [lotInventoryData, setLotInventoryData] = useState<SavedInventory[]>([]);
+  const [reportDate, setReportDate] = useState<string>("");
 
-  Object.values(allData).forEach((data) => {
-    if (data.lotId !== lotId) return;
-    lotInventoryData.push(data);
-
-    // Build location label
-    const subLabel = getVariantDisplayName(data.lotId, data.subId, data.variantId);
-    const sacLabel =
-      data.sacType === "soin"
-        ? "Sac de soin"
-        : data.sacType === "o2"
-          ? "Sac d'O2"
-          : null;
-
-    data.entries.forEach((entry) => {
-      if (!entry.validated && entry.customQuantity.trim()) {
-        const actual = parseInt(entry.customQuantity, 10);
-        if (!isNaN(actual) && actual !== entry.expectedQuantity) {
-          const locationParts: string[] = [];
-          if (subLabel) locationParts.push(subLabel);
-          if (sacLabel) locationParts.push(sacLabel);
-          locationParts.push(entry.sectionTitle);
-
-          discrepancies.push({
-            itemName: entry.itemName,
-            expectedQuantity: entry.expectedQuantity,
-            actualQuantity: actual,
-            location: locationParts.join(" / "),
-          });
-        }
+  useEffect(() => {
+    const loadReports = async () => {
+      if (!lotId) {
+        setLoading(false);
+        return;
       }
-    });
-  });
+      try {
+        const reports = await getDiscrepancyReportsForLot(lotId);
+
+        // Collect all discrepancies and full inventory from all reports for this lot
+        const allDiscrepancies: DiscrepancyItem[] = [];
+        const allInventory: SavedInventory[] = [];
+        let latestDate = "";
+
+        for (const report of reports) {
+          // Parse discrepancies
+          if (report.discrepancies_json) {
+            try {
+              const items: DiscrepancyItem[] = JSON.parse(report.discrepancies_json);
+              allDiscrepancies.push(...items);
+            } catch { /* ignore parse errors */ }
+          }
+
+          // Parse full inventory
+          if (report.full_inventory_json) {
+            try {
+              const inventories: SavedInventory[] = JSON.parse(report.full_inventory_json);
+              allInventory.push(...inventories);
+            } catch { /* ignore parse errors */ }
+          }
+
+          // Track latest report date
+          const date = report.updated_at || report.created_at || "";
+          if (date > latestDate) latestDate = date;
+        }
+
+        setDiscrepancies(allDiscrepancies);
+        setLotInventoryData(allInventory);
+        setReportDate(latestDate);
+      } catch {
+        /* ignore */
+      }
+      setLoading(false);
+    };
+    loadReports();
+  }, [lotId]);
 
   const handleDownload = () => {
     const dpsName = localStorage.getItem("dps-name") || "";
@@ -224,6 +203,14 @@ export default function ReportPage() {
     URL.revokeObjectURL(url);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
@@ -246,6 +233,7 @@ export default function ReportPage() {
                   </h1>
                   <p className="text-xs text-muted-foreground">
                     {lot?.name || ""}{lot?.location ? ` — ${lot.location}` : ""}
+                    {reportDate && ` · Dernière vérification : ${formatDateTime(reportDate)}`}
                   </p>
                 </div>
               </div>

@@ -7,12 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Check, Users } from "lucide-react";
 import { toast } from "sonner";
-import { saveInventoryData } from "./Report";
 import {
   saveInventoryItems,
   markSubEntity,
   getInventoryItems,
   addLogEntryToDb,
+  saveDiscrepancyReportToDb,
   type InventoryItemData,
 } from "@/lib/inventory-api";
 
@@ -221,7 +221,7 @@ export default function InventoryPage() {
 
       toast.success("Inventaire enregistré avec succès !");
 
-      // Save only discrepancies for discrepancy report (localStorage fallback)
+      // Save discrepancy report to DB (1 per lot+variant, keeps only latest)
       const discrepancyEntries = sections.flatMap((section) =>
         section.items
           .filter((item) => !entries[item.id].validated || entries[item.id].customQuantity.trim())
@@ -234,13 +234,69 @@ export default function InventoryPage() {
             sectionTitle: section.title,
           }))
       );
-      saveInventoryData({
+
+      // Build discrepancy items for the report
+      const discrepancyItems = discrepancyEntries
+        .filter((entry) => !entry.validated && entry.customQuantity.trim())
+        .map((entry) => {
+          const actual = parseInt(entry.customQuantity, 10);
+          const subLabel = (() => {
+            const subs = lotSubEntities[lotId || ""] || [];
+            const sub = subs.find((s) => s.id === subId);
+            if (!sub) return subId || "";
+            if (variantId) {
+              const v = sub.variants?.find((vv) => vv.id === variantId);
+              return v?.name || variantId;
+            }
+            return sub.name;
+          })();
+          const sacLabel =
+            sacType === "soin" ? "Sac de soin" : sacType === "o2" ? "Sac d'O2" : null;
+          const locationParts: string[] = [];
+          if (subLabel) locationParts.push(subLabel);
+          if (sacLabel) locationParts.push(sacLabel);
+          locationParts.push(entry.sectionTitle);
+
+          return {
+            itemName: entry.itemName,
+            expectedQuantity: entry.expectedQuantity,
+            actualQuantity: isNaN(actual) ? 0 : actual,
+            location: locationParts.join(" / "),
+          };
+        })
+        .filter((d) => d.actualQuantity !== d.expectedQuantity);
+
+      // Build full inventory data for download
+      const fullInventoryData = [{
         lotId: lotId || "",
         subId: subId || "",
         variantId: variantId || null,
         sacType: sacType || null,
         entries: discrepancyEntries,
         savedAt: new Date().toISOString(),
+      }];
+
+      // Use lot variant (from homepage selection) for report_key, not sub-entity variant
+      const lotVariantId = (() => {
+        try {
+          const lotVars = localStorage.getItem("lot-variants");
+          if (lotVars) {
+            const parsed = JSON.parse(lotVars);
+            return parsed[lotId || ""] || null;
+          }
+        } catch { /* ignore */ }
+        return null;
+      })();
+
+      saveDiscrepancyReportToDb({
+        lotId: lotId || "",
+        variantId: lotVariantId,
+        lotName: lot?.name || "",
+        variantName: lotVariantName || null,
+        dpsName: dpsName.trim(),
+        discrepancies: discrepancyItems,
+        fullInventory: fullInventoryData,
+        hasDiscrepancies: discrepancyItems.length > 0,
       });
 
       // Log for direct inventory lots (e.g. Lot V, Lot CAI)

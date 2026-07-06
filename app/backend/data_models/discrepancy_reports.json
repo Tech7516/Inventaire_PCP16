@@ -1,0 +1,54 @@
+{
+    "title": "discrepancy_reports",
+    "description": "Discrepancy reports for inventory lots, one per lot+variant combination",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Auto-increment primary key"
+        },
+        "lot_id": {
+            "type": "string",
+            "description": "Lot identifier"
+        },
+        "variant_id": {
+            "type": "string",
+            "description": "Variant identifier, empty string if none"
+        },
+        "report_key": {
+            "type": "string",
+            "description": "Unique key: lot_id::variant_id for deduplication"
+        },
+        "lot_name": {
+            "type": "string",
+            "description": "Display name of the lot"
+        },
+        "variant_name": {
+            "type": "string",
+            "description": "Display name of the variant"
+        },
+        "dps_name": {
+            "type": "string",
+            "description": "DPS name who performed the inventory"
+        },
+        "discrepancies_json": {
+            "type": "string",
+            "description": "JSON array of discrepancy items"
+        },
+        "full_inventory_json": {
+            "type": "string",
+            "description": "JSON of full inventory data for download"
+        },
+        "has_discrepancies": {
+            "type": "boolean",
+            "description": "Whether any discrepancies were found"
+        }
+    },
+    "required": [
+        "id",
+        "lot_id",
+        "report_key",
+        "lot_name",
+        "dps_name"
+    ]
+}
