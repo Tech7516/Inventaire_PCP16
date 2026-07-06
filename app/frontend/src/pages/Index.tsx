@@ -10,7 +10,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { lots } from "@/data/lots";
+import { getLogEntries } from "@/pages/Log";
 import { ClipboardList, MapPin, CalendarClock, ScrollText } from "lucide-react";
+
+function formatDateTimeShort(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function getLastVerificationDate(lotId: string): string | null {
+  const entries = getLogEntries().filter((e) => e.lotId === lotId);
+  if (entries.length === 0) return null;
+  entries.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+  return formatDateTimeShort(entries[0].completedAt);
+}
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -87,9 +110,9 @@ export default function HomePage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CalendarClock className="h-4 w-4 shrink-0" />
                     <span>
-                      {lot.lastInventory
-                        ? `Dernier inventaire : ${lot.lastInventory}`
-                        : "Aucun inventaire effectué"}
+                      {getLastVerificationDate(lot.id)
+                        ? `Dernière vérification : ${getLastVerificationDate(lot.id)}`
+                        : "Aucune vérification effectuée"}
                     </span>
                   </div>
 

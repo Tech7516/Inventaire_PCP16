@@ -76,6 +76,14 @@ export const lots: Lot[] = [
     ],
     directInventory: true,
   },
+  {
+    id: "lot-cai",
+    name: "Lot CAI",
+    location: "Passy",
+    lastInventory: null,
+    status: "pending",
+    directInventory: true,
+  },
 ];
 
 export const lotSubEntities: Record<string, SubEntity[]> = {
@@ -919,6 +927,40 @@ subEntitySections["vps-lot-b-soin"] = subEntitySections["lot-b-soin"];
 subEntitySections["vps-lot-b-o2"] = subEntitySections["lot-b-o2"];
 
 // Lot V — inventaire direct (pas de page intermédiaire)
+subEntitySections["lot-cai"] = [
+  {
+    id: "cai-accueil",
+    title: "Accueil",
+    items: [
+      { id: "cai-001", name: "Tente Vitabri 9 m2 (+ 4 cloisons + 4 poids)", expectedQuantity: 1 },
+      { id: "cai-002", name: "Kakémono", expectedQuantity: 3 },
+      { id: "cai-003", name: "Lampe portative d'éclairage à LED Peli", expectedQuantity: 1 },
+      { id: "cai-004", name: "Rallonge électrique", expectedQuantity: 1 },
+      { id: "cai-005", name: "Multiprise", expectedQuantity: 1 },
+      { id: "cai-006", name: "Bouilloire", expectedQuantity: 1 },
+    ],
+  },
+  {
+    id: "cai-consommables",
+    title: "Consommables",
+    items: [
+      { id: "cai-007", name: "Gobelets", expectedQuantity: 100 },
+      { id: "cai-008", name: "Thé, café, soupe, sucre en sachets ou dosettes", expectedQuantity: 50 },
+      { id: "cai-009", name: "Paquets de biscuits secs sucrés", expectedQuantity: 4 },
+      { id: "cai-010", name: "Bouteilles d'eau (25L)", expectedQuantity: 1 },
+      { id: "cai-011", name: "Couvertures de survie", expectedQuantity: 25 },
+      { id: "cai-012", name: "Rouleaux de sopalin", expectedQuantity: 2 },
+    ],
+  },
+  {
+    id: "cai-administratif",
+    title: "Administratif",
+    items: [
+      { id: "cai-013", name: "Fiches de suivi des impliqués", expectedQuantity: 1 },
+    ],
+  },
+];
+
 subEntitySections["lot-v"] = [
   {
     id: "lv-securite",
