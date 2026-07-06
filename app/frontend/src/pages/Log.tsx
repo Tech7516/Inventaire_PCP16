@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { lots, lotSubEntities } from "@/data/lots";
-import { ArrowLeft, ScrollText, Clock, Trash2 } from "lucide-react";
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText } from "lucide-react";
 
 export interface LogEntry {
   lotId: string;
@@ -202,6 +202,15 @@ export default function LogPage() {
                                   </span>
                                 </div>
                               </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/report/${entry.lotId}`)}
+                                className="cursor-pointer shrink-0"
+                              >
+                                <FileText className="h-4 w-4 mr-1.5" />
+                                Rapport
+                              </Button>
                             </div>
                           </CardContent>
                         </Card>

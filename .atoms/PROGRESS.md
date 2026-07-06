@@ -35,6 +35,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Corriger 500 integer=varchar : ajouter _coerce_query_value() dans les 3 services backend pour caster les query params selon le type de colonne
 - [x] Décocher consommable → quantité réelle par défaut à "0"
 - [x] Rapport d'écart : distinguer surplus (bleu, "Excédent : +N") vs manque (ambre, "Manque : N")
+- [x] Journal : ajouter bouton "Rapport" pour revoir les rapports d'écart précédents
 
 ## Progress Log
 - 2026-07-06: Supprimé mention "Vérifié par : [nom]" sur SubEntities.tsx (pas d'authentification, le nom du DPS n'est pas le nom du vérificateur)
