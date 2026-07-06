@@ -51,6 +51,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal : Cellule avant/arriere va dans VPS Auteuil ou VPS Neuilly selon la variante
 - [x] Journal : tous les Lot B (VPS, Lot A, Lot C) regroupes dans la section Lot B
 - [x] Journal : afficher "Pas de rapport disponible" quand aucun rapport n'existe
+- [x] Corriger 404 inventory_logs not found : recréer la table inventory_logs via BackendManager.create_tables
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
