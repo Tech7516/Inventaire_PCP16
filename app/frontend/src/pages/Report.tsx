@@ -145,12 +145,14 @@ export default function ReportPage() {
       lines.push("");
       lines.push("───────────────────────────────────────────────────────");
       discrepancies.forEach((item, idx) => {
-        const missing = item.expectedQuantity - item.actualQuantity;
+        const diff = item.actualQuantity - item.expectedQuantity;
+        const absDiff = Math.abs(diff);
+        const isSurplus = diff > 0;
         lines.push(`${idx + 1}. ${item.itemName}`);
         lines.push(`   Emplacement : ${item.location}`);
         lines.push(`   Quantité attendue : ${item.expectedQuantity}`);
         lines.push(`   Quantité réelle  : ${item.actualQuantity}`);
-        lines.push(`   Manquant${missing > 1 ? "s" : ""} : ${missing}`);
+        lines.push(`   ${isSurplus ? `Excédent : +${absDiff}` : `Manque : ${absDiff}`}`);
         lines.push("───────────────────────────────────────────────────────");
       });
     }
@@ -189,9 +191,14 @@ export default function ReportPage() {
           } else if (entry.customQuantity.trim()) {
             const actual = parseInt(entry.customQuantity, 10);
             const isDiscrepancy = !isNaN(actual) && actual !== entry.expectedQuantity;
-            const icon = isDiscrepancy ? "❌" : "✅";
-            const suffix = isDiscrepancy ? ` (écart : ${actual}/${entry.expectedQuantity})` : ` (${actual}, conforme)`;
-            lines.push(`      ${icon} ${entry.itemName} :${suffix}`);
+            if (isDiscrepancy) {
+              const diff = actual - entry.expectedQuantity;
+              const absDiff = Math.abs(diff);
+              const label = diff > 0 ? `Excédent : +${absDiff}` : `Manque : ${absDiff}`;
+              lines.push(`      ❌ ${entry.itemName} : ${actual}/${entry.expectedQuantity} (${label})`);
+            } else {
+              lines.push(`      ✅ ${entry.itemName} : ${actual} (conforme)`);
+            }
           } else {
             lines.push(`      ⬜ ${entry.itemName} : ${entry.expectedQuantity} (non traité)`);
           }
@@ -282,31 +289,63 @@ export default function ReportPage() {
               </p>
             </div>
             <div className="space-y-2">
-              {discrepancies.map((item, idx) => (
-                <Card key={idx} className="border-amber-200 bg-amber-50/30">
-                  <CardContent className="py-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground">
-                          {item.itemName}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {item.location}
-                        </p>
+              {discrepancies.map((item, idx) => {
+                const diff = item.actualQuantity - item.expectedQuantity;
+                const isSurplus = diff > 0;
+                const absDiff = Math.abs(diff);
+
+                return (
+                  <Card
+                    key={idx}
+                    className={
+                      isSurplus
+                        ? "border-blue-200 bg-blue-50/30"
+                        : "border-amber-200 bg-amber-50/30"
+                    }
+                  >
+                    <CardContent className="py-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground">
+                            {item.itemName}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {item.location}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm">
+                            <span
+                              className={
+                                isSurplus
+                                  ? "text-blue-600 font-semibold"
+                                  : "text-amber-600 font-semibold"
+                              }
+                            >
+                              {item.actualQuantity}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}/ {item.expectedQuantity} attendu{item.expectedQuantity > 1 ? "s" : ""}
+                            </span>
+                          </p>
+                          <p
+                            className={
+                              isSurplus
+                                ? "text-xs text-blue-600 font-medium"
+                                : "text-xs text-amber-600 font-medium"
+                            }
+                          >
+                            {isSurplus
+                              ? `Excédent : +${absDiff}`
+                              : `Manque : ${absDiff}`
+                            }
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm">
-                          <span className="text-amber-600 font-semibold">{item.actualQuantity}</span>
-                          <span className="text-muted-foreground"> / {item.expectedQuantity} attendu{item.expectedQuantity > 1 ? "s" : ""}</span>
-                        </p>
-                        <p className="text-xs text-amber-600 font-medium">
-                          Manquant{item.expectedQuantity - item.actualQuantity > 1 ? "s" : ""} : {item.expectedQuantity - item.actualQuantity}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
             <div className="pt-4">
               <Button
