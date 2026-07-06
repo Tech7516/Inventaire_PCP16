@@ -52,6 +52,10 @@ export const lots: Lot[] = [
     location: "Passy",
     lastInventory: null,
     status: "pending",
+    variants: [
+      { id: "alpha", name: "Lot C Alpha" },
+      { id: "bravo", name: "Lot C Bravo" },
+    ],
   },
   {
     id: "lot-vps",
@@ -123,8 +127,6 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
       variants: [
         { id: "alpha", name: "Lot B Alpha" },
         { id: "bravo", name: "Lot B Bravo" },
-        { id: "auteuil", name: "Lot B Auteuil" },
-        { id: "neuilly", name: "Lot B Neuilly" },
       ],
     },
     {

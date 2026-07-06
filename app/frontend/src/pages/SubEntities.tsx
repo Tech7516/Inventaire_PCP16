@@ -44,17 +44,27 @@ export default function SubEntitiesPage() {
       const raw = localStorage.getItem("selected-variants");
       if (raw) Object.assign(initial, JSON.parse(raw));
     } catch { /* ignore */ }
-    // Pre-select Lot B variant for VPS based on homepage variant selection
-    if (lotId === "lot-vps" && !initial["vps-lot-b"]) {
-      try {
-        const lotVars = localStorage.getItem("lot-variants");
-        if (lotVars) {
-          const parsed = JSON.parse(lotVars);
+    // Pre-select sub-entity variants based on homepage lot variant selection
+    try {
+      const lotVars = localStorage.getItem("lot-variants");
+      if (lotVars) {
+        const parsed = JSON.parse(lotVars);
+        // VPS: pre-select Lot B based on VPS variant (Auteuil/Neuilly)
+        if (lotId === "lot-vps" && !initial["vps-lot-b"]) {
           const vpsVariant = parsed["lot-vps"];
           if (vpsVariant) initial["vps-lot-b"] = vpsVariant;
         }
-      } catch { /* ignore */ }
-    }
+        // Lot C: pre-select POM, Lot B, Caisse based on Lot C variant (Alpha/Bravo)
+        if (lotId === "lot-003") {
+          const lotCVariant = parsed["lot-003"];
+          if (lotCVariant && (lotCVariant === "alpha" || lotCVariant === "bravo")) {
+            if (!initial["pom-c"]) initial["pom-c"] = lotCVariant;
+            if (!initial["lot-b-c"]) initial["lot-b-c"] = lotCVariant;
+            if (!initial["caisse-c"]) initial["caisse-c"] = lotCVariant;
+          }
+        }
+      }
+    } catch { /* ignore */ }
     return initial;
   });
   const [completedKeys, setCompletedKeys] = useState<Set<string>>(getCompletedKeys);
