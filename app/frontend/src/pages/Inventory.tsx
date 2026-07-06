@@ -142,14 +142,19 @@ export default function InventoryPage() {
   ).length;
 
   const toggleValidation = (itemId: string) => {
-    setEntries((prev) => ({
-      ...prev,
-      [itemId]: {
-        ...prev[itemId],
-        validated: !prev[itemId].validated,
-        customQuantity: !prev[itemId].validated ? "" : prev[itemId].customQuantity,
-      },
-    }));
+    setEntries((prev) => {
+      const wasValidated = prev[itemId].validated;
+      return {
+        ...prev,
+        [itemId]: {
+          ...prev[itemId],
+          validated: !wasValidated,
+          // When unchecking (non-conforme), default quantity to "0"
+          // When checking (conforme), clear the custom quantity
+          customQuantity: wasValidated ? "0" : "",
+        },
+      };
+    });
   };
 
   const updateCustomQuantity = (itemId: string, value: string) => {

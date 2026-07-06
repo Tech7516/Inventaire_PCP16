@@ -33,6 +33,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Corriger 404 /api/v1/inventory/active-sessions : remplacer client.apiCall.invoke par client.entities.* (CRUD auto-déployé)
 - [x] Corriger 422 entity API : stripNulls() pour omettre les champs null (variant_id, sac_type, etc.) des payloads create/update
 - [x] Corriger 500 integer=varchar : ajouter _coerce_query_value() dans les 3 services backend pour caster les query params selon le type de colonne
+- [x] Décocher consommable → quantité réelle par défaut à "0"
 
 ## Progress Log
 - 2026-07-06: Supprimé mention "Vérifié par : [nom]" sur SubEntities.tsx (pas d'authentification, le nom du DPS n'est pas le nom du vérificateur)
