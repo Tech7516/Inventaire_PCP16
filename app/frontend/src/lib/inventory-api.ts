@@ -50,6 +50,18 @@ export async function getActiveSession(lotId: string): Promise<SessionData | nul
   }
 }
 
+export async function getAllActiveSessions(): Promise<SessionData[]> {
+  try {
+    const res = await client.apiCall.invoke({
+      url: "/api/v1/inventory/active-sessions",
+      method: "GET",
+    });
+    return res.data || [];
+  } catch {
+    return [];
+  }
+}
+
 export async function createSession(
   lotId: string,
   dpsName: string,

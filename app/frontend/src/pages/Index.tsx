@@ -12,7 +12,7 @@ import {
 import { lots } from "@/data/lots";
 import { getLogEntries } from "@/pages/Log";
 import { ClipboardList, MapPin, CalendarClock, ScrollText, Users } from "lucide-react";
-import { getActiveSession } from "@/lib/inventory-api";
+import { getAllActiveSessions } from "@/lib/inventory-api";
 
 function formatDateTimeShort(iso: string): string {
   try {
@@ -46,7 +46,6 @@ export default function HomePage() {
     return {};
   });
   const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string }>>({});
-  const [loadingLot, setLoadingLot] = useState<string | null>(null);
 
   const persistLotVariant = (lotId: string, value: string) => {
     setSelectedLotVariants((prev) => {
@@ -56,58 +55,37 @@ export default function HomePage() {
     });
   };
 
-  // Check for active sessions on mount
+  // Check for active sessions on mount — single batch call
   useEffect(() => {
     const checkSessions = async () => {
-      const sessions: Record<string, { id: number; dps_name: string }> = {};
-      for (const lot of lots) {
-        try {
-          const session = await getActiveSession(lot.id);
-          if (session && session.status === "active") {
-            sessions[lot.id] = { id: session.id, dps_name: session.dps_name };
+      try {
+        const allSessions = await getAllActiveSessions();
+        const sessions: Record<string, { id: number; dps_name: string }> = {};
+        for (const s of allSessions) {
+          if (s.status === "active") {
+            sessions[s.lot_id] = { id: s.id, dps_name: s.dps_name };
           }
-        } catch { /* ignore */ }
-      }
-      setActiveSessions(sessions);
+        }
+        setActiveSessions(sessions);
+      } catch { /* ignore */ }
     };
     checkSessions();
   }, []);
 
-  const handleStartInventory = async (lotId: string) => {
-    setLoadingLot(lotId);
-    try {
-      const session = await getActiveSession(lotId);
-      if (session && session.status === "active") {
-        // Session exists — store session ID and go to sub-entities
-        localStorage.setItem("active-session-id", String(session.id));
-        localStorage.setItem("active-session-dps", session.dps_name);
-        const lot = lots.find((l) => l.id === lotId);
-        if (lot?.directInventory) {
-          navigate(`/inventory/${lotId}/${lotId}`);
-        } else {
-          navigate(`/lot/${lotId}`);
-        }
-      } else {
-        // No active session — go to DPS name entry
-        localStorage.removeItem("active-session-id");
-        localStorage.removeItem("active-session-dps");
-        const lot = lots.find((l) => l.id === lotId);
-        if (lot?.directInventory) {
-          navigate(`/inventory/${lotId}/${lotId}`);
-        } else {
-          navigate(`/lot/${lotId}`);
-        }
-      }
-    } catch {
-      // Fallback: go to sub-entities without session
-      const lot = lots.find((l) => l.id === lotId);
-      if (lot?.directInventory) {
-        navigate(`/inventory/${lotId}/${lotId}`);
-      } else {
-        navigate(`/lot/${lotId}`);
-      }
-    } finally {
-      setLoadingLot(null);
+  const handleStartInventory = (lotId: string) => {
+    const activeSession = activeSessions[lotId];
+    if (activeSession) {
+      localStorage.setItem("active-session-id", String(activeSession.id));
+      localStorage.setItem("active-session-dps", activeSession.dps_name);
+    } else {
+      localStorage.removeItem("active-session-id");
+      localStorage.removeItem("active-session-dps");
+    }
+    const lot = lots.find((l) => l.id === lotId);
+    if (lot?.directInventory) {
+      navigate(`/inventory/${lotId}/${lotId}`);
+    } else {
+      navigate(`/lot/${lotId}`);
     }
   };
 
@@ -148,7 +126,6 @@ export default function HomePage() {
             const selectedVariant = selectedLotVariants[lot.id];
             const showLocation = lot.id === "lot-001";
             const activeSession = activeSessions[lot.id];
-            const isLoading = loadingLot === lot.id;
 
             return (
               <Card
@@ -212,14 +189,12 @@ export default function HomePage() {
                     <Button
                       className="w-full cursor-pointer"
                       variant={activeSession ? "outline" : "default"}
-                      disabled={(hasVariants && !selectedVariant) || isLoading}
+                      disabled={hasVariants && !selectedVariant}
                       onClick={() => handleStartInventory(lot.id)}
                     >
-                      {isLoading
-                        ? "Chargement..."
-                        : activeSession
-                          ? "Rejoindre l'inventaire"
-                          : "Démarrer l'inventaire"}
+                      {activeSession
+                        ? "Rejoindre l'inventaire"
+                        : "Démarrer l'inventaire"}
                     </Button>
                   </div>
                 </CardContent>

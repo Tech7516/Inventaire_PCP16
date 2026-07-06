@@ -114,6 +114,21 @@ async def get_active_session(lot_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/active-sessions", response_model=List[SessionResponse])
+async def get_all_active_sessions(db: AsyncSession = Depends(get_db)):
+    """Get all active sessions (single call instead of N per-lot calls)"""
+    try:
+        result = await db.execute(
+            select(Inventory_sessions)
+            .where(Inventory_sessions.status == "active")
+        )
+        sessions = result.scalars().all()
+        return sessions
+    except Exception as e:
+        logger.error(f"Error fetching all active sessions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/create-session", response_model=SessionResponse)
 async def create_session(data: CreateSessionRequest, db: AsyncSession = Depends(get_db)):
     """Create a new inventory session for a lot"""

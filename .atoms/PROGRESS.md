@@ -24,8 +24,12 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Modifier SubEntities.tsx — charger état depuis DB, polling, bouton Abandonner
 - [x] Modifier Inventory.tsx — sauvegarder items en DB au lieu de localStorage
 - [x] Lint + build + vérification
+- [x] Supprimer mention "Vérifié par" (pas d'authentification = pas pertinent)
+- [x] Optimiser lenteur : remplacer N appels API séquentiels par 1 appel batch /active-sessions
 
 ## Progress Log
+- 2026-07-06: Supprimé mention "Vérifié par : [nom]" sur SubEntities.tsx (pas d'authentification, le nom du DPS n'est pas le nom du vérificateur)
+- 2026-07-06: Optimisé lenteur homepage : remplacé N appels API séquentiels (1 par lot) par 1 seul appel batch GET /active-sessions ; handleStartInventory utilise les données déjà chargées au lieu d'un appel API supplémentaire
 - 2026-07-06: Implemented collaborative inventory — DB tables (inventory_sessions, sub_entity_checks, inventory_items), custom backend API, frontend pages updated: Index.tsx checks active sessions, SubEntities.tsx requires DPS validation + shows abandon button + polls checks, Inventory.tsx saves items to DB
 - 2026-07-05: Journal n'enregistre que lors du clic Sauvegarder/Envoyer (SubEntities) ou enregistrement direct (Lot V); nom DPS inclus; icone utilisateur supprimee; consommables pre-coches conformes par defaut
 - 2026-07-05: Added discrepancy report page (/report/:lotId) — lists consumables with differing quantities and their locations; redirects from Sauvegarder/Envoyer (SubEntities) and Enregistrer (Lot V direct inventory); inventory data saved to localStorage for report generation

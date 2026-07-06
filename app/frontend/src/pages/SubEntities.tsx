@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -335,18 +335,6 @@ export default function SubEntitiesPage() {
     return isSubChecked(subId, variantId);
   };
 
-  const getCheckerName = (subId: string, variantId?: string, sacType?: string): string | null => {
-    const check = checks.find((c) => {
-      if (c.sub_entity_id !== subId) return false;
-      if (variantId && c.variant_id !== variantId) return false;
-      if (!variantId && c.variant_id) return false;
-      if (sacType && c.sac_type !== sacType) return false;
-      if (!sacType && c.sac_type) return false;
-      return true;
-    });
-    return check?.checker_name || null;
-  };
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card">
@@ -466,19 +454,6 @@ export default function SubEntitiesPage() {
                   : isVariantComplete(sub.id)
                 : isSubChecked(sub.id);
 
-              const checkerInfo = hasVariants
-                ? sub.inventoryType === "lot-b"
-                  ? selectedVariant
-                    ? [
-                        getCheckerName(sub.id, selectedVariant, "soin"),
-                        getCheckerName(sub.id, selectedVariant, "o2"),
-                      ].filter(Boolean).join(", ")
-                    : null
-                  : selectedVariant
-                    ? getCheckerName(sub.id, selectedVariant)
-                    : null
-                : getCheckerName(sub.id);
-
               return (
                 <Card
                   key={sub.id}
@@ -512,12 +487,6 @@ export default function SubEntitiesPage() {
                             : "Aucun article défini"}
                       </span>
                     </div>
-
-                    {checkerInfo && (
-                      <div className="text-xs text-emerald-600 bg-emerald-50 rounded px-2 py-1">
-                        Vérifié par : {checkerInfo}
-                      </div>
-                    )}
 
                     {hasVariants && (
                       <div className="space-y-1">
