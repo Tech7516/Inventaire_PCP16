@@ -25,7 +25,7 @@ class Discrepancy_reportsData(BaseModel):
     report_key: str
     lot_name: str
     variant_name: str = None
-    dps_name: str
+    dps_name: str = None
     discrepancies_json: str = None
     full_inventory_json: str = None
     has_discrepancies: bool = None
@@ -52,7 +52,7 @@ class Discrepancy_reportsResponse(BaseModel):
     report_key: str
     lot_name: str
     variant_name: Optional[str] = None
-    dps_name: str
+    dps_name: Optional[str] = None
     discrepancies_json: Optional[str] = None
     full_inventory_json: Optional[str] = None
     has_discrepancies: Optional[bool] = None

@@ -1,54 +1,41 @@
 {
     "title": "discrepancy_reports",
-    "description": "Discrepancy reports for inventory lots, one per lot+variant combination",
     "type": "object",
     "properties": {
         "id": {
-            "type": "integer",
-            "description": "Auto-increment primary key"
+            "type": "integer"
         },
         "lot_id": {
-            "type": "string",
-            "description": "Lot identifier"
+            "type": "string"
         },
         "variant_id": {
-            "type": "string",
-            "description": "Variant identifier, empty string if none"
+            "type": "string"
         },
         "report_key": {
-            "type": "string",
-            "description": "Unique key: lot_id::variant_id for deduplication"
+            "type": "string"
         },
         "lot_name": {
-            "type": "string",
-            "description": "Display name of the lot"
+            "type": "string"
         },
         "variant_name": {
-            "type": "string",
-            "description": "Display name of the variant"
+            "type": "string"
         },
         "dps_name": {
-            "type": "string",
-            "description": "DPS name who performed the inventory"
+            "type": "string"
         },
         "discrepancies_json": {
-            "type": "string",
-            "description": "JSON array of discrepancy items"
+            "type": "string"
         },
         "full_inventory_json": {
-            "type": "string",
-            "description": "JSON of full inventory data for download"
+            "type": "string"
         },
         "has_discrepancies": {
-            "type": "boolean",
-            "description": "Whether any discrepancies were found"
+            "type": "boolean"
         }
     },
     "required": [
-        "id",
         "lot_id",
         "report_key",
-        "lot_name",
-        "dps_name"
+        "lot_name"
     ]
 }

@@ -44,6 +44,8 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal : corriger navigation retour (vers log au lieu de DPS)
 - [x] Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V)
 - [x] Journal : rapport centralisé par groupe (sans Lot B) + rapport par variante pour Lot B et Lot V
+- [x] Corriger ecran blanc : ajout ErrorBoundary pour capturer les erreurs de rendu
+- [x] Corriger 404 : ajout page NotFound + route catch-all
 - [x] Journal : afficher "Pas de rapport disponible" quand aucun rapport n'existe
 
 ## Progress Log

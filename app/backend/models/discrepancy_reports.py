@@ -13,7 +13,7 @@ class Discrepancy_reports(Base):
     report_key = Column(String, nullable=False)
     lot_name = Column(String, nullable=False)
     variant_name = Column(String, nullable=True)
-    dps_name = Column(String, nullable=False)
+    dps_name = Column(String, nullable=True)
     discrepancies_json = Column(String, nullable=True)
     full_inventory_json = Column(String, nullable=True)
     has_discrepancies = Column(Boolean, nullable=True)
