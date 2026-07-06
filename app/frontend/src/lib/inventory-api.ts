@@ -36,6 +36,19 @@ export interface InventoryItemData {
   checker_name: string | null;
 }
 
+// ---------- Helper: strip null/undefined values from payload ----------
+// The entity API rejects null for string fields (422), so we omit them.
+
+function stripNulls<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== null && value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 // ---------- API Calls (using client.entities.* — auto-deployed CRUD) ----------
 
 export async function getActiveSession(lotId: string): Promise<SessionData | null> {
@@ -76,14 +89,14 @@ export async function createSession(
     throw new Error("An active session already exists for this lot");
   }
 
-  const res = await client.entities.inventory_sessions.create({
-    data: {
-      lot_id: lotId,
-      dps_name: dpsName,
-      variant_id: variantId || null,
-      status: "active",
-    },
+  const data = stripNulls({
+    lot_id: lotId,
+    dps_name: dpsName,
+    variant_id: variantId || undefined,
+    status: "active",
   });
+
+  const res = await client.entities.inventory_sessions.create({ data });
   return res.data as SessionData;
 }
 
@@ -157,16 +170,16 @@ export async function markSubEntity(
     /* proceed to create */
   }
 
-  // Create new check
-  const res = await client.entities.sub_entity_checks.create({
-    data: {
-      session_id: sessionId,
-      sub_entity_id: subEntityId,
-      variant_id: variantId || null,
-      sac_type: sacType || null,
-      checker_name: checkerName,
-    },
+  // Create new check — omit null optional fields
+  const data = stripNulls({
+    session_id: sessionId,
+    sub_entity_id: subEntityId,
+    variant_id: variantId || undefined,
+    sac_type: sacType || undefined,
+    checker_name: checkerName,
   });
+
+  const res = await client.entities.sub_entity_checks.create({ data });
   return res.data as SubEntityCheckData;
 }
 
@@ -205,27 +218,29 @@ export async function saveInventoryItems(
       });
 
       if (existing) {
+        const updateData = stripNulls({
+          validated: itemData.validated,
+          custom_quantity: itemData.custom_quantity || undefined,
+          checker_name: checkerName || undefined,
+        });
         const res = await client.entities.inventory_items.update({
           id: String(existing.id),
-          data: {
-            validated: itemData.validated,
-            custom_quantity: itemData.custom_quantity,
-            ...(checkerName ? { checker_name: checkerName } : {}),
-          },
+          data: updateData,
         });
         results.push(res.data as InventoryItemData);
       } else {
+        const createData = stripNulls({
+          session_id: sessionId,
+          sub_entity_id: subEntityId,
+          variant_id: variantId || undefined,
+          sac_type: sacType || undefined,
+          item_id: itemData.item_id,
+          validated: itemData.validated,
+          custom_quantity: itemData.custom_quantity || undefined,
+          checker_name: checkerName || undefined,
+        });
         const res = await client.entities.inventory_items.create({
-          data: {
-            session_id: sessionId,
-            sub_entity_id: subEntityId,
-            variant_id: variantId || null,
-            sac_type: sacType || null,
-            item_id: itemData.item_id,
-            validated: itemData.validated,
-            custom_quantity: itemData.custom_quantity,
-            checker_name: checkerName || null,
-          },
+          data: createData,
         });
         results.push(res.data as InventoryItemData);
       }
