@@ -36,16 +36,25 @@ interface LogGroup {
 
 const LOG_GROUPS: LogGroup[] = [
   {
+    key: "lot-b",
+    label: "Lot B",
+    reportKey: null, // Lot B has per-variant reports
+    // Must be FIRST: catch all Lot B entries from any lot (VPS, Lot A, Lot C)
+    matchFn: (e) => e.sub_entity_name === "Lot B" || e.completed_key?.includes("lot-b"),
+  },
+  {
     key: "vps-auteuil",
     label: "VPS Auteuil",
     reportKey: "vps-auteuil-central",
-    matchFn: (e) => e.lot_id === "lot-vps" && (e.lot_variant_name?.includes("Auteuil") || e.variant_name?.includes("Auteuil")),
+    // Lot B is caught first, so remaining lot-vps entries are Cellule avant/arriere
+    // Default to Auteuil if lot_variant_name is missing
+    matchFn: (e) => e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly"),
   },
   {
     key: "vps-neuilly",
     label: "VPS Neuilly",
     reportKey: "vps-neuilly-central",
-    matchFn: (e) => e.lot_id === "lot-vps" && (e.lot_variant_name?.includes("Neuilly") || e.variant_name?.includes("Neuilly")),
+    matchFn: (e) => e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly"),
   },
   {
     key: "lot-a",
@@ -64,12 +73,6 @@ const LOG_GROUPS: LogGroup[] = [
     label: "Lot C Bravo",
     reportKey: "lot-c-bravo-central",
     matchFn: (e) => e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo")),
-  },
-  {
-    key: "lot-b",
-    label: "Lot B",
-    reportKey: null, // Lot B has per-variant reports
-    matchFn: (e) => e.sub_entity_name === "Lot B" || e.completed_key?.includes("lot-b"),
   },
   {
     key: "lot-v",
@@ -356,7 +359,13 @@ export default function LogPage() {
                               ? "Sac d'O2"
                               : null;
 
-                        const detailParts = [subLabel];
+                        const detailParts: string[] = [];
+                        // For Lot B group, prefix with lot origin (e.g. "VPS Auteuil", "Lot A", "Lot C Alpha")
+                        if (group.key === "lot-b") {
+                          const lotOrigin = entry.lot_variant_name || entry.lot_name;
+                          if (lotOrigin) detailParts.push(lotOrigin);
+                        }
+                        detailParts.push(subLabel);
                         if (variantLabel) detailParts.push(variantLabel);
                         if (sacLabel) detailParts.push(sacLabel);
                         const detailLine = detailParts.join(" — ");
