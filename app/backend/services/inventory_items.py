@@ -1,12 +1,34 @@
 import logging
 from typing import Optional, Dict, Any, List
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, Boolean, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.inventory_items import Inventory_items
 
 logger = logging.getLogger(__name__)
+
+
+def _coerce_query_value(model_class, field_name: str, value: Any) -> Any:
+    """Coerce query values to match the SQLAlchemy column type.
+    
+    URL query params arrive as strings, but PostgreSQL requires type-compatible
+    comparisons (e.g. integer = integer, not integer = varchar).
+    """
+    if not hasattr(model_class, field_name):
+        return value
+    col = getattr(model_class, field_name)
+    col_type = getattr(col, "type", None)
+    if col_type is None:
+        return value
+    if isinstance(col_type, Integer) and isinstance(value, str):
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return value
+    if isinstance(col_type, Boolean) and isinstance(value, str):
+        return value.lower() in ("true", "1", "yes")
+    return value
 
 
 # ------------------ Service Layer ------------------
@@ -55,8 +77,9 @@ class Inventory_itemsService:
             if query_dict:
                 for field, value in query_dict.items():
                     if hasattr(Inventory_items, field):
-                        query = query.where(getattr(Inventory_items, field) == value)
-                        count_query = count_query.where(getattr(Inventory_items, field) == value)
+                        coerced = _coerce_query_value(Inventory_items, field, value)
+                        query = query.where(getattr(Inventory_items, field) == coerced)
+                        count_query = count_query.where(getattr(Inventory_items, field) == coerced)
             
             count_result = await self.db.execute(count_query)
             total = count_result.scalar()
