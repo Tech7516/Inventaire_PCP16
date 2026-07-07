@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import {
   getLogEntriesFromDb,
   clearLogEntriesFromDb,
@@ -39,15 +39,12 @@ const LOG_GROUPS: LogGroup[] = [
     key: "lot-b",
     label: "Lot B",
     reportKey: null, // Lot B has per-variant reports
-    // Must be FIRST: catch all Lot B entries from any lot (VPS, Lot A, Lot C)
     matchFn: (e) => e.sub_entity_name === "Lot B" || e.completed_key?.includes("lot-b"),
   },
   {
     key: "vps-auteuil",
     label: "VPS Auteuil",
     reportKey: "vps-auteuil-central",
-    // Lot B is caught first, so remaining lot-vps entries are Cellule avant/arriere
-    // Default to Auteuil if lot_variant_name is missing
     matchFn: (e) => e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly"),
   },
   {
@@ -121,7 +118,6 @@ export default function LogPage() {
   // Check if a Lot B variant has a report
   const getLotBReportKey = (variantName: string | null): string | null => {
     if (!variantName) return null;
-    // Extract variant id from variant name (e.g. "Lot B Alpha" -> "alpha")
     const lower = variantName.toLowerCase();
     if (lower.includes("alpha")) return "lot-b::alpha";
     if (lower.includes("bravo")) return "lot-b::bravo";
@@ -185,6 +181,26 @@ export default function LogPage() {
       else if (e.variant_name) variants.add(e.variant_name);
     });
     return Array.from(variants).sort();
+  };
+
+  // Check if a group has a report (meaning the lot was fully verified)
+  const isGroupComplete = (group: LogGroup, lotBVariants: string[], lotVVariants: string[]): boolean => {
+    if (group.reportKey) {
+      return availableReportKeys.has(group.reportKey);
+    }
+    if (group.key === "lot-b") {
+      return lotBVariants.some(vName => {
+        const rk = getLotBReportKey(vName);
+        return rk ? availableReportKeys.has(rk) : false;
+      });
+    }
+    if (group.key === "lot-v") {
+      return lotVVariants.some(vName => {
+        const rk = getLotVReportKey(vName);
+        return rk ? availableReportKeys.has(rk) : false;
+      });
+    }
+    return false;
   };
 
   if (loading) {
@@ -263,12 +279,20 @@ export default function LogPage() {
               // For Lot V: check per-variant reports
               const lotVVariants = group.key === "lot-v" ? getLotVVariantNames(groupEntries) : [];
 
+              const groupComplete = isGroupComplete(group, lotBVariants, lotVVariants);
+
               return (
                 <div key={group.key}>
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-primary" />
                       {group.label}
+                      {groupComplete && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Complet
+                        </span>
+                      )}
                     </h2>
                     {/* Report button */}
                     {group.reportKey ? (

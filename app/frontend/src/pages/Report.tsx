@@ -170,8 +170,8 @@ export default function ReportPage() {
     lines.push("");
 
     if (discrepancies.length === 0) {
-      lines.push("✅ Aucun écart détecté.");
-      lines.push("Tous les consommables sont conformes aux quantités attendues.");
+      lines.push("✅ Lot complet.");
+      lines.push("Aucun écart détecté — tous les consommables sont conformes aux quantités attendues.");
     } else {
       lines.push(`⚠️  ${discrepancies.length} écart${discrepancies.length > 1 ? "s" : ""} détecté${discrepancies.length > 1 ? "s" : ""} :`);
       lines.push("");
@@ -315,10 +315,10 @@ export default function ReportPage() {
           <div className="text-center py-16 space-y-4">
             <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
             <p className="text-lg font-medium text-foreground">
-              Aucun écart détecté
+              Lot complet
             </p>
             <p className="text-sm text-muted-foreground">
-              Tous les consommables sont conformes aux quantités attendues.
+              Aucun écart détecté — tous les consommables sont conformes aux quantités attendues.
             </p>
             <Button
               variant="outline"

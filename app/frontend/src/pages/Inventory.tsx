@@ -188,6 +188,21 @@ export default function InventoryPage() {
     });
   };
 
+  const handleQuantityFocus = (itemId: string) => {
+    setEntries((prev) => {
+      const existing = prev[itemId] || { itemId, validated: true, customQuantity: "" };
+      if (!existing.validated) return prev;
+      return {
+        ...prev,
+        [itemId]: {
+          ...existing,
+          validated: false,
+          customQuantity: "",
+        },
+      };
+    });
+  };
+
   // Determine if this sub-entity is a Lot B
   const isLotB = subEntity?.inventoryType === "lot-b";
 
@@ -320,8 +335,8 @@ export default function InventoryPage() {
         else if (lower.includes("neuilly")) reportKeyOverride = "vps-neuilly-central";
       } else if (lotId === "lot-001") {
         reportKeyOverride = "lot-a-central";
-      } else if (lotId === "lot-003" && lotVariantName) {
-        const lower = lotVariantName.toLowerCase();
+      } else if (lotId === "lot-003") {
+        const lower = (lotVariantName || lotVariantId || "").toLowerCase();
         if (lower.includes("alpha")) reportKeyOverride = "lot-c-alpha-central";
         else if (lower.includes("bravo")) reportKeyOverride = "lot-c-bravo-central";
       } else if (lotId === "lot-cai") {
@@ -330,7 +345,7 @@ export default function InventoryPage() {
         reportKeyOverride = `lot-v::${lotVariantId}`;
       }
 
-      saveDiscrepancyReportToDb({
+      await saveDiscrepancyReportToDb({
         lotId: lotId || "",
         variantId: lotVariantId,
         lotName: lot?.name || "",
@@ -350,7 +365,7 @@ export default function InventoryPage() {
             ? `${lotId}-${subId}-${variantId}`
             : `${lotId}-${subId}`;
 
-        addLogEntryToDb({
+        await addLogEntryToDb({
           lot_id: lotId || "",
           lot_name: lot?.name || "",
           sub_entity_name: lotVariantName || lot?.name || "",
@@ -520,15 +535,29 @@ export default function InventoryPage() {
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground whitespace-nowrap">ou quantité :</span>
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">ou qté :</span>
                                 <Input
                                   type="number"
                                   min={0}
-                                  placeholder="Qté réelle"
+                                  placeholder={String(item.expectedQuantity)}
                                   value={entry.customQuantity}
-                                  onChange={(e) => updateCustomQuantity(item.id, e.target.value)}
-                                  disabled={entry.validated}
-                                  className="w-24"
+                                  onChange={(e) => {
+                                    updateCustomQuantity(item.id, e.target.value);
+                                    // Auto-uncheck conform when typing a different quantity
+                                    if (e.target.value && e.target.value !== String(item.expectedQuantity)) {
+                                      setEntries((prev) => {
+                                        const existing = prev[item.id] || { itemId: item.id, validated: true, customQuantity: "" };
+                                        if (!existing.validated) return prev;
+                                        return { ...prev, [item.id]: { ...existing, validated: false } };
+                                      });
+                                    }
+                                  }}
+                                  onFocus={(e) => {
+                                    handleQuantityFocus(item.id);
+                                    // Auto-select the value for quick replacement
+                                    setTimeout(() => e.target.select(), 0);
+                                  }}
+                                  className="w-20 text-center"
                                 />
                               </div>
                             </div>

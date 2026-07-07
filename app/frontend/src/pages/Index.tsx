@@ -191,7 +191,7 @@ export default function HomePage() {
 
                   <div className="pt-3 border-t">
                     <Button
-                      className="w-full cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-10 px-4 py-2 w-full cursor-pointer mt-[0px] mr-[0px] mb-[0px] ml-[0px] pt-[8px] pr-[16px] pb-[8px] pl-[16px] rounded-md text-[14px] font-medium text-center text-[#FFFFFF] bg-[#002D74FF] opacity-100"
                       variant={activeSession ? "outline" : "default"}
                       disabled={hasVariants && !selectedVariant}
                       onClick={() => handleStartInventory(lot.id)}

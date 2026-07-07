@@ -241,6 +241,7 @@ export default function SubEntitiesPage() {
         return null;
       })();
 
+      const logPromises: Promise<any>[] = [];
       subEntities.forEach((sub) => {
         const hasVariants = sub.variants && sub.variants.length > 0;
         const selectedVariant = selectedVariants[sub.id];
@@ -256,7 +257,7 @@ export default function SubEntitiesPage() {
 
             if (soinCheck) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
-              addLogEntryToDb({
+              logPromises.push(addLogEntryToDb({
                 lot_id: lotId || "",
                 lot_name: lot?.name || "",
                 sub_entity_name: sub.name,
@@ -265,11 +266,11 @@ export default function SubEntitiesPage() {
                 sac_type: "soin",
                 dps_name: dpsNameValue,
                 completed_key: `${lotId}-${sub.id}-${selectedVariant}-soin`,
-              });
+              }));
             }
             if (o2Check) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
-              addLogEntryToDb({
+              logPromises.push(addLogEntryToDb({
                 lot_id: lotId || "",
                 lot_name: lot?.name || "",
                 sub_entity_name: sub.name,
@@ -278,7 +279,7 @@ export default function SubEntitiesPage() {
                 sac_type: "o2",
                 dps_name: dpsNameValue,
                 completed_key: `${lotId}-${sub.id}-${selectedVariant}-o2`,
-              });
+              }));
             }
           }
         } else if (hasVariants) {
@@ -288,7 +289,7 @@ export default function SubEntitiesPage() {
             );
             if (check) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
-              addLogEntryToDb({
+              logPromises.push(addLogEntryToDb({
                 lot_id: lotId || "",
                 lot_name: lot?.name || "",
                 sub_entity_name: sub.name,
@@ -297,7 +298,7 @@ export default function SubEntitiesPage() {
                 sac_type: null,
                 dps_name: dpsNameValue,
                 completed_key: `${lotId}-${sub.id}-${selectedVariant}`,
-              });
+              }));
             }
           }
         } else {
@@ -305,7 +306,7 @@ export default function SubEntitiesPage() {
             (c) => c.sub_entity_id === sub.id && !c.variant_id && !c.sac_type
           );
           if (check) {
-            addLogEntryToDb({
+            logPromises.push(addLogEntryToDb({
               lot_id: lotId || "",
               lot_name: lot?.name || "",
               sub_entity_name: sub.name,
@@ -314,10 +315,12 @@ export default function SubEntitiesPage() {
               sac_type: null,
               dps_name: dpsNameValue,
               completed_key: `${lotId}-${sub.id}`,
-            });
+            }));
           }
         }
       });
+
+      await Promise.all(logPromises);
 
       // Clear session state
       localStorage.removeItem("active-session-id");
@@ -335,8 +338,9 @@ export default function SubEntitiesPage() {
           else if (lower.includes("neuilly")) reportNavKey = "vps-neuilly-central";
         } else if (lotId === "lot-001") {
           reportNavKey = "lot-a-central";
-        } else if (lotId === "lot-003" && currentLotVariantName) {
-          const lower = currentLotVariantName.toLowerCase();
+        } else if (lotId === "lot-003") {
+          const lotCVariant = currentLotVariantName || (() => { try { const v = JSON.parse(localStorage.getItem("lot-variants") || "{}"); return v["lot-003"] || ""; } catch { return ""; } })();
+          const lower = lotCVariant.toLowerCase();
           if (lower.includes("alpha")) reportNavKey = "lot-c-alpha-central";
           else if (lower.includes("bravo")) reportNavKey = "lot-c-bravo-central";
         } else if (lotId === "lot-cai") {
