@@ -506,60 +506,54 @@ export default function InventoryPage() {
                         key={item.id}
                         className={`transition-all duration-200 ${discrepancyClass}`}
                       >
-                        <CardContent className="py-3">
-                          <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground truncate">
-                                {item.name}
-                                {discrepancyBadge}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Stock attendu : <span className="font-semibold">{item.expectedQuantity}</span>
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                              <div className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`validate-${item.id}`}
-                                  checked={entry.validated}
-                                  onCheckedChange={() => toggleValidation(item.id)}
-                                  className="cursor-pointer"
-                                />
-                                <label
-                                  htmlFor={`validate-${item.id}`}
-                                  className="text-sm font-medium cursor-pointer select-none"
-                                >
-                                  Conforme ({item.expectedQuantity})
-                                </label>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground whitespace-nowrap">ou qté :</span>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  placeholder={String(item.expectedQuantity)}
-                                  value={entry.customQuantity}
-                                  onChange={(e) => {
-                                    updateCustomQuantity(item.id, e.target.value);
-                                    // Auto-uncheck conform when typing a different quantity
-                                    if (e.target.value && e.target.value !== String(item.expectedQuantity)) {
-                                      setEntries((prev) => {
-                                        const existing = prev[item.id] || { itemId: item.id, validated: true, customQuantity: "" };
-                                        if (!existing.validated) return prev;
-                                        return { ...prev, [item.id]: { ...existing, validated: false } };
-                                      });
-                                    }
-                                  }}
-                                  onFocus={(e) => {
-                                    handleQuantityFocus(item.id);
-                                    // Auto-select the value for quick replacement
-                                    setTimeout(() => e.target.select(), 0);
-                                  }}
-                                  className="w-20 text-center"
-                                />
-                              </div>
+                        <CardContent className="py-3 px-3 sm:px-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-medium text-foreground text-sm sm:text-base leading-snug break-words">
+                              {item.name}
+                            </p>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+                              Attendu : <span className="font-semibold">{item.expectedQuantity}</span>
+                            </span>
+                          </div>
+                          {discrepancyBadge && (
+                            <div className="mt-1">{discrepancyBadge}</div>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 pt-2 border-t">
+                            <label
+                              htmlFor={`validate-${item.id}`}
+                              className="flex items-center gap-2 cursor-pointer select-none shrink-0"
+                            >
+                              <Checkbox
+                                id={`validate-${item.id}`}
+                                checked={entry.validated}
+                                onCheckedChange={() => toggleValidation(item.id)}
+                                className="cursor-pointer"
+                              />
+                              <span className="text-sm font-medium">Conforme</span>
+                            </label>
+                            <div className="flex items-center gap-1.5 ml-auto">
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">ou qté :</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                placeholder={String(item.expectedQuantity)}
+                                value={entry.customQuantity}
+                                onChange={(e) => {
+                                  updateCustomQuantity(item.id, e.target.value);
+                                  if (e.target.value && e.target.value !== String(item.expectedQuantity)) {
+                                    setEntries((prev) => {
+                                      const existing = prev[item.id] || { itemId: item.id, validated: true, customQuantity: "" };
+                                      if (!existing.validated) return prev;
+                                      return { ...prev, [item.id]: { ...existing, validated: false } };
+                                    });
+                                  }
+                                }}
+                                onFocus={(e) => {
+                                  handleQuantityFocus(item.id);
+                                  setTimeout(() => e.target.select(), 0);
+                                }}
+                                className="w-16 sm:w-20 text-center h-9"
+                              />
                             </div>
                           </div>
                         </CardContent>
