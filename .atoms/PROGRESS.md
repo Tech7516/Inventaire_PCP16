@@ -57,6 +57,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Optimiser saisie quantité : auto-select on focus, auto-uncheck conform quand qté différente, placeholder dynamique
 - [x] Corriger Lot C : fallback sur lotVariantId quand lotVariantName est null pour report_key et navigation
 - [x] Optimiser affichage mobile : nom consommable complet sans troncature, layout 2 lignes (nom + contrôles séparés par bordure)
+- [x] Corriger 500 sslmode : ajouter sslmode aux unsupported_params dans _sanitize_query_params (core/database.py)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

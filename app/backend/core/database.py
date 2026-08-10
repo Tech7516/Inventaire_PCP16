@@ -38,7 +38,7 @@ class DatabaseManager:
         Some providers (e.g. Neon) may inject parameters like ``channel_binding``
         that are not supported by asyncpg and cause connection failures.
         """
-        unsupported_params = {"channel_binding"}
+        unsupported_params = {"channel_binding", "sslmode"}
         found = unsupported_params & set(url.query)
         if found:
             logger.warning(f"Removed unsupported database URL query params: {sorted(found)}")
