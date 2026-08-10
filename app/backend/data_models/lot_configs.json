@@ -1,0 +1,36 @@
+{
+    "title": "lot_configs",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "title": "id"
+        },
+        "lot_id": {
+            "type": "string",
+            "title": "lot_id"
+        },
+        "lot_name": {
+            "type": "string",
+            "title": "lot_name"
+        },
+        "location": {
+            "type": "string",
+            "title": "location"
+        },
+        "config_json": {
+            "type": "string",
+            "title": "config_json"
+        },
+        "is_custom": {
+            "type": "boolean",
+            "title": "is_custom",
+            "default": true
+        }
+    },
+    "required": [
+        "lot_id",
+        "lot_name",
+        "config_json"
+    ]
+}

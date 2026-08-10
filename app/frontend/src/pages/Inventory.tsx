@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
+import { loadLotConfig } from "@/lib/configStore";
+import type { Lot, SubEntity, ConsumableSection } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -28,18 +29,39 @@ export default function InventoryPage() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session") ? parseInt(searchParams.get("session")!) : null;
 
-  const lot = lots.find((l) => l.id === lotId);
+  const [lot, setLot] = useState<Lot | null>(null);
+  const [subEntity, setSubEntity] = useState<SubEntity | null>(null);
+  const [sections, setSections] = useState<ConsumableSection[]>([]);
+  const [configLoading, setConfigLoading] = useState(true);
+
   const isDirectInventory = lot?.directInventory === true;
-  const subEntity = lotId && subId && !isDirectInventory
-    ? lotSubEntities[lotId]?.find((s) => s.id === subId)
-    : null;
   const variant = subEntity?.variants?.find((v) => v.id === variantId);
 
-  // Determine which sections to show based on sacType
-  const sectionKey = sacType ? `${subId}-${sacType}` : subId;
-  const sections = isDirectInventory
-    ? subEntitySections[lotId] || []
-    : subId ? subEntitySections[sectionKey] || subEntitySections[subId] || [] : [];
+  // Load lot config from DB (configStore) on mount
+  useEffect(() => {
+    if (!lotId) return;
+    const loadConfig = async () => {
+      setConfigLoading(true);
+      try {
+        const config = await loadLotConfig(lotId);
+        if (config) {
+          setLot(config.lot);
+          const sectionKey = sacType ? `${subId}-${sacType}` : subId;
+          if (config.lot.directInventory) {
+            setSections(config.sections[lotId] || []);
+          } else if (subId) {
+            setSections(config.sections[sectionKey] || config.sections[subId] || []);
+          }
+          if (subId && !config.lot.directInventory) {
+            const found = config.subEntities.find((s) => s.id === subId);
+            setSubEntity(found || null);
+          }
+        }
+      } catch { /* ignore */ }
+      setConfigLoading(false);
+    };
+    loadConfig();
+  }, [lotId, subId, sacType]);
 
   // DPS name for direct inventory lots (Lot CAI, Lot V)
   const [dpsName, setDpsName] = useState(() => localStorage.getItem("dps-name") || "");
@@ -133,6 +155,17 @@ export default function InventoryPage() {
     : variant
       ? sacLabel ? `${variant.name} — ${sacLabel}` : variant.name
       : subEntity?.name || "";
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+          <p className="text-lg text-muted-foreground">Chargement de l'inventaire…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!lot || (!isDirectInventory && !subEntity)) {
     return (
@@ -279,14 +312,12 @@ export default function InventoryPage() {
         .map((entry) => {
           const actual = parseInt(entry.customQuantity, 10);
           const subLabel = (() => {
-            const subs = lotSubEntities[lotId || ""] || [];
-            const sub = subs.find((s) => s.id === subId);
-            if (!sub) return subId || "";
+            if (!subEntity) return subId || "";
             if (variantId) {
-              const v = sub.variants?.find((vv) => vv.id === variantId);
+              const v = subEntity.variants?.find((vv) => vv.id === variantId);
               return v?.name || variantId;
             }
-            return sub.name;
+            return subEntity.name;
           })();
           const sacLbl =
             sacType === "soin" ? "Sac de soin" : sacType === "o2" ? "Sac d'O2" : null;

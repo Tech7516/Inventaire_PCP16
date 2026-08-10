@@ -58,6 +58,13 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Corriger Lot C : fallback sur lotVariantId quand lotVariantName est null pour report_key et navigation
 - [x] Optimiser affichage mobile : nom consommable complet sans troncature, layout 2 lignes (nom + contrôles séparés par bordure)
 - [x] Corriger 500 sslmode : ajouter sslmode aux unsupported_params dans _sanitize_query_params (core/database.py)
+- [x] Créer table lot_configs en BDD pour stocker les configurations de lots
+- [x] Créer configStore.ts — charge/sauvegarde configs depuis BDD avec fallback statique
+- [x] Créer page Admin (/admin) — modifier quantités, créer nouveaux lots/sous-lots
+- [x] Ajouter route /admin dans App.tsx + lien Administration sur page d'accueil
+- [x] Modifier Index.tsx — charger lots depuis configStore
+- [x] Modifier Inventory.tsx — charger sections depuis configStore
+- [x] Lint, build et vérification UI
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

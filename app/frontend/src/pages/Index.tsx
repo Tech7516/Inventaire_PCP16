@@ -9,9 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { lots } from "@/data/lots";
-import { ClipboardList, MapPin, CalendarClock, ScrollText, Users } from "lucide-react";
+import { lots as staticLots } from "@/data/lots";
+import { ClipboardList, MapPin, CalendarClock, ScrollText, Users, Settings } from "lucide-react";
 import { getAllActiveSessions, getLogEntriesFromDb, type InventoryLogData } from "@/lib/inventory-api";
+import { getMergedLots } from "@/lib/configStore";
+import type { Lot } from "@/data/lots";
 
 function formatDateTimeShort(iso: string): string {
   try {
@@ -46,6 +48,7 @@ export default function HomePage() {
   });
   const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string }>>({});
   const [logEntries, setLogEntries] = useState<InventoryLogData[]>([]);
+  const [dynamicLots, setDynamicLots] = useState<Lot[]>(staticLots);
 
   const persistLotVariant = (lotId: string, value: string) => {
     setSelectedLotVariants((prev) => {
@@ -55,13 +58,14 @@ export default function HomePage() {
     });
   };
 
-  // Check for active sessions and log entries on mount
+  // Check for active sessions, log entries, and dynamic lots on mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [allSessions, allLogs] = await Promise.all([
+        const [allSessions, allLogs, mergedLots] = await Promise.all([
           getAllActiveSessions(),
           getLogEntriesFromDb(),
+          getMergedLots(),
         ]);
         const sessions: Record<string, { id: number; dps_name: string }> = {};
         for (const s of allSessions) {
@@ -71,6 +75,7 @@ export default function HomePage() {
         }
         setActiveSessions(sessions);
         setLogEntries(allLogs);
+        if (mergedLots.length > 0) setDynamicLots(mergedLots);
       } catch { /* ignore */ }
     };
     loadData();
@@ -85,7 +90,7 @@ export default function HomePage() {
       localStorage.removeItem("active-session-id");
       localStorage.removeItem("active-session-dps");
     }
-    const lot = lots.find((l) => l.id === lotId);
+    const lot = dynamicLots.find((l) => l.id === lotId);
     if (lot?.directInventory) {
       navigate(`/inventory/${lotId}/${lotId}`);
     } else {
@@ -111,21 +116,31 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/log")}
-              className="cursor-pointer"
-            >
-              <ScrollText className="h-4 w-4 mr-2" />
-              Journal
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/log")}
+                className="cursor-pointer"
+              >
+                <ScrollText className="h-4 w-4 mr-2" />
+                Journal
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/admin")}
+                className="cursor-pointer"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Administration
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {lots.map((lot) => {
+          {dynamicLots.map((lot) => {
             const hasVariants = lot.variants && lot.variants.length > 0;
             const selectedVariant = selectedLotVariants[lot.id];
             const showLocation = lot.id === "lot-001";

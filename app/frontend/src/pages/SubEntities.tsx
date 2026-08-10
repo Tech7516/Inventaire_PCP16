@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { lots, lotSubEntities, subEntitySections } from "@/data/lots";
+import { loadLotConfig } from "@/lib/configStore";
+import type { Lot, SubEntity, ConsumableSection } from "@/data/lots";
 import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -30,8 +31,10 @@ const POLL_INTERVAL = 5000; // 5 seconds
 export default function SubEntitiesPage() {
   const { lotId } = useParams<{ lotId: string }>();
   const navigate = useNavigate();
-  const lot = lots.find((l) => l.id === lotId);
-  const subEntities = lotId ? lotSubEntities[lotId] || [] : [];
+  const [lot, setLot] = useState<Lot | null>(null);
+  const [subEntities, setSubEntities] = useState<SubEntity[]>([]);
+  const [configSections, setConfigSections] = useState<Record<string, ConsumableSection[]>>({});
+  const [configLoading, setConfigLoading] = useState(true);
 
   const [dpsName, setDpsName] = useState(() => localStorage.getItem("dps-name") || "");
   const [session, setSession] = useState<SessionData | null>(null);
@@ -75,6 +78,24 @@ export default function SubEntitiesPage() {
     localStorage.setItem("selected-variants", JSON.stringify(initial));
     return initial;
   });
+
+  // Load lot config from DB (configStore) on mount
+  useEffect(() => {
+    if (!lotId) return;
+    const loadConfig = async () => {
+      setConfigLoading(true);
+      try {
+        const config = await loadLotConfig(lotId);
+        if (config) {
+          setLot(config.lot);
+          setSubEntities(config.subEntities);
+          setConfigSections(config.sections);
+        }
+      } catch { /* ignore */ }
+      setConfigLoading(false);
+    };
+    loadConfig();
+  }, [lotId]);
 
   // Load or create session on mount — use cached data first, then verify in background
   useEffect(() => {
@@ -503,7 +524,7 @@ export default function SubEntitiesPage() {
         {session && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {subEntities.map((sub) => {
-              const sections = subEntitySections[sub.id] || [];
+              const sections = configSections[sub.id] || [];
               const itemCount = sections.reduce(
                 (total, section) => total + section.items.length,
                 0

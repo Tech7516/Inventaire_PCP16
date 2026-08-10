@@ -10,6 +10,7 @@ import Inventory from './pages/Inventory';
 import Log from './pages/Log';
 import Report from './pages/Report';
 import NotFound from './pages/NotFound';
+import Admin from './pages/Admin';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
 // MODULE_IMPORTS_START
@@ -27,6 +28,7 @@ const AppRoutes = () => (
     <Route path="/inventory/:lotId/:subId/:variantId/:sacType" element={<Inventory />} />
     <Route path="/report/:lotId" element={<Report />} />
     <Route path="/report/key/:reportKey" element={<Report />} />
+    <Route path="/admin" element={<Admin />} />
     {/* <Route path="/blog/*" element={<BlogRoutes />} /> */}
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth/error" element={<AuthError />} />
