@@ -101,37 +101,37 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <ClipboardList className="h-6 w-6 text-primary" />
+              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
                   Gestion des Inventaires
                 </h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                   Sélectionnez un lot pour démarrer l'inventaire
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="outline"
                 onClick={() => navigate("/log")}
-                className="cursor-pointer"
+                className="cursor-pointer h-9 px-3 sm:h-10 sm:px-4"
               >
-                <ScrollText className="h-4 w-4 mr-2" />
-                Journal
+                <ScrollText className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Journal</span>
               </Button>
               <Button
                 variant="outline"
                 onClick={() => navigate("/admin")}
-                className="cursor-pointer"
+                className="cursor-pointer h-9 px-3 sm:h-10 sm:px-4"
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Administration
+                <Settings className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Administration</span>
               </Button>
             </div>
           </div>
