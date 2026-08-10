@@ -3,8 +3,7 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": "integer",
-            "autoIncrement": true
+            "type": "integer"
         },
         "lot_id": {
             "type": "string"
@@ -32,6 +31,7 @@
         }
     },
     "required": [
+        "id",
         "lot_id",
         "lot_name",
         "sub_entity_name",

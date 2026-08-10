@@ -95,7 +95,7 @@ class Discrepancy_reportsBatchDeleteRequest(BaseModel):
 # ---------- Routes ----------
 @router.get("", response_model=Discrepancy_reportsListResponse)
 async def query_discrepancy_reportss(
-    query: str = Query(None, description="Query conditions (JSON string)"),
+    query: str = Query(None, description='Query conditions as JSON, e.g. {"id":2} or {"id":{"$gte":2}}'),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
@@ -125,6 +125,9 @@ async def query_discrepancy_reportss(
         return result
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.warning(f"Invalid discrepancy_reports query: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error querying discrepancy_reportss: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -132,7 +135,7 @@ async def query_discrepancy_reportss(
 
 @router.get("/all", response_model=Discrepancy_reportsListResponse)
 async def query_discrepancy_reportss_all(
-    query: str = Query(None, description="Query conditions (JSON string)"),
+    query: str = Query(None, description='Query conditions as JSON, e.g. {"id":2} or {"id":{"$gte":2}}'),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
@@ -162,6 +165,9 @@ async def query_discrepancy_reportss_all(
         return result
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.warning(f"Invalid discrepancy_reports query: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error querying discrepancy_reportss: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

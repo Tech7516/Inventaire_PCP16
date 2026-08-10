@@ -15,14 +15,14 @@
             "type": "string"
         },
         "status": {
-            "type": "string",
-            "default": "active"
+            "type": "string"
         },
         "completed_at": {
             "type": "string"
         }
     },
     "required": [
+        "id",
         "lot_id",
         "dps_name"
     ]

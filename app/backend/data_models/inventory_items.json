@@ -21,8 +21,7 @@
             "type": "string"
         },
         "validated": {
-            "type": "boolean",
-            "default": true
+            "type": "boolean"
         },
         "custom_quantity": {
             "type": "string"
@@ -32,6 +31,7 @@
         }
     },
     "required": [
+        "id",
         "session_id",
         "sub_entity_id",
         "item_id"

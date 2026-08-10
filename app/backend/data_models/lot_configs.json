@@ -3,32 +3,26 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": "integer",
-            "title": "id"
+            "type": "integer"
         },
         "lot_id": {
-            "type": "string",
-            "title": "lot_id"
+            "type": "string"
         },
         "lot_name": {
-            "type": "string",
-            "title": "lot_name"
+            "type": "string"
         },
         "location": {
-            "type": "string",
-            "title": "location"
+            "type": "string"
         },
         "config_json": {
-            "type": "string",
-            "title": "config_json"
+            "type": "string"
         },
         "is_custom": {
-            "type": "boolean",
-            "title": "is_custom",
-            "default": true
+            "type": "boolean"
         }
     },
     "required": [
+        "id",
         "lot_id",
         "lot_name",
         "config_json"

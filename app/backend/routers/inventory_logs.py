@@ -92,7 +92,7 @@ class Inventory_logsBatchDeleteRequest(BaseModel):
 # ---------- Routes ----------
 @router.get("", response_model=Inventory_logsListResponse)
 async def query_inventory_logss(
-    query: str = Query(None, description="Query conditions (JSON string)"),
+    query: str = Query(None, description='Query conditions as JSON, e.g. {"id":2} or {"id":{"$gte":2}}'),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
@@ -122,6 +122,9 @@ async def query_inventory_logss(
         return result
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.warning(f"Invalid inventory_logs query: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error querying inventory_logss: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -129,7 +132,7 @@ async def query_inventory_logss(
 
 @router.get("/all", response_model=Inventory_logsListResponse)
 async def query_inventory_logss_all(
-    query: str = Query(None, description="Query conditions (JSON string)"),
+    query: str = Query(None, description='Query conditions as JSON, e.g. {"id":2} or {"id":{"$gte":2}}'),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
@@ -159,6 +162,9 @@ async def query_inventory_logss_all(
         return result
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.warning(f"Invalid inventory_logs query: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error querying inventory_logss: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

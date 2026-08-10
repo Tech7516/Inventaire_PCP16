@@ -83,7 +83,7 @@ class Sub_entity_checksBatchDeleteRequest(BaseModel):
 # ---------- Routes ----------
 @router.get("", response_model=Sub_entity_checksListResponse)
 async def query_sub_entity_checkss(
-    query: str = Query(None, description="Query conditions (JSON string)"),
+    query: str = Query(None, description='Query conditions as JSON, e.g. {"id":2} or {"id":{"$gte":2}}'),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
@@ -113,6 +113,9 @@ async def query_sub_entity_checkss(
         return result
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.warning(f"Invalid sub_entity_checks query: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error querying sub_entity_checkss: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -120,7 +123,7 @@ async def query_sub_entity_checkss(
 
 @router.get("/all", response_model=Sub_entity_checksListResponse)
 async def query_sub_entity_checkss_all(
-    query: str = Query(None, description="Query conditions (JSON string)"),
+    query: str = Query(None, description='Query conditions as JSON, e.g. {"id":2} or {"id":{"$gte":2}}'),
     sort: str = Query(None, description="Sort field (prefix with '-' for descending)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=2000, description="Max number of records to return"),
@@ -150,6 +153,9 @@ async def query_sub_entity_checkss_all(
         return result
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.warning(f"Invalid sub_entity_checks query: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error querying sub_entity_checkss: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

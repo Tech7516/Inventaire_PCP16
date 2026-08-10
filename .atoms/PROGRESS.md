@@ -65,6 +65,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Modifier Index.tsx — charger lots depuis configStore
 - [x] Modifier Inventory.tsx — charger sections depuis configStore
 - [x] Lint, build et vérification UI
+- [x] Corriger 404 entities/inventory_sessions : recréer toutes les tables via BackendManager.create_tables pour forcer le re-déploiement des routes CRUD
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

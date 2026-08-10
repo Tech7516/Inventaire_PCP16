@@ -8,7 +8,7 @@ class Inventory_logs(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True, nullable=False)
-    lot_id = Column(String, nullable=False)
+    lot_id = Column(String, index=True, nullable=False)
     lot_name = Column(String, nullable=False)
     sub_entity_name = Column(String, nullable=False)
     variant_name = Column(String, nullable=True)

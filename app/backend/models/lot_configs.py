@@ -12,6 +12,6 @@ class Lot_configs(Base):
     lot_name = Column(String, nullable=False)
     location = Column(String, nullable=True)
     config_json = Column(String, nullable=False)
-    is_custom = Column(Boolean, nullable=True, default=True, server_default='true')
+    is_custom = Column(Boolean, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.now)
     updated_at = Column(DateTime(timezone=True), default=datetime.now, onupdate=datetime.now)
