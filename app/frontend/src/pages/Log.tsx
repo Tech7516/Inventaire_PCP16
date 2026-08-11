@@ -34,42 +34,56 @@ interface LogGroup {
   matchFn: (entry: InventoryLogData) => boolean;
 }
 
+// Helper: detect if an entry is a Lot B entry (regardless of parent lot)
+const isLotBEntry = (e: InventoryLogData): boolean =>
+  e.lot_id === "lot-b" ||
+  e.sub_entity_name === "Lot B" ||
+  (e.completed_key?.includes("lot-b") && !!e.sac_type);
+
+// The 4 Lot B variants (always shown in the report section)
+const LOT_B_VARIANTS = [
+  { name: "Alpha", reportKey: "lot-b::alpha" },
+  { name: "Bravo", reportKey: "lot-b::bravo" },
+  { name: "Auteuil", reportKey: "lot-b::auteuil" },
+  { name: "Neuilly", reportKey: "lot-b::neuilly" },
+];
+
 const LOG_GROUPS: LogGroup[] = [
   {
     key: "lot-b",
     label: "Lot B",
     reportKey: null, // Lot B has per-variant reports
-    matchFn: (e) => e.lot_id === "lot-b",
+    matchFn: isLotBEntry,
   },
   {
     key: "vps-auteuil",
     label: "VPS Auteuil",
     reportKey: "vps-auteuil-central",
-    matchFn: (e) => e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly"),
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly"),
   },
   {
     key: "vps-neuilly",
     label: "VPS Neuilly",
     reportKey: "vps-neuilly-central",
-    matchFn: (e) => e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly"),
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly"),
   },
   {
     key: "lot-a",
     label: "Lot A",
     reportKey: "lot-a-central",
-    matchFn: (e) => e.lot_id === "lot-001",
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-001",
   },
   {
     key: "lot-c-alpha",
     label: "Lot C Alpha",
     reportKey: "lot-c-alpha-central",
-    matchFn: (e) => e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha")),
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha")),
   },
   {
     key: "lot-c-bravo",
     label: "Lot C Bravo",
     reportKey: "lot-c-bravo-central",
-    matchFn: (e) => e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo")),
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo")),
   },
   {
     key: "lot-v",
@@ -206,10 +220,7 @@ export default function LogPage() {
       return availableReportKeys.has(group.reportKey);
     }
     if (group.key === "lot-b") {
-      return lotBVariants.some(vName => {
-        const rk = getLotBReportKey(vName);
-        return rk ? availableReportKeys.has(rk) : false;
-      });
+      return LOT_B_VARIANTS.some(v => availableReportKeys.has(v.reportKey));
     }
     if (group.key === "lot-v") {
       return lotVVariants.some(vName => {
@@ -330,31 +341,24 @@ export default function LogPage() {
                         </span>
                       )
                     ) : group.key === "lot-b" ? (
-                      lotBVariants.length > 0 ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {lotBVariants.map((vName) => {
-                            const rk = getLotBReportKey(vName);
-                            const hasReport = rk ? availableReportKeys.has(rk) : false;
-                            return hasReport ? (
-                              <Button
-                                key={vName}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/report/key/${encodeURIComponent(rk!)}?from=log`)}
-                                className="cursor-pointer shrink-0"
-                              >
-                                <FileText className="h-4 w-4 mr-1.5" />
-                                {vName}
-                              </Button>
-                            ) : (
-                              <span key={vName} className="text-xs text-muted-foreground italic flex items-center gap-1">
-                                <AlertCircle className="h-3.5 w-3.5" />
-                                {vName} — Pas de rapport
-                              </span>
-                            );
-                          })}
-                        </div>
-                      ) : null
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {LOT_B_VARIANTS.map((v) => {
+                          const hasReport = availableReportKeys.has(v.reportKey);
+                          return (
+                            <Button
+                              key={v.name}
+                              variant="outline"
+                              size="sm"
+                              disabled={!hasReport}
+                              onClick={() => navigate(`/report/key/${encodeURIComponent(v.reportKey)}?from=log`)}
+                              className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
+                            >
+                              <FileText className="h-4 w-4 mr-1.5" />
+                              {v.name}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     ) : group.key === "lot-v" ? (
                       lotVVariants.length > 0 ? (
                         <div className="flex items-center gap-2 flex-wrap">
