@@ -59,6 +59,23 @@ const findLotBReportKey = (variantId: string, availableKeys: Set<string>): strin
   return null;
 };
 
+// The 2 Lot C variants (always shown in the report section)
+const LOT_C_VARIANTS = [
+  { name: "Alpha", variantId: "alpha" },
+  { name: "Bravo", variantId: "bravo" },
+];
+
+// Find the actual report key for a Lot C variant (supports multiple key formats in DB)
+const findLotCReportKey = (variantId: string, availableKeys: Set<string>): string | null => {
+  const primary = `lot-c::${variantId}`;
+  if (availableKeys.has(primary)) return primary;
+  // Fallback: match any key ending with ::variantId
+  for (const key of availableKeys) {
+    if (key.endsWith(`::${variantId}`)) return key;
+  }
+  return null;
+};
+
 const LOG_GROUPS: LogGroup[] = [
   {
     key: "lot-b",
@@ -85,16 +102,10 @@ const LOG_GROUPS: LogGroup[] = [
     matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-001",
   },
   {
-    key: "lot-c-alpha",
-    label: "Lot C Alpha",
-    reportKey: "lot-c-alpha-central",
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha")),
-  },
-  {
-    key: "lot-c-bravo",
-    label: "Lot C Bravo",
-    reportKey: "lot-c-bravo-central",
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo")),
+    key: "lot-c",
+    label: "Lot C",
+    reportKey: null, // Lot C has per-variant reports (Alpha/Bravo)
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003",
   },
   {
     key: "lot-v",
@@ -233,6 +244,9 @@ export default function LogPage() {
     if (group.key === "lot-b") {
       return LOT_B_VARIANTS.some(v => !!findLotBReportKey(v.variantId, availableReportKeys));
     }
+    if (group.key === "lot-c") {
+      return LOT_C_VARIANTS.some(v => !!findLotCReportKey(v.variantId, availableReportKeys));
+    }
     if (group.key === "lot-v") {
       return lotVVariants.some(vName => {
         const rk = getLotVReportKey(vName);
@@ -370,6 +384,26 @@ export default function LogPage() {
                           );
                         })}
                       </div>
+                    ) : group.key === "lot-c" ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {LOT_C_VARIANTS.map((v) => {
+                          const reportKey = findLotCReportKey(v.variantId, availableReportKeys);
+                          const hasReport = !!reportKey;
+                          return (
+                            <Button
+                              key={v.name}
+                              variant="outline"
+                              size="sm"
+                              disabled={!hasReport}
+                              onClick={() => hasReport && navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log`)}
+                              className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
+                            >
+                              <FileText className="h-4 w-4 mr-1.5" />
+                              {v.name}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     ) : group.key === "lot-v" ? (
                       <div className="flex items-center gap-2 flex-wrap">
                         {lotVVariants.length > 0 ? lotVVariants.map((vName) => {
@@ -423,6 +457,20 @@ export default function LogPage() {
                           if (cleanVariant) detailParts.push(`Lot B ${cleanVariant}`);
                           else detailParts.push("Lot B");
                           if (sacLabel) detailParts.push(sacLabel);
+                        } else if (group.key === "lot-c") {
+                          // Simplified: "Lot C Alpha — POM" or "Lot C Bravo — Caisse"
+                          // variant_name may contain "Caisse Alpha" or "POM Alpha" — extract just the variant
+                          const lotCVariant = entry.lot_variant_name
+                            || (variantLabel?.replace(/^(Caisse|POM|Lot\s*C)\s+/i, ""))
+                            || variantLabel;
+                          const cleanSubEntity = subLabel?.replace(/\s+(Alpha|Bravo)$/i, "") || subLabel;
+                          if (lotCVariant && (lotCVariant.includes("Alpha") || lotCVariant.includes("Bravo"))) {
+                            const v = lotCVariant.includes("Alpha") ? "Alpha" : "Bravo";
+                            detailParts.push(`Lot C ${v}`);
+                          } else {
+                            detailParts.push("Lot C");
+                          }
+                          detailParts.push(cleanSubEntity);
                         } else {
                           detailParts.push(subLabel);
                           if (variantLabel) detailParts.push(variantLabel);
