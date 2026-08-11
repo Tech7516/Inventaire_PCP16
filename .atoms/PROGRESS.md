@@ -66,6 +66,9 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Modifier Inventory.tsx — charger sections depuis configStore
 - [x] Lint, build et vérification UI
 - [x] Corriger 404 entities/inventory_sessions : recréer toutes les tables via BackendManager.create_tables pour forcer le re-déploiement des routes CRUD
+- [x] Journal Lot B : simplifier affichage en "Lot B [variant] — Sac de soin/O2" sans indiquer le lot parent
+- [x] Journal Lot B : dédupliquer les entrées (garder uniquement la plus récente par variante + sac)
+- [x] SubEntities : uniformiser completed_key Lot B en `lot-b-{variant}-soin/o2` et lot_id en "lot-b" pour éviter les doublons
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

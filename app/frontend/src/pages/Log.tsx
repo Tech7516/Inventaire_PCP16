@@ -39,7 +39,7 @@ const LOG_GROUPS: LogGroup[] = [
     key: "lot-b",
     label: "Lot B",
     reportKey: null, // Lot B has per-variant reports
-    matchFn: (e) => e.sub_entity_name === "Lot B" || e.completed_key?.includes("lot-b"),
+    matchFn: (e) => e.lot_id === "lot-b",
   },
   {
     key: "vps-auteuil",
@@ -163,6 +163,23 @@ export default function LogPage() {
       (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
     );
   });
+
+  // Deduplicate Lot B entries: keep only the most recent per variant + sac_type
+  const dedupedLotB = (() => {
+    const seen = new Map<string, InventoryLogData>();
+    for (const entry of groupedEntries["lot-b"] || []) {
+      const variantName = entry.variant_name || "";
+      const sacType = entry.sac_type || "";
+      const dedupKey = `${variantName}::${sacType}`;
+      if (!seen.has(dedupKey)) {
+        seen.set(dedupKey, entry);
+      }
+    }
+    return Array.from(seen.values()).sort(
+      (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
+    );
+  })();
+  groupedEntries["lot-b"] = dedupedLotB;
 
   // For Lot B group, collect unique variant names
   const getLotBVariantNames = (groupEntries: InventoryLogData[]): string[] => {
@@ -384,14 +401,16 @@ export default function LogPage() {
                               : null;
 
                         const detailParts: string[] = [];
-                        // For Lot B group, prefix with lot origin (e.g. "VPS Auteuil", "Lot A", "Lot C Alpha")
                         if (group.key === "lot-b") {
-                          const lotOrigin = entry.lot_variant_name || entry.lot_name;
-                          if (lotOrigin) detailParts.push(lotOrigin);
+                          // Simplified: "Lot B Alpha — Sac de soin" (no parent lot context)
+                          if (variantLabel) detailParts.push(`Lot B ${variantLabel}`);
+                          else detailParts.push("Lot B");
+                          if (sacLabel) detailParts.push(sacLabel);
+                        } else {
+                          detailParts.push(subLabel);
+                          if (variantLabel) detailParts.push(variantLabel);
+                          if (sacLabel) detailParts.push(sacLabel);
                         }
-                        detailParts.push(subLabel);
-                        if (variantLabel) detailParts.push(variantLabel);
-                        if (sacLabel) detailParts.push(sacLabel);
                         const detailLine = detailParts.join(" — ");
 
                         return (

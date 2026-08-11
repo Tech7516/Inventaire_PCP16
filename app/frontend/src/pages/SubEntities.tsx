@@ -279,27 +279,27 @@ export default function SubEntitiesPage() {
             if (soinCheck) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
               logPromises.push(addLogEntryToDb({
-                lot_id: lotId || "",
-                lot_name: lot?.name || "",
+                lot_id: "lot-b",
+                lot_name: "Lot B",
                 sub_entity_name: sub.name,
                 variant_name: variantObj?.name || null,
-                lot_variant_name: currentLotVariantName,
+                lot_variant_name: null,
                 sac_type: "soin",
                 dps_name: dpsNameValue,
-                completed_key: `${lotId}-${sub.id}-${selectedVariant}-soin`,
+                completed_key: `lot-b-${selectedVariant}-soin`,
               }));
             }
             if (o2Check) {
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
               logPromises.push(addLogEntryToDb({
-                lot_id: lotId || "",
-                lot_name: lot?.name || "",
+                lot_id: "lot-b",
+                lot_name: "Lot B",
                 sub_entity_name: sub.name,
                 variant_name: variantObj?.name || null,
-                lot_variant_name: currentLotVariantName,
+                lot_variant_name: null,
                 sac_type: "o2",
                 dps_name: dpsNameValue,
-                completed_key: `${lotId}-${sub.id}-${selectedVariant}-o2`,
+                completed_key: `lot-b-${selectedVariant}-o2`,
               }));
             }
           }
