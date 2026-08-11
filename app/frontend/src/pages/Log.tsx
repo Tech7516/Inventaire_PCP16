@@ -42,11 +42,22 @@ const isLotBEntry = (e: InventoryLogData): boolean =>
 
 // The 4 Lot B variants (always shown in the report section)
 const LOT_B_VARIANTS = [
-  { name: "Alpha", reportKey: "lot-b::alpha" },
-  { name: "Bravo", reportKey: "lot-b::bravo" },
-  { name: "Auteuil", reportKey: "lot-b::auteuil" },
-  { name: "Neuilly", reportKey: "lot-b::neuilly" },
+  { name: "Alpha", variantId: "alpha" },
+  { name: "Bravo", variantId: "bravo" },
+  { name: "Auteuil", variantId: "auteuil" },
+  { name: "Neuilly", variantId: "neuilly" },
 ];
+
+// Find the actual report key for a Lot B variant (supports multiple key formats in DB)
+const findLotBReportKey = (variantId: string, availableKeys: Set<string>): string | null => {
+  const primary = `lot-b::${variantId}`;
+  if (availableKeys.has(primary)) return primary;
+  // Fallback: match any key ending with ::variantId (e.g. lot-vps::auteuil, lot-001::auteuil)
+  for (const key of availableKeys) {
+    if (key.endsWith(`::${variantId}`)) return key;
+  }
+  return null;
+};
 
 const LOG_GROUPS: LogGroup[] = [
   {
@@ -220,7 +231,7 @@ export default function LogPage() {
       return availableReportKeys.has(group.reportKey);
     }
     if (group.key === "lot-b") {
-      return LOT_B_VARIANTS.some(v => availableReportKeys.has(v.reportKey));
+      return LOT_B_VARIANTS.some(v => !!findLotBReportKey(v.variantId, availableReportKeys));
     }
     if (group.key === "lot-v") {
       return lotVVariants.some(vName => {
@@ -343,14 +354,15 @@ export default function LogPage() {
                     ) : group.key === "lot-b" ? (
                       <div className="flex items-center gap-2 flex-wrap">
                         {LOT_B_VARIANTS.map((v) => {
-                          const hasReport = availableReportKeys.has(v.reportKey);
+                          const reportKey = findLotBReportKey(v.variantId, availableReportKeys);
+                          const hasReport = !!reportKey;
                           return (
                             <Button
                               key={v.name}
                               variant="outline"
                               size="sm"
                               disabled={!hasReport}
-                              onClick={() => navigate(`/report/key/${encodeURIComponent(v.reportKey)}?from=log`)}
+                              onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log`)}
                               className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
                             >
                               <FileText className="h-4 w-4 mr-1.5" />
@@ -407,7 +419,9 @@ export default function LogPage() {
                         const detailParts: string[] = [];
                         if (group.key === "lot-b") {
                           // Simplified: "Lot B Alpha — Sac de soin" (no parent lot context)
-                          if (variantLabel) detailParts.push(`Lot B ${variantLabel}`);
+                          // variant_name may already contain "Lot B Auteuil" — strip the "Lot B " prefix to avoid duplication
+                          const cleanVariant = variantLabel?.replace(/^Lot\s*B\s+/i, "") || null;
+                          if (cleanVariant) detailParts.push(`Lot B ${cleanVariant}`);
                           else detailParts.push("Lot B");
                           if (sacLabel) detailParts.push(sacLabel);
                         } else {
