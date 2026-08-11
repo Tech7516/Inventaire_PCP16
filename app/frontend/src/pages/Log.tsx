@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2 } from "lucide-react";
 import {
   getLogEntriesFromDb,
   clearLogEntriesFromDb,
@@ -325,13 +325,7 @@ export default function LogPage() {
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-primary" />
-                      {group.label}
-                      {groupComplete && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Complet
-                        </span>
-                      )}
+{group.label}
                     </h2>
                     {/* Report button */}
                     {group.reportKey ? (
@@ -346,10 +340,15 @@ export default function LogPage() {
                           Rapport
                         </Button>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          Pas de rapport disponible
-                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled
+                          className="opacity-50 shrink-0"
+                        >
+                          <FileText className="h-4 w-4 mr-1.5" />
+                          Rapport
+                        </Button>
                       )
                     ) : group.key === "lot-b" ? (
                       <div className="flex items-center gap-2 flex-wrap">
@@ -372,39 +371,39 @@ export default function LogPage() {
                         })}
                       </div>
                     ) : group.key === "lot-v" ? (
-                      lotVVariants.length > 0 ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {lotVVariants.map((vName) => {
-                            const rk = getLotVReportKey(vName);
-                            const hasReport = rk ? availableReportKeys.has(rk) : false;
-                            return hasReport ? (
-                              <Button
-                                key={vName}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/report/key/${encodeURIComponent(rk!)}?from=log`)}
-                                className="cursor-pointer shrink-0"
-                              >
-                                <FileText className="h-4 w-4 mr-1.5" />
-                                {vName}
-                              </Button>
-                            ) : (
-                              <span key={vName} className="text-xs text-muted-foreground italic flex items-center gap-1">
-                                <AlertCircle className="h-3.5 w-3.5" />
-                                {vName} — Pas de rapport
-                              </span>
-                            );
-                          })}
-                        </div>
-                      ) : null
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {lotVVariants.length > 0 ? lotVVariants.map((vName) => {
+                          const rk = getLotVReportKey(vName);
+                          const hasReport = rk ? availableReportKeys.has(rk) : false;
+                          return (
+                            <Button
+                              key={vName}
+                              variant="outline"
+                              size="sm"
+                              disabled={!hasReport}
+                              onClick={() => hasReport && navigate(`/report/key/${encodeURIComponent(rk!)}?from=log`)}
+                              className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
+                            >
+                              <FileText className="h-4 w-4 mr-1.5" />
+                              {vName}
+                            </Button>
+                          );
+                        }) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="opacity-50 shrink-0"
+                          >
+                            <FileText className="h-4 w-4 mr-1.5" />
+                            Rapport
+                          </Button>
+                        )}
+                      </div>
                     ) : null}
                   </div>
 
-                  {!hasEntries ? (
-                    <p className="text-sm text-muted-foreground italic pl-4">
-                      Aucun inventaire enregistré pour ce groupe.
-                    </p>
-                  ) : (
+{hasEntries && (
                     <div className="space-y-2">
                       {groupEntries.map((entry) => {
                         const subLabel = entry.sub_entity_name;

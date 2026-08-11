@@ -73,6 +73,10 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal Lot B : 4 boutons rapport toujours visibles (Alpha, Bravo, Auteuil, Neuilly), grisés si pas de rapport
 - [x] Corriger répétition "Lot B Lot B Auteuil" : stripPrefix "Lot B " du variant_name avant de recomposer le libellé
 - [x] Corriger rapport Lot B Auteuil non détecté : findLotBReportKey() avec fallback flexible (lot-b::auteur ou *::auteur)
+- [x] Journal : supprimer badge Complet du journal
+- [x] Journal : remplacer Pas de rapport disponible par bouton grise desactive
+- [x] Journal : supprimer Aucun inventaire enregistre pour ce groupe
+- [x] Journal : harmoniser boutons grises Lot V et Lot B (bouton desactive au lieu de texte italic)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
