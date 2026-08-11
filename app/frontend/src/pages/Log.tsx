@@ -336,7 +336,7 @@ export default function LogPage() {
 
               return (
                 <div key={group.key}>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-primary" />
 {group.label}
