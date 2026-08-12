@@ -381,16 +381,26 @@ export default function AdminPage() {
     sectionKey: string,
     section: ConsumableSection
   ) => (
-    <div className="space-y-2 pl-8">
+    <div className="space-y-2 pl-2 sm:pl-8">
       {section.items.map((item) => (
-        <div key={item.id} className="flex items-center gap-2 bg-muted/30 rounded-md p-2">
-          <Input
-            value={item.name}
-            onChange={(e) => updateItem(lotId, sectionKey, section.id, item.id, { name: e.target.value })}
-            className="flex-1 h-8 text-sm"
-            placeholder="Nom de l'article"
-          />
-          <div className="flex items-center gap-1 shrink-0">
+        <div key={item.id} className="bg-muted/30 rounded-md p-2">
+          <div className="flex items-center gap-2">
+            <Input
+              value={item.name}
+              onChange={(e) => updateItem(lotId, sectionKey, section.id, item.id, { name: e.target.value })}
+              className="flex-1 h-8 text-sm"
+              placeholder="Nom de l'article"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+              onClick={() => removeItem(lotId, sectionKey, section.id, item.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-1 mt-1.5">
             <Label className="text-xs text-muted-foreground whitespace-nowrap">Qté:</Label>
             <Input
               type="number"
@@ -401,17 +411,9 @@ export default function AdminPage() {
                   expectedQuantity: parseInt(e.target.value, 10) || 0,
                 })
               }
-              className="w-16 h-8 text-sm text-center"
+              className="w-20 h-8 text-sm text-center"
             />
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
-            onClick={() => removeItem(lotId, sectionKey, section.id, item.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </div>
       ))}
       <Button
@@ -432,7 +434,7 @@ export default function AdminPage() {
     const sections = config.sections[sectionKey] || [];
 
     return (
-      <div className="space-y-3 pl-4">
+      <div className="space-y-3 pl-2 sm:pl-4">
         {sections.map((section) => (
           <div key={section.id} className="border rounded-md p-3 bg-card">
             <div className="flex items-center gap-2 mb-2">
@@ -508,7 +510,7 @@ export default function AdminPage() {
           <div className="px-3 pb-3 space-y-3">
             {/* Sub-entity variants */}
             {sub.variants && sub.variants.length > 0 && (
-              <div className="space-y-1 pl-4">
+              <div className="space-y-1 pl-2 sm:pl-4">
                 <Label className="text-xs text-muted-foreground">Variantes du sous-ensemble :</Label>
                 {sub.variants.map((v) => (
                   <div key={v.id} className="flex items-center gap-2">
@@ -532,7 +534,7 @@ export default function AdminPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs ml-4"
+              className="text-xs ml-2 sm:ml-4"
               onClick={() => addSubVariant(lotId, sub.id)}
             >
               <Plus className="h-3 w-3 mr-1" />
@@ -540,7 +542,7 @@ export default function AdminPage() {
             </Button>
 
             {/* Inventory type selector */}
-            <div className="flex items-center gap-2 pl-4">
+            <div className="flex items-center gap-2 pl-2 sm:pl-4">
               <Label className="text-xs text-muted-foreground">Type d'inventaire :</Label>
               <select
                 value={sub.inventoryType || "standard"}
@@ -557,14 +559,14 @@ export default function AdminPage() {
             </div>
 
             {/* Sections */}
-            <div className="pl-4">
+            <div className="pl-2 sm:pl-4">
               <Label className="text-xs text-muted-foreground mb-2 block">Sections et articles :</Label>
               {renderSections(lotId, sectionKey)}
             </div>
 
             {/* Lot B specific: sac de soin / sac d'O2 */}
             {sub.inventoryType === "lot-b" && (
-              <div className="pl-4 space-y-3">
+              <div className="pl-2 sm:pl-4 space-y-3">
                 <div>
                   <Label className="text-xs text-muted-foreground mb-2 block">Sac de soin :</Label>
                   {renderSections(lotId, `${sub.id}-soin`)}
@@ -593,17 +595,19 @@ export default function AdminPage() {
       <Card key={lot.id} className="overflow-hidden">
         <CardHeader className="pb-3">
           <div
-            className="flex items-center gap-2 cursor-pointer"
+            className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 cursor-pointer"
             onClick={() => toggleLot(lot.id)}
           >
-            {isExpanded ? (
-              <ChevronDown className="h-5 w-5 shrink-0" />
-            ) : (
-              <ChevronRight className="h-5 w-5 shrink-0" />
-            )}
-            <Package className="h-5 w-5 shrink-0 text-primary" />
-            <CardTitle className="text-base flex-1">{lot.name}</CardTitle>
-            <span className="text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              {isExpanded ? (
+                <ChevronDown className="h-5 w-5 shrink-0" />
+              ) : (
+                <ChevronRight className="h-5 w-5 shrink-0" />
+              )}
+              <Package className="h-5 w-5 shrink-0 text-primary" />
+              <CardTitle className="text-base">{lot.name}</CardTitle>
+            </div>
+            <span className="text-xs text-muted-foreground sm:ml-auto">
               {config.subEntities.length} sous-ensemble(s) · {itemCount} article(s)
             </span>
           </div>
@@ -735,7 +739,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
                 <ArrowLeft className="h-5 w-5" />
@@ -744,7 +748,7 @@ export default function AdminPage() {
                 <Settings className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
                   Administration
                 </h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
@@ -752,7 +756,7 @@ export default function AdminPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleAddLot} disabled={loading}>
+            <Button onClick={handleAddLot} disabled={loading} className="self-start sm:self-auto">
               <Plus className="h-4 w-4 mr-2" />
               Nouveau lot
             </Button>

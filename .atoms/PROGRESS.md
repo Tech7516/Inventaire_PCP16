@@ -80,6 +80,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal : regrouper les 2 Lot C en une seule section Lot C avec 2 boutons rapport (Alpha/Bravo)
 - [x] Journal : simplifier wording Lot C (supprimer Caisse - Caisse et POM - POM, afficher Lot C Alpha/Bravo - POM/Caisse)
 - [x] Journal : layout responsive en-tête de groupe (titre + boutons empilés sur mobile, côte à côte sur sm+)
+- [x] Admin : responsive mobile complète — CardHeader flex-col/flex-row, lignes articles 2 lignes mobile, tous pl-4/ml-4 réduits sur mobile
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
