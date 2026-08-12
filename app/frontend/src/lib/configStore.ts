@@ -32,16 +32,6 @@ export interface LotConfigData {
 
 // ---------- Helpers ----------
 
-function stripNulls<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== null && value !== undefined) {
-      result[key] = value;
-    }
-  }
-  return result;
-}
-
 /** Convert static lots data into a LotConfig for a given lotId */
 function staticToConfig(lotId: string): LotConfig | null {
   const lot = staticLots.find((l) => l.id === lotId);
@@ -74,8 +64,10 @@ function staticToConfig(lotId: string): LotConfig | null {
 export async function loadAllLotConfigs(): Promise<LotConfig[]> {
   const dbConfigs: LotConfigData[] = [];
   try {
-    const res = await client.entities.lot_configs.query({ limit: 500 });
-    dbConfigs.push(...((res.data?.items || []) as LotConfigData[]));
+    const res = await client.apiCall.invoke("GET", "/api/v1/shared/lot-configs");
+    if (res && Array.isArray(res)) {
+      dbConfigs.push(...(res as LotConfigData[]));
+    }
   } catch {
     // DB not available, use static only
   }
@@ -111,15 +103,11 @@ export async function loadAllLotConfigs(): Promise<LotConfig[]> {
 
 /** Load a single lot config by lotId */
 export async function loadLotConfig(lotId: string): Promise<LotConfig | null> {
-  // Try DB first
+  // Try DB first (shared API bypasses RLS)
   try {
-    const res = await client.entities.lot_configs.query({
-      query: { lot_id: lotId },
-      limit: 1,
-    });
-    const items = (res.data?.items || []) as LotConfigData[];
-    if (items.length > 0 && items[0].config_json) {
-      const parsed = JSON.parse(items[0].config_json) as LotConfig;
+    const res = await client.apiCall.invoke("GET", `/api/v1/shared/lot-configs/${lotId}`);
+    if (res && res.config_json) {
+      const parsed = JSON.parse(res.config_json) as LotConfig;
       if (parsed.lot && parsed.lot.id) return parsed;
     }
   } catch {
@@ -144,19 +132,21 @@ export async function getMergedSubEntities(lotId: string): Promise<SubEntity[]> 
 
 /** Get merged sections for a sub-entity (or lot id for direct inventory) */
 export async function getMergedSections(subEntityId: string): Promise<ConsumableSection[]> {
-  // Try to find in DB configs
+  // Try to find in DB configs (shared API bypasses RLS)
   try {
-    const res = await client.entities.lot_configs.query({ limit: 500 });
-    const items = (res.data?.items || []) as LotConfigData[];
-    for (const item of items) {
-      if (item.config_json) {
-        try {
-          const parsed = JSON.parse(item.config_json) as LotConfig;
-          if (parsed.sections && parsed.sections[subEntityId]) {
-            return parsed.sections[subEntityId];
+    const res = await client.apiCall.invoke("GET", "/api/v1/shared/lot-configs");
+    if (res && Array.isArray(res)) {
+      const items = res as LotConfigData[];
+      for (const item of items) {
+        if (item.config_json) {
+          try {
+            const parsed = JSON.parse(item.config_json) as LotConfig;
+            if (parsed.sections && parsed.sections[subEntityId]) {
+              return parsed.sections[subEntityId];
+            }
+          } catch {
+            // skip
           }
-        } catch {
-          // skip
         }
       }
     }
@@ -168,55 +158,21 @@ export async function getMergedSections(subEntityId: string): Promise<Consumable
   return staticSections[subEntityId] || [];
 }
 
-/** Save a lot config to DB (create or update) */
+/** Save a lot config to DB (create or update) via shared API */
 export async function saveLotConfig(config: LotConfig): Promise<void> {
   const configJson = JSON.stringify(config);
   const lotId = config.lot.id;
 
-  // Check if config already exists
-  let existingId: number | null = null;
-  try {
-    const res = await client.entities.lot_configs.query({
-      query: { lot_id: lotId },
-      limit: 1,
-    });
-    const items = (res.data?.items || []) as LotConfigData[];
-    if (items.length > 0) {
-      existingId = items[0].id;
-    }
-  } catch {
-    // proceed to create
-  }
-
-  const payload = stripNulls({
+  await client.apiCall.invoke("POST", "/api/v1/shared/lot-configs", {
     lot_id: lotId,
-    lot_name: config.lot.name,
-    location: config.lot.location || undefined,
     config_json: configJson,
-    is_custom: true,
   });
-
-  if (existingId !== null) {
-    await client.entities.lot_configs.update({
-      id: String(existingId),
-      data: payload,
-    });
-  } else {
-    await client.entities.lot_configs.create({ data: payload });
-  }
 }
 
-/** Delete a lot config from DB */
+/** Delete a lot config from DB via shared API */
 export async function deleteLotConfig(lotId: string): Promise<void> {
   try {
-    const res = await client.entities.lot_configs.query({
-      query: { lot_id: lotId },
-      limit: 1,
-    });
-    const items = (res.data?.items || []) as LotConfigData[];
-    if (items.length > 0) {
-      await client.entities.lot_configs.delete({ id: String(items[0].id) });
-    }
+    await client.apiCall.invoke("DELETE", `/api/v1/shared/lot-configs/${lotId}`);
   } catch {
     // ignore
   }

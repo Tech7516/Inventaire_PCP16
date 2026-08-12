@@ -37,30 +37,42 @@ export interface InventoryItemData {
   checker_name: string | null;
 }
 
-// ---------- Helper: strip null/undefined values from payload ----------
-// The entity API rejects null for string fields (422), so we omit them.
+// ---------- API helpers (bypass RLS via custom backend routes) ----------
 
-function stripNulls<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== null && value !== undefined) {
-      result[key] = value;
-    }
-  }
-  return result;
+async function inventoryApi<T = any>(
+  method: "GET" | "POST" | "DELETE",
+  path: string,
+  data?: Record<string, unknown>
+): Promise<T> {
+  const res = await client.apiCall.invoke({
+    url: `/api/v1/inventory${path}`,
+    method,
+    data: data || {},
+  });
+  return res.data as T;
 }
 
-// ---------- API Calls (using client.entities.* — auto-deployed CRUD) ----------
+async function sharedApi<T = any>(
+  method: "GET" | "POST" | "DELETE",
+  path: string,
+  data?: Record<string, unknown>
+): Promise<T> {
+  const res = await client.apiCall.invoke({
+    url: `/api/v1/shared${path}`,
+    method,
+    data: data || {},
+  });
+  return res.data as T;
+}
+
+// ---------- Sessions (collaborative API — bypasses RLS) ----------
 
 export async function getActiveSession(lotId: string): Promise<SessionData | null> {
   try {
-    const res = await client.entities.inventory_sessions.query({
-      query: { lot_id: lotId, status: "active" },
-      sort: "-created_at",
-      limit: 1,
-    });
-    const items = res.data?.items || [];
-    return items.length > 0 ? (items[0] as SessionData) : null;
+    return await inventoryApi<SessionData | null>(
+      "GET",
+      `/active-session/${encodeURIComponent(lotId)}`
+    );
   } catch {
     return null;
   }
@@ -68,12 +80,7 @@ export async function getActiveSession(lotId: string): Promise<SessionData | nul
 
 export async function getAllActiveSessions(): Promise<SessionData[]> {
   try {
-    const res = await client.entities.inventory_sessions.query({
-      query: { status: "active" },
-      sort: "-created_at",
-      limit: 100,
-    });
-    return (res.data?.items || []) as SessionData[];
+    return await inventoryApi<SessionData[]>("GET", "/active-sessions");
   } catch {
     return [];
   }
@@ -84,52 +91,43 @@ export async function createSession(
   dpsName: string,
   variantId?: string | null
 ): Promise<SessionData> {
-  // Client-side guard: check for existing active session first
-  const existing = await getActiveSession(lotId);
-  if (existing) {
-    throw new Error("An active session already exists for this lot");
+  try {
+    return await inventoryApi<SessionData>("POST", "/create-session", {
+      lot_id: lotId,
+      dps_name: dpsName,
+      variant_id: variantId || null,
+    });
+  } catch (e: any) {
+    // Re-throw with meaningful message
+    const detail = e?.data?.detail || e?.response?.data?.detail || e?.message || "Failed to create session";
+    throw new Error(detail);
   }
-
-  const data = stripNulls({
-    lot_id: lotId,
-    dps_name: dpsName,
-    variant_id: variantId || undefined,
-    status: "active",
-  });
-
-  const res = await client.entities.inventory_sessions.create({ data });
-  return res.data as SessionData;
 }
 
 export async function abandonSession(sessionId: number): Promise<void> {
-  await client.entities.inventory_sessions.update({
-    id: String(sessionId),
-    data: {
-      status: "abandoned",
-    },
-  });
+  await inventoryApi("POST", `/abandon-session/${sessionId}`);
 }
 
 export async function completeSession(sessionId: number): Promise<SessionData> {
-  const res = await client.entities.inventory_sessions.update({
-    id: String(sessionId),
-    data: {
-      status: "completed",
-      completed_at: new Date().toISOString(),
-    },
+  return await inventoryApi<SessionData>("POST", "/complete-session", {
+    session_id: sessionId,
   });
-  return res.data as SessionData;
 }
+
+export async function getSession(sessionId: number): Promise<SessionData> {
+  return await inventoryApi<SessionData>("GET", `/session/${sessionId}`);
+}
+
+// ---------- Sub-entity checks (collaborative API — bypasses RLS) ----------
 
 export async function getSubEntityChecks(
   sessionId: number
 ): Promise<SubEntityCheckData[]> {
   try {
-    const res = await client.entities.sub_entity_checks.query({
-      query: { session_id: String(sessionId) },
-      limit: 100,
-    });
-    return (res.data?.items || []) as SubEntityCheckData[];
+    return await inventoryApi<SubEntityCheckData[]>(
+      "GET",
+      `/sub-entity-checks/${sessionId}`
+    );
   } catch {
     return [];
   }
@@ -142,47 +140,16 @@ export async function markSubEntity(
   variantId?: string | null,
   sacType?: string | null
 ): Promise<SubEntityCheckData> {
-  // Idempotent: query existing checks for this session + sub_entity, then filter client-side
-  try {
-    const res = await client.entities.sub_entity_checks.query({
-      query: { session_id: String(sessionId), sub_entity_id: subEntityId },
-      limit: 100,
-    });
-    const items = (res.data?.items || []) as SubEntityCheckData[];
-
-    // Find exact match including variant_id and sac_type
-    const existing = items.find((c) => {
-      if (c.sub_entity_id !== subEntityId) return false;
-      if (variantId && c.variant_id !== variantId) return false;
-      if (!variantId && c.variant_id) return false;
-      if (sacType && c.sac_type !== sacType) return false;
-      if (!sacType && c.sac_type) return false;
-      return true;
-    });
-
-    if (existing) {
-      const updateRes = await client.entities.sub_entity_checks.update({
-        id: String(existing.id),
-        data: { checker_name: checkerName },
-      });
-      return updateRes.data as SubEntityCheckData;
-    }
-  } catch {
-    /* proceed to create */
-  }
-
-  // Create new check — omit null optional fields
-  const data = stripNulls({
+  return await inventoryApi<SubEntityCheckData>("POST", "/mark-sub-entity", {
     session_id: sessionId,
     sub_entity_id: subEntityId,
-    variant_id: variantId || undefined,
-    sac_type: sacType || undefined,
+    variant_id: variantId || null,
+    sac_type: sacType || null,
     checker_name: checkerName,
   });
-
-  const res = await client.entities.sub_entity_checks.create({ data });
-  return res.data as SubEntityCheckData;
 }
+
+// ---------- Inventory items (collaborative API — bypasses RLS) ----------
 
 export async function saveInventoryItems(
   sessionId: number,
@@ -192,65 +159,18 @@ export async function saveInventoryItems(
   variantId?: string | null,
   sacType?: string | null
 ): Promise<InventoryItemData[]> {
-  // Fetch all existing items for this session + sub_entity once (avoid N+1 queries)
-  let existingItems: InventoryItemData[] = [];
-  try {
-    const res = await client.entities.inventory_items.query({
-      query: { session_id: String(sessionId), sub_entity_id: subEntityId },
-      limit: 500,
-    });
-    existingItems = (res.data?.items || []) as InventoryItemData[];
-  } catch {
-    /* proceed without existing data */
-  }
-
-  const results: InventoryItemData[] = [];
-
-  for (const itemData of items) {
-    try {
-      // Find existing item by matching item_id, variant_id, sac_type
-      const existing = existingItems.find((ei) => {
-        if (ei.item_id !== itemData.item_id) return false;
-        if (variantId && ei.variant_id !== variantId) return false;
-        if (!variantId && ei.variant_id) return false;
-        if (sacType && ei.sac_type !== sacType) return false;
-        if (!sacType && ei.sac_type) return false;
-        return true;
-      });
-
-      if (existing) {
-        const updateData = stripNulls({
-          validated: itemData.validated,
-          custom_quantity: itemData.custom_quantity || undefined,
-          checker_name: checkerName || undefined,
-        });
-        const res = await client.entities.inventory_items.update({
-          id: String(existing.id),
-          data: updateData,
-        });
-        results.push(res.data as InventoryItemData);
-      } else {
-        const createData = stripNulls({
-          session_id: sessionId,
-          sub_entity_id: subEntityId,
-          variant_id: variantId || undefined,
-          sac_type: sacType || undefined,
-          item_id: itemData.item_id,
-          validated: itemData.validated,
-          custom_quantity: itemData.custom_quantity || undefined,
-          checker_name: checkerName || undefined,
-        });
-        const res = await client.entities.inventory_items.create({
-          data: createData,
-        });
-        results.push(res.data as InventoryItemData);
-      }
-    } catch {
-      // Skip failed items
-    }
-  }
-
-  return results;
+  return await inventoryApi<InventoryItemData[]>("POST", "/save-items", {
+    session_id: sessionId,
+    sub_entity_id: subEntityId,
+    variant_id: variantId || null,
+    sac_type: sacType || null,
+    checker_name: checkerName || null,
+    items: items.map((item) => ({
+      item_id: item.item_id,
+      validated: item.validated,
+      custom_quantity: item.custom_quantity || null,
+    })),
+  });
 }
 
 export async function getInventoryItems(
@@ -260,31 +180,19 @@ export async function getInventoryItems(
   sacType?: string
 ): Promise<InventoryItemData[]> {
   try {
-    const query: Record<string, string> = {
-      session_id: String(sessionId),
-    };
-    if (subEntityId) query.sub_entity_id = subEntityId;
-    if (variantId) query.variant_id = variantId;
-    if (sacType) query.sac_type = sacType;
-
-    const res = await client.entities.inventory_items.query({
-      query,
-      limit: 500,
-    });
-    return (res.data?.items || []) as InventoryItemData[];
+    const params = new URLSearchParams();
+    if (subEntityId) params.set("sub_entity_id", subEntityId);
+    if (variantId) params.set("variant_id", variantId);
+    if (sacType) params.set("sac_type", sacType);
+    const qs = params.toString();
+    const path = `/items/${sessionId}${qs ? `?${qs}` : ""}`;
+    return await inventoryApi<InventoryItemData[]>("GET", path);
   } catch {
     return [];
   }
 }
 
-export async function getSession(sessionId: number): Promise<SessionData> {
-  const res = await client.entities.inventory_sessions.get({
-    id: String(sessionId),
-  });
-  return res.data as SessionData;
-}
-
-// ---------- Inventory Logs (DB-backed, shared across users) ----------
+// ---------- Inventory Logs (SHARED API — bypasses RLS) ----------
 
 export interface InventoryLogData {
   id: number;
@@ -309,57 +217,22 @@ export async function addLogEntryToDb(entry: {
   dps_name: string;
   completed_key: string;
 }): Promise<InventoryLogData> {
-  // Idempotent: check for existing entry with same completed_key
-  try {
-    const existing = await client.entities.inventory_logs.query({
-      query: { completed_key: entry.completed_key },
-      limit: 1,
-    });
-    const items = (existing.data?.items || []) as InventoryLogData[];
-    if (items.length > 0) {
-      // Update existing entry
-      const updateData = stripNulls({
-        lot_name: entry.lot_name,
-        sub_entity_name: entry.sub_entity_name,
-        variant_name: entry.variant_name || undefined,
-        lot_variant_name: entry.lot_variant_name || undefined,
-        sac_type: entry.sac_type || undefined,
-        dps_name: entry.dps_name,
-      });
-      const res = await client.entities.inventory_logs.update({
-        id: String(items[0].id),
-        data: updateData,
-      });
-      return res.data as InventoryLogData;
-    }
-  } catch { /* proceed to create */ }
-
-  const data = stripNulls({
+  return await sharedApi<InventoryLogData>("POST", "/logs", {
     lot_id: entry.lot_id,
     lot_name: entry.lot_name,
     sub_entity_name: entry.sub_entity_name,
-    variant_name: entry.variant_name || undefined,
-    lot_variant_name: entry.lot_variant_name || undefined,
-    sac_type: entry.sac_type || undefined,
+    variant_name: entry.variant_name || null,
+    lot_variant_name: entry.lot_variant_name || null,
+    sac_type: entry.sac_type || null,
     dps_name: entry.dps_name,
     completed_key: entry.completed_key,
   });
-
-  const res = await client.entities.inventory_logs.create({ data });
-  return res.data as InventoryLogData;
 }
 
 export async function getLogEntriesFromDb(lotId?: string): Promise<InventoryLogData[]> {
   try {
-    const query: Record<string, string> = {};
-    if (lotId) query.lot_id = lotId;
-
-    const res = await client.entities.inventory_logs.query({
-      query: Object.keys(query).length > 0 ? query : undefined,
-      sort: "-created_at",
-      limit: 500,
-    });
-    return (res.data?.items || []) as InventoryLogData[];
+    const path = lotId ? `/logs?lot_id=${encodeURIComponent(lotId)}` : "/logs";
+    return await sharedApi<InventoryLogData[]>("GET", path);
   } catch {
     return [];
   }
@@ -367,15 +240,13 @@ export async function getLogEntriesFromDb(lotId?: string): Promise<InventoryLogD
 
 export async function clearLogEntriesFromDb(): Promise<void> {
   try {
-    const res = await client.entities.inventory_logs.query({ limit: 500 });
-    const items = (res.data?.items || []) as InventoryLogData[];
-    for (const item of items) {
-      await client.entities.inventory_logs.delete({ id: String(item.id) });
-    }
-  } catch { /* ignore */ }
+    await sharedApi("DELETE", "/logs");
+  } catch {
+    /* ignore */
+  }
 }
 
-// ---------- Discrepancy Reports (DB-backed, 1 per lot+variant) ----------
+// ---------- Discrepancy Reports (SHARED API — bypasses RLS) ----------
 
 export interface DiscrepancyReportData {
   id: number;
@@ -421,10 +292,8 @@ export interface SavedInventory {
 }
 
 /**
- * Save a discrepancy report to DB. 1 report per lot+variant (report_key).
- * If a report with the same report_key exists, the new sub-entity data is merged
- * into the existing report (replacing the entry for the same subId+variantId+sacType).
- * This way, the report accumulates data from all sub-entities verified.
+ * Save a discrepancy report via shared API (bypasses RLS).
+ * 1 report per lot+variant (report_key). Merges sub-entity data client-side.
  */
 export async function saveDiscrepancyReportToDb(report: {
   lotId: string;
@@ -439,42 +308,39 @@ export async function saveDiscrepancyReportToDb(report: {
 }): Promise<DiscrepancyReportData> {
   const reportKey = report.reportKeyOverride || `${report.lotId}::${report.variantId || ""}`;
 
-  // Try to fetch existing report to merge sub-entity data
+  // Fetch existing report via shared API to merge sub-entity data
   let existingReport: DiscrepancyReportData | null = null;
   try {
-    const existing = await client.entities.discrepancy_reports.query({
-      query: { report_key: reportKey },
-      limit: 1,
-    });
-    const items = (existing.data?.items || []) as DiscrepancyReportData[];
-    if (items.length > 0) {
-      existingReport = items[0];
-    }
-  } catch { /* proceed without existing */ }
+    existingReport = await sharedApi<DiscrepancyReportData | null>(
+      "GET",
+      `/reports/${encodeURIComponent(reportKey)}`
+    );
+  } catch {
+    /* proceed without existing */
+  }
 
   let mergedInventory = report.fullInventory;
 
   if (existingReport?.full_inventory_json) {
     try {
       const existingInventory: SavedInventory[] = JSON.parse(existingReport.full_inventory_json);
-      // Merge: for each new inventory entry, replace existing one with same subId+variantId+sacType key
       const newKeys = new Set(
         report.fullInventory.map(
           (inv) => `${inv.subId}::${inv.variantId || ""}::${inv.sacType || ""}`
         )
       );
-      // Keep existing entries that are NOT being replaced
       const kept = existingInventory.filter(
         (inv) => !newKeys.has(`${inv.subId}::${inv.variantId || ""}::${inv.sacType || ""}`)
       );
       mergedInventory = [...kept, ...report.fullInventory];
-    } catch { /* use new data if parse fails */ }
+    } catch {
+      /* use new data if parse fails */
+    }
   }
 
-  // Recalculate all discrepancies from merged inventory using resolved display names
+  // Recalculate all discrepancies from merged inventory
   const allDiscrepancies: DiscrepancyItem[] = [];
   mergedInventory.forEach((data) => {
-    // Resolve sub-entity display name
     const subs = lotSubEntities[data.lotId] || [];
     const sub = subs.find((s) => s.id === data.subId);
     let subLabel = data.subId;
@@ -486,7 +352,6 @@ export async function saveDiscrepancyReportToDb(report: {
         subLabel = sub.name;
       }
     }
-    // Include lot variant name (e.g. "VPS Auteuil") for lots with variants
     const lotVariantPart = data.lotVariantName || null;
     const sacLabel =
       data.sacType === "soin" ? "Sac de soin" : data.sacType === "o2" ? "Sac d'O2" : null;
@@ -511,78 +376,56 @@ export async function saveDiscrepancyReportToDb(report: {
     });
   });
 
-  const payload = stripNulls({
+  // Save via shared API (upsert by report_key)
+  return await sharedApi<DiscrepancyReportData>("POST", "/reports", {
     lot_id: report.lotId,
-    variant_id: report.variantId || undefined,
+    variant_id: report.variantId || null,
     report_key: reportKey,
     lot_name: report.lotName,
-    variant_name: report.variantName || undefined,
+    variant_name: report.variantName || null,
     dps_name: report.dpsName,
     discrepancies_json: JSON.stringify(allDiscrepancies),
     full_inventory_json: JSON.stringify(mergedInventory),
     has_discrepancies: allDiscrepancies.length > 0,
   });
-
-  if (existingReport) {
-    // Update existing report with merged data
-    const res = await client.entities.discrepancy_reports.update({
-      id: String(existingReport.id),
-      data: payload,
-    });
-    return res.data as DiscrepancyReportData;
-  }
-
-  // Create new report
-  const res = await client.entities.discrepancy_reports.create({ data: payload });
-  return res.data as DiscrepancyReportData;
 }
 
 /**
- * Get all discrepancy reports for a given lot.
+ * Get all discrepancy reports for a given lot (shared API).
  */
 export async function getDiscrepancyReportsForLot(
   lotId: string
 ): Promise<DiscrepancyReportData[]> {
   try {
-    const res = await client.entities.discrepancy_reports.query({
-      query: { lot_id: lotId },
-      sort: "-updated_at",
-      limit: 100,
-    });
-    return (res.data?.items || []) as DiscrepancyReportData[];
+    const all = await sharedApi<DiscrepancyReportData[]>("GET", "/reports");
+    return all.filter((r) => r.lot_id === lotId);
   } catch {
     return [];
   }
 }
 
 /**
- * Get a single discrepancy report by its report_key.
+ * Get a single discrepancy report by its report_key (shared API).
  */
 export async function getDiscrepancyReportByKey(
   key: string
 ): Promise<DiscrepancyReportData | null> {
   try {
-    const res = await client.entities.discrepancy_reports.query({
-      query: { report_key: key },
-      limit: 1,
-    });
-    const items = (res.data?.items || []) as DiscrepancyReportData[];
-    return items.length > 0 ? items[0] : null;
+    return await sharedApi<DiscrepancyReportData | null>(
+      "GET",
+      `/reports/${encodeURIComponent(key)}`
+    );
   } catch {
     return null;
   }
 }
 
 /**
- * Get all discrepancy reports (for log page to check existence).
+ * Get all discrepancy reports (shared API).
  */
 export async function getAllDiscrepancyReports(): Promise<DiscrepancyReportData[]> {
   try {
-    const res = await client.entities.discrepancy_reports.query({
-      sort: "-updated_at",
-      limit: 500,
-    });
-    return (res.data?.items || []) as DiscrepancyReportData[];
+    return await sharedApi<DiscrepancyReportData[]>("GET", "/reports");
   } catch {
     return [];
   }
@@ -590,15 +433,13 @@ export async function getAllDiscrepancyReports(): Promise<DiscrepancyReportData[
 
 export async function clearAllDiscrepancyReports(): Promise<void> {
   try {
-    const res = await client.entities.discrepancy_reports.query({ limit: 500 });
-    const items = (res.data?.items || []) as DiscrepancyReportData[];
-    for (const item of items) {
-      await client.entities.discrepancy_reports.delete({ id: String(item.id) });
-    }
-  } catch { /* ignore */ }
+    await sharedApi("DELETE", "/reports");
+  } catch {
+    /* ignore */
+  }
 }
 
-// ---------- Cloud Preferences (replaces localStorage) ----------
+// ---------- Cloud Preferences (SHARED API — bypasses RLS) ----------
 
 export interface PreferenceData {
   id: number;
@@ -609,12 +450,11 @@ export interface PreferenceData {
 }
 
 /**
- * Get all cloud preferences as a key-value map.
+ * Get all cloud preferences as a key-value map (shared API).
  */
 export async function getAllPreferencesFromDb(): Promise<Record<string, string>> {
   try {
-    const res = await client.entities.app_preferences.query({ limit: 500 });
-    const items = (res.data?.items || []) as PreferenceData[];
+    const items = await sharedApi<PreferenceData[]>("GET", "/preferences");
     const map: Record<string, string> = {};
     for (const item of items) {
       map[item.pref_key] = item.pref_value;
@@ -626,41 +466,30 @@ export async function getAllPreferencesFromDb(): Promise<Record<string, string>>
 }
 
 /**
- * Get a single cloud preference by key. Returns null if not found.
+ * Get a single cloud preference by key (shared API).
  */
 export async function getPreferenceFromDb(key: string): Promise<string | null> {
   try {
-    const res = await client.entities.app_preferences.query({
-      query: { pref_key: key },
-      limit: 1,
-    });
-    const items = (res.data?.items || []) as PreferenceData[];
-    return items.length > 0 ? items[0].pref_value : null;
+    const res = await sharedApi<{ pref_key: string; pref_value: string | null }>(
+      "GET",
+      `/preferences/${encodeURIComponent(key)}`
+    );
+    return res.pref_value;
   } catch {
     return null;
   }
 }
 
 /**
- * Set a cloud preference (upsert). Also migrates from localStorage if present.
+ * Set a cloud preference (upsert, shared API).
  */
 export async function setPreferenceInDb(key: string, value: string): Promise<void> {
   try {
-    // Try to find existing
-    const res = await client.entities.app_preferences.query({
-      query: { pref_key: key },
-      limit: 1,
+    await sharedApi("POST", "/preferences", {
+      pref_key: key,
+      pref_value: value,
     });
-    const items = (res.data?.items || []) as PreferenceData[];
-    if (items.length > 0) {
-      await client.entities.app_preferences.update({
-        id: String(items[0].id),
-        data: { pref_value: value },
-      });
-    } else {
-      await client.entities.app_preferences.create({
-        data: { pref_key: key, pref_value: value },
-      });
-    }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }

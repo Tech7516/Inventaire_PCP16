@@ -5,15 +5,8 @@ import {
 } from "@/lib/inventory-api";
 
 /**
- * Hook to manage cloud-backed preferences (replaces localStorage).
- * On mount, loads all preferences from DB. Also migrates any localStorage
- * values that haven't been synced yet.
- *
- * Returns:
- * - prefs: current preference map (key → value)
- * - getPref: synchronous getter (from cached state)
- * - setPref: async setter (writes to DB + updates local state)
- * - loading: true while loading from DB
+ * Hook to manage cloud-backed preferences via shared API (bypasses RLS).
+ * All devices see the same preferences since the shared API has no user filtering.
  */
 export function useCloudPreferences() {
   const [prefs, setPrefs] = useState<Record<string, string>>({});
@@ -51,14 +44,7 @@ export function useCloudPreferences() {
           }
         }
       } catch {
-        // Fallback: read from localStorage
-        const fallback: Record<string, string> = {};
-        const KEYS = ["lot-variants", "dps-name", "selected-variants"];
-        for (const key of KEYS) {
-          const val = localStorage.getItem(key);
-          if (val !== null) fallback[key] = val;
-        }
-        setPrefs(fallback);
+        setPrefs({});
       }
       setLoading(false);
     };
@@ -76,13 +62,11 @@ export function useCloudPreferences() {
     async (key: string, value: string) => {
       // Optimistic local update
       setPrefs((prev) => ({ ...prev, [key]: value }));
-      // Also keep localStorage in sync as fallback
-      localStorage.setItem(key, value);
-      // Write to cloud
+      // Write to cloud via shared API
       try {
         await setPreferenceInDb(key, value);
       } catch {
-        /* ignore — localStorage fallback already updated */
+        /* ignore — optimistic update already applied locally */
       }
     },
     []
@@ -95,9 +79,7 @@ export function useCloudPreferences() {
         delete next[key];
         return next;
       });
-      localStorage.removeItem(key);
-      // Note: we don't delete from DB, just set empty — or we could leave it
-      // For simplicity, set to empty string to mark "removed"
+      // Set to empty string to mark "removed" in cloud
       try {
         await setPreferenceInDb(key, "");
       } catch {
