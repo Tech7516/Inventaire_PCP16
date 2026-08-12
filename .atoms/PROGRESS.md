@@ -88,6 +88,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Migration SubEntities.tsx : dps-name, selected-variants, lot-variants via cloud, session sans cache localStorage
 - [x] Migration Inventory.tsx : dps-name, lot-variants via cloud (getPref/setPref), plus aucun localStorage direct
 - [x] Vérification : aucun localStorage.getItem/setItem/removeItem hors de useCloudPreferences.ts (pont de migration one-shot)
+- [x] Corriger RLS : recréer toutes les tables avec create_only=false (inventory_logs, inventory_sessions, sub_entity_checks, inventory_items, app_preferences, discrepancy_reports, lot_configs) pour supprimer le filtrage par user_id et garantir un affichage identique sur tous les appareils
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

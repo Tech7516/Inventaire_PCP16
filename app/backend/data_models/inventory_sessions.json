@@ -3,7 +3,8 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": "integer"
+            "type": "integer",
+            "autoIncrement": true
         },
         "lot_id": {
             "type": "string"
@@ -22,7 +23,6 @@
         }
     },
     "required": [
-        "id",
         "lot_id",
         "dps_name"
     ]

@@ -21,29 +21,20 @@ router = APIRouter(prefix="/api/v1/entities/lot_configs", tags=["lot_configs"])
 class Lot_configsData(BaseModel):
     """Entity data schema (for create/update)"""
     lot_id: str
-    lot_name: str
-    location: str = None
     config_json: str
-    is_custom: bool = None
 
 
 class Lot_configsUpdateData(BaseModel):
     """Update entity data (partial updates allowed)"""
     lot_id: Optional[str] = None
-    lot_name: Optional[str] = None
-    location: Optional[str] = None
     config_json: Optional[str] = None
-    is_custom: Optional[bool] = None
 
 
 class Lot_configsResponse(BaseModel):
     """Entity response schema"""
     id: int
     lot_id: str
-    lot_name: str
-    location: Optional[str] = None
     config_json: str
-    is_custom: Optional[bool] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

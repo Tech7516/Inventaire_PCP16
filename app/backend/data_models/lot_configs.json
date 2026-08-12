@@ -3,28 +3,18 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": "integer"
+            "type": "integer",
+            "autoIncrement": true
         },
         "lot_id": {
             "type": "string"
         },
-        "lot_name": {
-            "type": "string"
-        },
-        "location": {
-            "type": "string"
-        },
         "config_json": {
             "type": "string"
-        },
-        "is_custom": {
-            "type": "boolean"
         }
     },
     "required": [
-        "id",
         "lot_id",
-        "lot_name",
         "config_json"
     ]
 }
