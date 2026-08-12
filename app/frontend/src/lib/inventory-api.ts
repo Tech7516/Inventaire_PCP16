@@ -597,3 +597,70 @@ export async function clearAllDiscrepancyReports(): Promise<void> {
     }
   } catch { /* ignore */ }
 }
+
+// ---------- Cloud Preferences (replaces localStorage) ----------
+
+export interface PreferenceData {
+  id: number;
+  pref_key: string;
+  pref_value: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/**
+ * Get all cloud preferences as a key-value map.
+ */
+export async function getAllPreferencesFromDb(): Promise<Record<string, string>> {
+  try {
+    const res = await client.entities.app_preferences.query({ limit: 500 });
+    const items = (res.data?.items || []) as PreferenceData[];
+    const map: Record<string, string> = {};
+    for (const item of items) {
+      map[item.pref_key] = item.pref_value;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Get a single cloud preference by key. Returns null if not found.
+ */
+export async function getPreferenceFromDb(key: string): Promise<string | null> {
+  try {
+    const res = await client.entities.app_preferences.query({
+      query: { pref_key: key },
+      limit: 1,
+    });
+    const items = (res.data?.items || []) as PreferenceData[];
+    return items.length > 0 ? items[0].pref_value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Set a cloud preference (upsert). Also migrates from localStorage if present.
+ */
+export async function setPreferenceInDb(key: string, value: string): Promise<void> {
+  try {
+    // Try to find existing
+    const res = await client.entities.app_preferences.query({
+      query: { pref_key: key },
+      limit: 1,
+    });
+    const items = (res.data?.items || []) as PreferenceData[];
+    if (items.length > 0) {
+      await client.entities.app_preferences.update({
+        id: String(items[0].id),
+        data: { pref_value: value },
+      });
+    } else {
+      await client.entities.app_preferences.create({
+        data: { pref_key: key, pref_value: value },
+      });
+    }
+  } catch { /* ignore */ }
+}

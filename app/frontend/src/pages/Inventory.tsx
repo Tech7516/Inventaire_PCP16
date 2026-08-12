@@ -16,6 +16,7 @@ import {
   saveDiscrepancyReportToDb,
   type InventoryItemData,
 } from "@/lib/inventory-api";
+import { useCloudPreferences } from "@/lib/useCloudPreferences";
 
 interface InventoryEntry {
   itemId: string;
@@ -28,6 +29,7 @@ export default function InventoryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session") ? parseInt(searchParams.get("session")!) : null;
+  const { getPref, setPref } = useCloudPreferences();
 
   const [lot, setLot] = useState<Lot | null>(null);
   const [subEntity, setSubEntity] = useState<SubEntity | null>(null);
@@ -64,15 +66,15 @@ export default function InventoryPage() {
   }, [lotId, subId, sacType]);
 
   // DPS name for direct inventory lots (Lot CAI, Lot V)
-  const [dpsName, setDpsName] = useState(() => localStorage.getItem("dps-name") || "");
+  const [dpsName, setDpsName] = useState(() => getPref("dps-name") || "");
 
   // Get the selected lot variant name for display (e.g. "VL Poussin")
   const lotVariantName = (() => {
     if (!lot?.variants) return null;
     try {
-      const lotVars = localStorage.getItem("lot-variants");
-      if (lotVars) {
-        const parsed = JSON.parse(lotVars);
+      const lotVarsRaw = getPref("lot-variants");
+      if (lotVarsRaw) {
+        const parsed = JSON.parse(lotVarsRaw);
         const selectedVId = parsed[lotId || ""];
         if (selectedVId) {
           const v = lot.variants.find((vv) => vv.id === selectedVId);
@@ -86,9 +88,9 @@ export default function InventoryPage() {
   // Get the selected lot variant ID
   const lotVariantId = (() => {
     try {
-      const lotVars = localStorage.getItem("lot-variants");
-      if (lotVars) {
-        const parsed = JSON.parse(lotVars);
+      const lotVarsRaw = getPref("lot-variants");
+      if (lotVarsRaw) {
+        const parsed = JSON.parse(lotVarsRaw);
         return parsed[lotId || ""] || null;
       }
     } catch { /* ignore */ }
@@ -490,7 +492,7 @@ export default function InventoryPage() {
                   value={dpsName}
                   onChange={(e) => {
                     setDpsName(e.target.value);
-                    localStorage.setItem("dps-name", e.target.value);
+                    setPref("dps-name", e.target.value);
                   }}
                   className="max-w-md"
                 />

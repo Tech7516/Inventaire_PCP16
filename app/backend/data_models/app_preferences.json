@@ -1,0 +1,20 @@
+{
+    "title": "app_preferences",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer"
+        },
+        "pref_key": {
+            "type": "string"
+        },
+        "pref_value": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "id",
+        "pref_key",
+        "pref_value"
+    ]
+}

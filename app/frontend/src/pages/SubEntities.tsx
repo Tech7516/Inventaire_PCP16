@@ -25,18 +25,20 @@ import {
   type SessionData,
   type SubEntityCheckData,
 } from "@/lib/inventory-api";
+import { useCloudPreferences } from "@/lib/useCloudPreferences";
 
 const POLL_INTERVAL = 5000; // 5 seconds
 
 export default function SubEntitiesPage() {
   const { lotId } = useParams<{ lotId: string }>();
   const navigate = useNavigate();
+  const { getPref, setPref, removePref } = useCloudPreferences();
   const [lot, setLot] = useState<Lot | null>(null);
   const [subEntities, setSubEntities] = useState<SubEntity[]>([]);
   const [configSections, setConfigSections] = useState<Record<string, ConsumableSection[]>>({});
   const [configLoading, setConfigLoading] = useState(true);
 
-  const [dpsName, setDpsName] = useState(() => localStorage.getItem("dps-name") || "");
+  const [dpsName, setDpsName] = useState("");
   const [session, setSession] = useState<SessionData | null>(null);
   const [checks, setChecks] = useState<SubEntityCheckData[]>([]);
   const [sessionLoading, setSessionLoading] = useState(true);
@@ -44,17 +46,23 @@ export default function SubEntitiesPage() {
   const [abandoning, setAbandoning] = useState(false);
   const [completing, setCompleting] = useState(false);
 
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>(() => {
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+
+  // Load preferences from cloud on mount
+  useEffect(() => {
+    const dpsVal = getPref("dps-name");
+    if (dpsVal) setDpsName(dpsVal);
+
+    const selVarsRaw = getPref("selected-variants");
+    const lotVarsRaw = getPref("lot-variants");
     const initial: Record<string, string> = {};
-    try {
-      const raw = localStorage.getItem("selected-variants");
-      if (raw) Object.assign(initial, JSON.parse(raw));
-    } catch { /* ignore */ }
+    if (selVarsRaw) {
+      try { Object.assign(initial, JSON.parse(selVarsRaw)); } catch { /* ignore */ }
+    }
     // Pre-select sub-entity variants based on homepage lot variant selection
-    try {
-      const lotVars = localStorage.getItem("lot-variants");
-      if (lotVars) {
-        const parsed = JSON.parse(lotVars);
+    if (lotVarsRaw) {
+      try {
+        const parsed = JSON.parse(lotVarsRaw);
         if (lotId === "lot-vps") {
           const vpsVariant = parsed["lot-vps"];
           if (vpsVariant) initial["vps-lot-b"] = vpsVariant;
@@ -73,11 +81,13 @@ export default function SubEntitiesPage() {
             initial["lot-b"] = lotAVariant;
           }
         }
-      }
-    } catch { /* ignore */ }
-    localStorage.setItem("selected-variants", JSON.stringify(initial));
-    return initial;
-  });
+      } catch { /* ignore */ }
+    }
+    setSelectedVariants(initial);
+    if (Object.keys(initial).length > 0) {
+      setPref("selected-variants", JSON.stringify(initial));
+    }
+  }, [getPref, lotId]);
 
   // Load lot config from DB (configStore) on mount
   useEffect(() => {
@@ -97,59 +107,17 @@ export default function SubEntitiesPage() {
     loadConfig();
   }, [lotId]);
 
-  // Load or create session on mount — use cached data first, then verify in background
+  // Load or create session on mount — check API directly (no localStorage cache)
   useEffect(() => {
     const initSession = async () => {
       if (!lotId) return;
       setSessionLoading(true);
       try {
-        // Check localStorage for cached session data (instant display)
-        const storedSessionId = localStorage.getItem("active-session-id");
-        const storedDpsName = localStorage.getItem("active-session-dps");
-        if (storedSessionId && storedDpsName) {
-          // Show cached session immediately
-          const cachedSession: SessionData = {
-            id: parseInt(storedSessionId),
-            lot_id: lotId,
-            variant_id: null,
-            dps_name: storedDpsName,
-            status: "active",
-            completed_at: null,
-            created_at: null,
-          };
-          setSession(cachedSession);
-          setDpsName(storedDpsName);
-          setSessionLoading(false);
-
-          // Verify in background and load checks
-          try {
-            const activeSession = await getActiveSession(lotId);
-            if (activeSession && activeSession.id === parseInt(storedSessionId) && activeSession.status === "active") {
-              setSession(activeSession);
-              setDpsName(activeSession.dps_name);
-              localStorage.setItem("dps-name", activeSession.dps_name);
-              const checksData = await getSubEntityChecks(activeSession.id);
-              setChecks(checksData);
-            } else {
-              // Session no longer active — clear cache
-              setSession(null);
-              setDpsName("");
-              localStorage.removeItem("active-session-id");
-              localStorage.removeItem("active-session-dps");
-              localStorage.removeItem("dps-name");
-            }
-          } catch { /* ignore background verification failure */ }
-          return;
-        }
-
-        // No cached session — check API
         const activeSession = await getActiveSession(lotId);
         if (activeSession && activeSession.status === "active") {
           setSession(activeSession);
           setDpsName(activeSession.dps_name);
-          localStorage.setItem("dps-name", activeSession.dps_name);
-          localStorage.setItem("active-session-id", String(activeSession.id));
-          localStorage.setItem("active-session-dps", activeSession.dps_name);
+          setPref("dps-name", activeSession.dps_name);
           const checksData = await getSubEntityChecks(activeSession.id);
           setChecks(checksData);
         }
@@ -175,7 +143,7 @@ export default function SubEntitiesPage() {
   const persistVariant = (subId: string, value: string) => {
     setSelectedVariants((prev) => {
       const next = { ...prev, [subId]: value };
-      localStorage.setItem("selected-variants", JSON.stringify(next));
+      setPref("selected-variants", JSON.stringify(next));
       return next;
     });
   };
@@ -189,21 +157,19 @@ export default function SubEntitiesPage() {
 
     setCreatingSession(true);
     try {
-      // Get variant from homepage selection
-      const lotVars = localStorage.getItem("lot-variants");
+      // Get variant from cloud preferences
+      const lotVarsRaw = getPref("lot-variants");
       let variantId: string | null = null;
-      if (lotVars) {
+      if (lotVarsRaw) {
         try {
-          const parsed = JSON.parse(lotVars);
+          const parsed = JSON.parse(lotVarsRaw);
           variantId = parsed[lotId] || null;
         } catch { /* ignore */ }
       }
 
       const newSession = await createSession(lotId, dpsName.trim(), variantId);
       setSession(newSession);
-      localStorage.setItem("dps-name", dpsName.trim());
-      localStorage.setItem("active-session-id", String(newSession.id));
-      localStorage.setItem("active-session-dps", dpsName.trim());
+      setPref("dps-name", dpsName.trim());
       toast.success("Session d'inventaire créée !");
     } catch (e: any) {
       const detail = e?.data?.detail || e?.message || "Erreur lors de la création de la session";
@@ -221,9 +187,7 @@ export default function SubEntitiesPage() {
       setSession(null);
       setChecks([]);
       setDpsName("");
-      localStorage.removeItem("active-session-id");
-      localStorage.removeItem("active-session-dps");
-      localStorage.removeItem("dps-name");
+      removePref("dps-name");
       toast.success("Inventaire abandonné.");
       navigate("/");
     } catch (e: any) {
@@ -245,13 +209,13 @@ export default function SubEntitiesPage() {
 
       // Log each checked sub-entity
       const dpsNameValue = session.dps_name;
-      // Get lot variant name for logging
+      // Get lot variant name for logging (from cloud preferences)
       const currentLotVariantName = (() => {
         if (!lot?.variants) return null;
         try {
-          const lotVars = localStorage.getItem("lot-variants");
-          if (lotVars) {
-            const parsed = JSON.parse(lotVars);
+          const lotVarsRaw = getPref("lot-variants");
+          if (lotVarsRaw) {
+            const parsed = JSON.parse(lotVarsRaw);
             const selectedVId = parsed[lotId || ""];
             if (selectedVId) {
               const v = lot.variants.find((vv) => vv.id === selectedVId);
@@ -343,10 +307,8 @@ export default function SubEntitiesPage() {
 
       await Promise.all(logPromises);
 
-      // Clear session state
-      localStorage.removeItem("active-session-id");
-      localStorage.removeItem("active-session-dps");
-      localStorage.removeItem("dps-name");
+      // Clear session state (cloud preferences)
+      removePref("dps-name");
 
       toast.success("Inventaire sauvegardé et envoyé !");
 
@@ -360,7 +322,7 @@ export default function SubEntitiesPage() {
         } else if (lotId === "lot-001") {
           reportNavKey = "lot-a-central";
         } else if (lotId === "lot-003") {
-          const lotCVariant = currentLotVariantName || (() => { try { const v = JSON.parse(localStorage.getItem("lot-variants") || "{}"); return v["lot-003"] || ""; } catch { return ""; } })();
+          const lotCVariant = currentLotVariantName || (() => { try { const v = JSON.parse(getPref("lot-variants") || "{}"); return v["lot-003"] || ""; } catch { return ""; } })();
           const lower = lotCVariant.toLowerCase();
           if (lower.includes("alpha")) reportNavKey = "lot-c-alpha-central";
           else if (lower.includes("bravo")) reportNavKey = "lot-c-bravo-central";
@@ -442,9 +404,9 @@ export default function SubEntitiesPage() {
                     : lot.variants && lot.variants.length > 0
                       ? (() => {
                           try {
-                            const lotVars = localStorage.getItem("lot-variants");
-                            if (lotVars) {
-                              const parsed = JSON.parse(lotVars);
+                            const lotVarsRaw = getPref("lot-variants");
+                            if (lotVarsRaw) {
+                              const parsed = JSON.parse(lotVarsRaw);
                               const variantId = parsed[lotId || ""];
                               if (variantId) {
                                 const variantObj = lot.variants.find((v) => v.id === variantId);

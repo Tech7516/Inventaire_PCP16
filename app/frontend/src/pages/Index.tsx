@@ -14,6 +14,7 @@ import { ClipboardList, MapPin, CalendarClock, ScrollText, Users, Settings } fro
 import { getAllActiveSessions, getLogEntriesFromDb, type InventoryLogData } from "@/lib/inventory-api";
 import { getMergedLots } from "@/lib/configStore";
 import type { Lot } from "@/data/lots";
+import { useCloudPreferences } from "@/lib/useCloudPreferences";
 
 function formatDateTimeShort(iso: string): string {
   try {
@@ -39,21 +40,26 @@ function getLastVerificationDate(logEntries: InventoryLogData[], lotId: string):
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [selectedLotVariants, setSelectedLotVariants] = useState<Record<string, string>>(() => {
-    try {
-      const raw = localStorage.getItem("lot-variants");
-      if (raw) return JSON.parse(raw);
-    } catch { /* ignore */ }
-    return {};
-  });
+  const { getPref, setPref } = useCloudPreferences();
+  const [selectedLotVariants, setSelectedLotVariants] = useState<Record<string, string>>({});
   const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string }>>({});
   const [logEntries, setLogEntries] = useState<InventoryLogData[]>([]);
   const [dynamicLots, setDynamicLots] = useState<Lot[]>(staticLots);
 
+  // Load lot variants from cloud preferences
+  useEffect(() => {
+    const raw = getPref("lot-variants");
+    if (raw) {
+      try {
+        setSelectedLotVariants(JSON.parse(raw));
+      } catch { /* ignore */ }
+    }
+  }, [getPref]);
+
   const persistLotVariant = (lotId: string, value: string) => {
     setSelectedLotVariants((prev) => {
       const next = { ...prev, [lotId]: value };
-      localStorage.setItem("lot-variants", JSON.stringify(next));
+      setPref("lot-variants", JSON.stringify(next));
       return next;
     });
   };
@@ -82,14 +88,6 @@ export default function HomePage() {
   }, []);
 
   const handleStartInventory = (lotId: string) => {
-    const activeSession = activeSessions[lotId];
-    if (activeSession) {
-      localStorage.setItem("active-session-id", String(activeSession.id));
-      localStorage.setItem("active-session-dps", activeSession.dps_name);
-    } else {
-      localStorage.removeItem("active-session-id");
-      localStorage.removeItem("active-session-dps");
-    }
     const lot = dynamicLots.find((l) => l.id === lotId);
     if (lot?.directInventory) {
       navigate(`/inventory/${lotId}/${lotId}`);

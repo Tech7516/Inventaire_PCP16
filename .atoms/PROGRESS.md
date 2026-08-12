@@ -83,6 +83,11 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Admin : responsive mobile complète — CardHeader flex-col/flex-row, lignes articles 2 lignes mobile, tous pl-4/ml-4 réduits sur mobile
 - [x] Journal : "Effacer le journal" supprime aussi tous les rapports d'écart (clearAllDiscrepancyReports)
 - [x] Journal vide : afficher la structure classique avec groupes et boutons grisés (plus de message "Aucun inventaire enregistré")
+- [x] Migration cloud préférences : table app_preferences + backend service/routes + API inventory-api.ts + hook useCloudPreferences.ts
+- [x] Migration Index.tsx : lot-variants via cloud, suppression écritures active-session-*
+- [x] Migration SubEntities.tsx : dps-name, selected-variants, lot-variants via cloud, session sans cache localStorage
+- [x] Migration Inventory.tsx : dps-name, lot-variants via cloud (getPref/setPref), plus aucun localStorage direct
+- [x] Vérification : aucun localStorage.getItem/setItem/removeItem hors de useCloudPreferences.ts (pont de migration one-shot)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
