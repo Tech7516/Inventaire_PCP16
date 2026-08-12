@@ -587,3 +587,13 @@ export async function getAllDiscrepancyReports(): Promise<DiscrepancyReportData[
     return [];
   }
 }
+
+export async function clearAllDiscrepancyReports(): Promise<void> {
+  try {
+    const res = await client.entities.discrepancy_reports.query({ limit: 500 });
+    const items = (res.data?.items || []) as DiscrepancyReportData[];
+    for (const item of items) {
+      await client.entities.discrepancy_reports.delete({ id: String(item.id) });
+    }
+  } catch { /* ignore */ }
+}

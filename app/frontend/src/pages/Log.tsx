@@ -7,6 +7,7 @@ import {
   getLogEntriesFromDb,
   clearLogEntriesFromDb,
   getAllDiscrepancyReports,
+  clearAllDiscrepancyReports,
   type InventoryLogData,
   type DiscrepancyReportData,
 } from "@/lib/inventory-api";
@@ -144,8 +145,9 @@ export default function LogPage() {
   }, []);
 
   const handleClear = async () => {
-    await clearLogEntriesFromDb();
+    await Promise.all([clearLogEntriesFromDb(), clearAllDiscrepancyReports()]);
     setEntries([]);
+    setReports([]);
   };
 
   // Build a set of available report keys for quick lookup
@@ -306,18 +308,7 @@ export default function LogPage() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {entries.length === 0 ? (
-          <div className="text-center py-16 space-y-4">
-            <ScrollText className="h-12 w-12 text-muted-foreground/40 mx-auto" />
-            <p className="text-lg text-muted-foreground">
-              Aucun inventaire enregistré
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Les vérifications complétées apparaîtront ici.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-8">
+        <div className="space-y-8">
             {LOG_GROUPS.map((group) => {
               const groupEntries = groupedEntries[group.key] || [];
               const hasEntries = groupEntries.length > 0;
@@ -557,7 +548,6 @@ export default function LogPage() {
               </div>
             )}
           </div>
-        )}
       </main>
     </div>
   );
