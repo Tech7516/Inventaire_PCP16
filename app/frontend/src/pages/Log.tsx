@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, Pencil } from "lucide-react";
 import {
   getLogEntriesFromDb,
   clearLogEntriesFromDb,
@@ -69,6 +69,23 @@ const LOT_C_VARIANTS = [
 // Find the actual report key for a Lot C variant (supports multiple key formats in DB)
 const findLotCReportKey = (variantId: string, availableKeys: Set<string>): string | null => {
   const primary = `lot-c::${variantId}`;
+  if (availableKeys.has(primary)) return primary;
+  // Fallback: match any key ending with ::variantId
+  for (const key of availableKeys) {
+    if (key.endsWith(`::${variantId}`)) return key;
+  }
+  return null;
+};
+
+// The 2 Lot V variants (always shown in the report section)
+const LOT_V_VARIANTS = [
+  { name: "Poussin", variantId: "vl-poussin" },
+  { name: "Passy", variantId: "vtp-passy" },
+];
+
+// Find the actual report key for a Lot V variant (supports multiple key formats in DB)
+const findLotVReportKey = (variantId: string, availableKeys: Set<string>): string | null => {
+  const primary = `lot-v::${variantId}`;
   if (availableKeys.has(primary)) return primary;
   // Fallback: match any key ending with ::variantId
   for (const key of availableKeys) {
@@ -250,10 +267,7 @@ export default function LogPage() {
       return LOT_C_VARIANTS.some(v => !!findLotCReportKey(v.variantId, availableReportKeys));
     }
     if (group.key === "lot-v") {
-      return lotVVariants.some(vName => {
-        const rk = getLotVReportKey(vName);
-        return rk ? availableReportKeys.has(rk) : false;
-      });
+      return LOT_V_VARIANTS.some(v => !!findLotVReportKey(v.variantId, availableReportKeys));
     }
     return false;
   };
@@ -334,86 +348,18 @@ export default function LogPage() {
                     </h2>
                     {/* Report button */}
                     {group.reportKey ? (
-                      hasCentralReport ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/report/key/${encodeURIComponent(group.reportKey!)}?from=log`)}
-                          className="cursor-pointer shrink-0"
-                        >
-                          <FileText className="h-4 w-4 mr-1.5" />
-                          Rapport
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled
-                          className="opacity-50 shrink-0"
-                        >
-                          <FileText className="h-4 w-4 mr-1.5" />
-                          Rapport
-                        </Button>
-                      )
-                    ) : group.key === "lot-b" ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {LOT_B_VARIANTS.map((v) => {
-                          const reportKey = findLotBReportKey(v.variantId, availableReportKeys);
-                          const hasReport = !!reportKey;
-                          return (
-                            <Button
-                              key={v.name}
-                              variant="outline"
-                              size="sm"
-                              disabled={!hasReport}
-                              onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log`)}
-                              className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
-                            >
-                              <FileText className="h-4 w-4 mr-1.5" />
-                              {v.name}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    ) : group.key === "lot-c" ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {LOT_C_VARIANTS.map((v) => {
-                          const reportKey = findLotCReportKey(v.variantId, availableReportKeys);
-                          const hasReport = !!reportKey;
-                          return (
-                            <Button
-                              key={v.name}
-                              variant="outline"
-                              size="sm"
-                              disabled={!hasReport}
-                              onClick={() => hasReport && navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log`)}
-                              className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
-                            >
-                              <FileText className="h-4 w-4 mr-1.5" />
-                              {v.name}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    ) : group.key === "lot-v" ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {lotVVariants.length > 0 ? lotVVariants.map((vName) => {
-                          const rk = getLotVReportKey(vName);
-                          const hasReport = rk ? availableReportKeys.has(rk) : false;
-                          return (
-                            <Button
-                              key={vName}
-                              variant="outline"
-                              size="sm"
-                              disabled={!hasReport}
-                              onClick={() => hasReport && navigate(`/report/key/${encodeURIComponent(rk!)}?from=log`)}
-                              className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
-                            >
-                              <FileText className="h-4 w-4 mr-1.5" />
-                              {vName}
-                            </Button>
-                          );
-                        }) : (
+                      <div className="flex items-center gap-1">
+                        {hasCentralReport ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/report/key/${encodeURIComponent(group.reportKey!)}?from=log`)}
+                            className="cursor-pointer shrink-0"
+                          >
+                            <FileText className="h-4 w-4 mr-1.5" />
+                            Rapport
+                          </Button>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
@@ -424,6 +370,113 @@ export default function LogPage() {
                             Rapport
                           </Button>
                         )}
+                        {hasCentralReport && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/report/key/${encodeURIComponent(group.reportKey!)}?from=log&mode=edit`)}
+                            className="cursor-pointer shrink-0 h-8 w-8 p-0"
+                            title="Modifier le rapport"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ) : group.key === "lot-b" ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {LOT_B_VARIANTS.map((v) => {
+                          const reportKey = findLotBReportKey(v.variantId, availableReportKeys);
+                          const hasReport = !!reportKey;
+                          return (
+                            <div key={v.name} className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!hasReport}
+                                onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log`)}
+                                className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
+                              >
+                                <FileText className="h-4 w-4 mr-1.5" />
+                                {v.name}
+                              </Button>
+                              {hasReport && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log&mode=edit`)}
+                                  className="cursor-pointer shrink-0 h-8 w-8 p-0"
+                                  title="Modifier le rapport"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : group.key === "lot-c" ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {LOT_C_VARIANTS.map((v) => {
+                          const reportKey = findLotCReportKey(v.variantId, availableReportKeys);
+                          const hasReport = !!reportKey;
+                          return (
+                            <div key={v.name} className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!hasReport}
+                                onClick={() => hasReport && navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log`)}
+                                className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
+                              >
+                                <FileText className="h-4 w-4 mr-1.5" />
+                                {v.name}
+                              </Button>
+                              {hasReport && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log&mode=edit`)}
+                                  className="cursor-pointer shrink-0 h-8 w-8 p-0"
+                                  title="Modifier le rapport"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : group.key === "lot-v" ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {LOT_V_VARIANTS.map((v) => {
+                          const reportKey = findLotVReportKey(v.variantId, availableReportKeys);
+                          const hasReport = !!reportKey;
+                          return (
+                            <div key={v.name} className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!hasReport}
+                                onClick={() => hasReport && navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log`)}
+                                className={`shrink-0 ${hasReport ? "cursor-pointer" : "opacity-50"}`}
+                              >
+                                <FileText className="h-4 w-4 mr-1.5" />
+                                {v.name}
+                              </Button>
+                              {hasReport && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log&mode=edit`)}
+                                  className="cursor-pointer shrink-0 h-8 w-8 p-0"
+                                  title="Modifier le rapport"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : null}
                   </div>

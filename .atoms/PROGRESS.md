@@ -95,6 +95,9 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Validation compilation TypeScript + syntaxe Python backend OK
 - [x] Corriger 404 SDK sur GET /{id} : tous les routeurs CRUD retournent null au lieu de 404 (inventory_logs, discrepancy_reports, inventory_sessions, sub_entity_checks, inventory_items, lot_configs, app_preferences)
 - [x] Vérifier aucun appel résiduel frontend vers /api/v1/entities/ ou client.entities.* — OK
+- [x] Journal : bouton édition (Pencil) par variante (Lot B, Lot C, Lot V, groupes centralisés)
+- [x] Journal : Lot V affiche 2 boutons rapport (Poussin + Passy) au lieu d'un seul
+- [x] Report.tsx : mode édition (mode=edit) avec quantités modifiables, bouton Sauvegarder, sauvegarde BDD
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

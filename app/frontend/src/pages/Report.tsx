@@ -3,10 +3,11 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { lots, lotSubEntities } from "@/data/lots";
-import { ArrowLeft, AlertTriangle, CheckCircle2, ClipboardList, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, ClipboardList, Download, Loader2, Pencil, Save } from "lucide-react";
 import {
   getDiscrepancyReportsForLot,
   getDiscrepancyReportByKey,
+  saveDiscrepancyReportToDb,
   type DiscrepancyReportData,
   type DiscrepancyItem,
   type SavedInventoryEntry,
@@ -71,6 +72,7 @@ export default function ReportPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fromLog = searchParams.get("from") === "log";
+  const isEditMode = searchParams.get("mode") === "edit";
 
   const lot = lotId ? lots.find((l) => l.id === lotId) : null;
 
@@ -81,6 +83,12 @@ export default function ReportPage() {
   const [dpsName, setDpsName] = useState<string>("");
   const [variantName, setVariantName] = useState<string>("");
   const [displayLabel, setDisplayLabel] = useState<string>("");
+  const [currentReportKey, setCurrentReportKey] = useState<string>("");
+  const [currentLotId, setCurrentLotId] = useState<string>("");
+  const [currentVariantId, setCurrentVariantId] = useState<string | null>(null);
+  const [currentLotName, setCurrentLotName] = useState<string>("");
+  const [currentVariantName, setCurrentVariantName] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const loadReports = async () => {
@@ -134,10 +142,57 @@ export default function ReportPage() {
       setReportDate(latestDate);
       setDpsName(latestDpsName);
       setVariantName(latestVariantName);
+
+      // Capture report metadata for edit mode
+      if (reports.length > 0) {
+        const r = reports[0];
+        setCurrentReportKey(r.report_key);
+        setCurrentLotId(r.lot_id);
+        setCurrentVariantId(r.variant_id);
+        setCurrentLotName(r.lot_name);
+        setCurrentVariantName(r.variant_name);
+      }
+
       setLoading(false);
     };
     loadReports();
   }, [lotId, reportKey]);
+
+  // Edit mode: update a discrepancy's actual quantity
+  const handleEditQuantity = (idx: number, newQty: number) => {
+    setDiscrepancies((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], actualQuantity: newQty };
+      return updated;
+    });
+  };
+
+  // Save edited report back to DB
+  const handleSave = async () => {
+    if (!currentReportKey || !currentLotId) return;
+    setSaving(true);
+    try {
+      // Recalculate discrepancies from edited data
+      const hasDiscrepancies = discrepancies.length > 0;
+      await saveDiscrepancyReportToDb({
+        lotId: currentLotId,
+        variantId: currentVariantId,
+        lotName: currentLotName,
+        variantName: currentVariantName,
+        dpsName: dpsName,
+        discrepancies: discrepancies,
+        fullInventory: lotInventoryData,
+        hasDiscrepancies: hasDiscrepancies,
+        reportKeyOverride: currentReportKey,
+      });
+      // Navigate back to log after save
+      navigate("/log");
+    } catch (e) {
+      console.error("Failed to save report:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleBack = () => {
     if (fromLog) {
@@ -287,7 +342,7 @@ export default function ReportPage() {
                 <ClipboardList className="h-5 w-5 text-primary" />
                 <div>
                   <h1 className="text-lg font-semibold text-foreground">
-                    Rapport d'écart
+                    {isEditMode ? "Édition du rapport" : "Rapport d'écart"}
                   </h1>
                   <p className="text-xs text-muted-foreground">
                     {displayLabel}
@@ -298,14 +353,31 @@ export default function ReportPage() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleDownload}
-              className="cursor-pointer"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Télécharger
-            </Button>
+            <div className="flex items-center gap-2">
+              {isEditMode && (
+                <Button
+                  variant="default"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="cursor-pointer"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  {saving ? "Sauvegarde…" : "Sauvegarder"}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleDownload}
+                className="cursor-pointer"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -362,20 +434,38 @@ export default function ReportPage() {
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-sm">
-                            <span
-                              className={
-                                isSurplus
-                                  ? "text-blue-600 font-semibold"
-                                  : "text-amber-600 font-semibold"
-                              }
-                            >
-                              {item.actualQuantity}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {" "}/ {item.expectedQuantity} attendu{item.expectedQuantity > 1 ? "s" : ""}
-                            </span>
-                          </p>
+                          {isEditMode ? (
+                            <div className="flex items-center gap-1 justify-end">
+                              <input
+                                type="number"
+                                min={0}
+                                value={item.actualQuantity}
+                                onChange={(e) => {
+                                  const v = parseInt(e.target.value, 10);
+                                  if (!isNaN(v) && v >= 0) handleEditQuantity(idx, v);
+                                }}
+                                className="w-16 h-8 text-sm text-right rounded border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                / {item.expectedQuantity}
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-sm">
+                              <span
+                                className={
+                                  isSurplus
+                                    ? "text-blue-600 font-semibold"
+                                    : "text-amber-600 font-semibold"
+                                }
+                              >
+                                {item.actualQuantity}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {" "}/ {item.expectedQuantity} attendu{item.expectedQuantity > 1 ? "s" : ""}
+                              </span>
+                            </p>
+                          )}
                           <p
                             className={
                               isSurplus
