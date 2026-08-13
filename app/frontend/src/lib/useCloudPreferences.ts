@@ -1,93 +1,64 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  getAllPreferencesFromDb,
-  setPreferenceInDb,
-} from "@/lib/inventory-api";
+  getCache,
+  subscribe,
+  ensureLoaded,
+  setCachedPref,
+  removeCachedPref,
+  reloadPreferences,
+} from "@/lib/preferenceCache";
 
 /**
- * Hook to manage cloud-backed preferences via shared API (bypasses RLS).
- * All devices see the same preferences since the shared API has no user filtering.
+ * Hook to manage cloud-backed preferences via singleton cache.
+ * All components share the same cache — only ONE GET /preferences call
+ * is made regardless of how many components mount this hook.
+ * Writes are debounced (500ms) to avoid rapid POST /preferences bursts.
  */
 export function useCloudPreferences() {
-  const [prefs, setPrefs] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const cloudPrefs = await getAllPreferencesFromDb();
+    // Trigger load on first mount (deduped — safe for multiple consumers)
+    ensureLoaded();
 
-        // One-time migration: if a localStorage key exists but not in cloud, push it
-        const MIGRATION_KEYS = [
-          "lot-variants",
-          "dps-name",
-          "selected-variants",
-        ];
-        let needsUpdate = false;
-        for (const key of MIGRATION_KEYS) {
-          const localVal = localStorage.getItem(key);
-          if (localVal !== null && !(key in cloudPrefs)) {
-            cloudPrefs[key] = localVal;
-            needsUpdate = true;
-          }
-        }
+    // Subscribe to cache changes for re-renders
+    const unsub = subscribe(() => {
+      setTick((t) => t + 1);
+    });
 
-        setPrefs(cloudPrefs);
-
-        // Push migrated values to cloud in background
-        if (needsUpdate) {
-          for (const key of MIGRATION_KEYS) {
-            if (cloudPrefs[key] !== undefined) {
-              setPreferenceInDb(key, cloudPrefs[key]).catch(() => {});
-            }
-          }
-        }
-      } catch {
-        setPrefs({});
-      }
-      setLoading(false);
-    };
-    load();
+    return unsub;
   }, []);
+
+  const cache = getCache();
 
   const getPref = useCallback(
     (key: string): string | null => {
-      return prefs[key] ?? null;
+      return cache.prefs[key] ?? null;
     },
-    [prefs]
+    [cache.prefs]
   );
 
   const setPref = useCallback(
-    async (key: string, value: string) => {
-      // Optimistic local update
-      setPrefs((prev) => ({ ...prev, [key]: value }));
-      // Write to cloud via shared API
-      try {
-        await setPreferenceInDb(key, value);
-      } catch {
-        /* ignore — optimistic update already applied locally */
-      }
+    (key: string, value: string) => {
+      setCachedPref(key, value);
     },
     []
   );
 
   const removePref = useCallback(
-    async (key: string) => {
-      setPrefs((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-      // Set to empty string to mark "removed" in cloud
-      try {
-        await setPreferenceInDb(key, "");
-      } catch {
-        /* ignore */
-      }
+    (key: string) => {
+      removeCachedPref(key);
     },
     []
   );
 
-  return { prefs, getPref, setPref, removePref, loading };
+  return {
+    prefs: cache.prefs,
+    getPref,
+    setPref,
+    removePref,
+    loading: cache.loading,
+    error: cache.error,
+    reload: reloadPreferences,
+  };
 }

@@ -100,6 +100,9 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Report.tsx : mode édition (mode=edit) avec quantités modifiables, bouton Sauvegarder, sauvegarde BDD
 - [x] Ajout sélecteur obligatoire Désinfection vs Vérification de matériel (DPS) à côté du champ Nom du DPS, bloquant la création de session tant que non sélectionné
 - [x] Propagation intervention_type dans tous les appels addLogEntryToDb (handleSave) + affichage dans la session active
+- [x] Corriger 429 rate limit : cache singleton preferenceCache.ts (1 seul GET /preferences quel que soit le nombre de composants)
+- [x] Corriger 429 rate limit : backoff exponentiel dans sharedApi/inventoryApi (withRetry sur status 429)
+- [x] Corriger 429 rate limit : debounce écritures POST /preferences (500ms, fusion des writes simultanés)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

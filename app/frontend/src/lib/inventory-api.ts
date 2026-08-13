@@ -40,17 +40,44 @@ export interface InventoryItemData {
 
 // ---------- API helpers (bypass RLS via custom backend routes) ----------
 
+/**
+ * Retry wrapper with exponential backoff for 429 (rate-limit) errors.
+ * Non-429 errors are thrown immediately.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 2,
+  baseDelayMs = 1000
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      const status = err?.response?.status ?? err?.status;
+      if (attempt < maxRetries && status === 429) {
+        const delay = baseDelayMs * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 async function inventoryApi<T = any>(
   method: "GET" | "POST" | "DELETE",
   path: string,
   data?: Record<string, unknown>
 ): Promise<T> {
-  const res = await client.apiCall.invoke({
-    url: `/api/v1/inventory${path}`,
-    method,
-    data: data || {},
+  return withRetry(async () => {
+    const res = await client.apiCall.invoke({
+      url: `/api/v1/inventory${path}`,
+      method,
+      data: data || {},
+    });
+    return res.data as T;
   });
-  return res.data as T;
 }
 
 async function sharedApi<T = any>(
@@ -58,12 +85,14 @@ async function sharedApi<T = any>(
   path: string,
   data?: Record<string, unknown>
 ): Promise<T> {
-  const res = await client.apiCall.invoke({
-    url: `/api/v1/shared${path}`,
-    method,
-    data: data || {},
+  return withRetry(async () => {
+    const res = await client.apiCall.invoke({
+      url: `/api/v1/shared${path}`,
+      method,
+      data: data || {},
+    });
+    return res.data as T;
   });
-  return res.data as T;
 }
 
 // ---------- Sessions (collaborative API — bypasses RLS) ----------
