@@ -153,12 +153,12 @@ export default function SubEntitiesPage() {
   };
 
   const handleValidateDps = async () => {
-    if (!dpsName.trim()) {
+    if (interventionType === "verification" && !dpsName.trim()) {
       toast.error("Veuillez saisir le nom du DPS.");
       return;
     }
     if (!interventionType) {
-      toast.error("Veuillez choisir le type d\u0027intervention (Vérification ou Désinfection).");
+      toast.error("Veuillez saisir un nom de DPS ou cliquer sur « Désinfection ».");
       return;
     }
     if (!lotId) return;
@@ -453,45 +453,41 @@ export default function SubEntitiesPage() {
                   type="text"
                   placeholder="Saisissez le nom du DPS..."
                   value={dpsName}
-                  onChange={(e) => setDpsName(e.target.value)}
+                  onChange={(e) => {
+                    setDpsName(e.target.value);
+                    if (e.target.value.trim()) {
+                      setInterventionType("verification");
+                    } else if (interventionType === "verification") {
+                      setInterventionType("");
+                    }
+                  }}
                   className="max-w-md"
                   disabled={sessionLoading}
                 />
-              </div>
-              <div className="space-y-1.5 mt-3">
-                <label className="block text-sm font-medium text-muted-foreground">
-                  Type d'intervention
-                </label>
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant={interventionType === "verification" ? "default" : "outline"}
-                    onClick={() => setInterventionType("verification")}
-                    className="cursor-pointer"
-                  >
-                    Vérification de matériel (DPS)
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={interventionType === "desinfection" ? "default" : "outline"}
-                    onClick={() => setInterventionType("desinfection")}
-                    className="cursor-pointer"
-                  >
-                    Désinfection
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant={interventionType === "desinfection" ? "default" : "outline"}
+                  onClick={() => {
+                    setInterventionType("desinfection");
+                    setDpsName("");
+                  }}
+                  disabled={!!dpsName.trim()}
+                  className="cursor-pointer"
+                >
+                  Désinfection
+                </Button>
               </div>
               <div className="mt-3">
                 <Button
                   onClick={handleValidateDps}
-                  disabled={!dpsName.trim() || !interventionType || creatingSession}
+                  disabled={(!dpsName.trim() && interventionType !== "desinfection") || creatingSession}
                   className="cursor-pointer"
                 >
                   {creatingSession ? "Création..." : "Valider"}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Validez le nom du DPS et le type d'intervention pour accéder aux sous-ensembles.
+                Saisissez le nom du DPS pour une vérification, ou cliquez sur « Désinfection » pour une désinfection.
               </p>
             </div>
           ) : (
@@ -499,12 +495,17 @@ export default function SubEntitiesPage() {
               <div className="flex items-center gap-3">
                 <Users className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">DPS</p>
-                  <p className="text-lg font-semibold text-foreground">{session.dps_name}</p>
-                  {session.intervention_type && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {session.intervention_type === "verification" ? "Vérification de matériel (DPS)" : "Désinfection"}
-                    </p>
+                  {session.intervention_type === "desinfection" ? (
+                    <>
+                      <p className="text-sm font-medium text-muted-foreground">Intervention</p>
+                      <p className="text-lg font-semibold text-foreground">Désinfection</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-muted-foreground">DPS</p>
+                      <p className="text-lg font-semibold text-foreground">{session.dps_name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Vérification de matériel (DPS)</p>
+                    </>
                   )}
                 </div>
               </div>
