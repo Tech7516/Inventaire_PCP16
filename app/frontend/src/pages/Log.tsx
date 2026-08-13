@@ -1,12 +1,22 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, Pencil, ShieldCheck } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, Pencil, ShieldCheck, Calendar, X } from "lucide-react";
 import {
   getLogEntriesFromDb,
   clearLogEntriesFromDb,
+  deleteLogEntryFromDb,
+  updateLogEntryDateFromDb,
   getAllDiscrepancyReports,
   clearAllDiscrepancyReports,
   type InventoryLogData,
@@ -28,16 +38,36 @@ function formatDateTime(iso: string): string {
   }
 }
 
-function formatDateShort(iso: string): string {
+/** Format as "mois année" e.g. "Août 2026" */
+function formatMonthYear(iso: string): string {
   try {
     const d = new Date(iso);
     return d.toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
+      month: "long",
       year: "numeric",
     });
   } catch {
     return iso;
+  }
+}
+
+/** Parse a "YYYY-MM" string to an ISO date at start of that month */
+function yearMonthToIso(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || !m) return "";
+  const d = new Date(y, m - 1, 1, 12, 0, 0);
+  return d.toISOString();
+}
+
+/** Format a Date to "YYYY-MM" for the input */
+function isoToYearMonth(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+  } catch {
+    return "";
   }
 }
 
@@ -167,7 +197,16 @@ const DESINFECTION_GROUPS: DesinfectionGroup[] = [
   { key: "lot-cai", label: "Lot CAI", matchFn: (e) => e.lot_id === "lot-cai" },
 ];
 
-const REQUIRED_PER_YEAR = 3;
+const REQUIRED_PER_ROLLING_YEAR = 3;
+
+/** Rolling 12-month window: from (now - 12 months) to now */
+function isWithinRollingYear(isoDate: string): boolean {
+  const entryDate = new Date(isoDate);
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
+  return entryDate >= cutoff && entryDate <= now;
+}
 
 export default function LogPage() {
   const navigate = useNavigate();
@@ -176,6 +215,19 @@ export default function LogPage() {
   const [entries, setEntries] = useState<InventoryLogData[]>([]);
   const [reports, setReports] = useState<DiscrepancyReportData[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Dialog state for editing date
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<InventoryLogData | null>(null);
+  const [editMonth, setEditMonth] = useState(""); // "YYYY-MM"
+
+  // Confirm delete state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  const reloadEntries = useCallback(async () => {
+    const data = await getLogEntriesFromDb();
+    setEntries(data);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -195,6 +247,28 @@ export default function LogPage() {
     await Promise.all([clearLogEntriesFromDb(), clearAllDiscrepancyReports()]);
     setEntries([]);
     setReports([]);
+  };
+
+  const handleDeleteEntry = async (logId: number) => {
+    await deleteLogEntryFromDb(logId);
+    setDeleteConfirmId(null);
+    await reloadEntries();
+  };
+
+  const handleOpenEditDate = (entry: InventoryLogData) => {
+    setEditingEntry(entry);
+    setEditMonth(isoToYearMonth(entry.created_at || ""));
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveDate = async () => {
+    if (!editingEntry || !editMonth) return;
+    const newIso = yearMonthToIso(editMonth);
+    if (!newIso) return;
+    await updateLogEntryDateFromDb(editingEntry.id, newIso);
+    setEditDialogOpen(false);
+    setEditingEntry(null);
+    await reloadEntries();
   };
 
   const availableReportKeys = new Set(reports.map((r) => r.report_key));
@@ -331,16 +405,13 @@ export default function LogPage() {
     return groups;
   }, [desinfectionEntries]);
 
-  // Count desinfections this year per group
-  const desinfectionCountThisYear = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
+  // Count desinfections in rolling 12-month window per group
+  const desinfectionCountRolling = useMemo(() => {
     const counts: Record<string, number> = {};
     Object.keys(desinfectionGrouped).forEach((key) => {
-      counts[key] = desinfectionGrouped[key].filter((e) => {
-        const d = new Date(e.created_at || "");
-        return d.getFullYear() === year;
-      }).length;
+      counts[key] = desinfectionGrouped[key].filter((e) =>
+        isWithinRollingYear(e.created_at || "")
+      ).length;
     });
     return counts;
   }, [desinfectionGrouped]);
@@ -352,6 +423,73 @@ export default function LogPage() {
       </div>
     );
   }
+
+  // Shared component for a single désinfection entry row
+  const renderDesinfectionEntry = (entry: InventoryLogData, idx: number, total: number) => {
+    const isConfirmDelete = deleteConfirmId === entry.id;
+
+    return (
+      <Card key={entry.id} className="transition-all">
+        <CardContent className="py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-sm font-mono text-muted-foreground w-6 text-right shrink-0">
+                #{total - idx}
+              </span>
+              <span className="font-medium text-foreground text-sm truncate">
+                Désinfection
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
+                {formatMonthYear(entry.created_at || "")}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleOpenEditDate(entry)}
+                className="cursor-pointer h-7 w-7 p-0"
+                title="Modifier la date"
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+              {isConfirmDelete ? (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteEntry(entry.id)}
+                    className="cursor-pointer h-7 text-xs px-2"
+                  >
+                    Oui
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="cursor-pointer h-7 text-xs px-2"
+                  >
+                    Non
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteConfirmId(entry.id)}
+                  className="cursor-pointer h-7 w-7 p-0 text-destructive hover:text-destructive"
+                  title="Supprimer cette désinfection"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -678,8 +816,8 @@ export default function LogPage() {
             <div className="space-y-8">
               {DESINFECTION_GROUPS.map((group) => {
                 const groupEntries = desinfectionGrouped[group.key] || [];
-                const countThisYear = desinfectionCountThisYear[group.key] || 0;
-                const isOnTrack = countThisYear >= REQUIRED_PER_YEAR;
+                const countRolling = desinfectionCountRolling[group.key] || 0;
+                const isOnTrack = countRolling >= REQUIRED_PER_ROLLING_YEAR;
 
                 return (
                   <div key={group.key}>
@@ -695,37 +833,15 @@ export default function LogPage() {
                             : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                         }`}
                       >
-                        {countThisYear}/{REQUIRED_PER_YEAR} cette année
+                        {countRolling}/{REQUIRED_PER_ROLLING_YEAR} (12 mois glissants)
                       </span>
                     </div>
 
                     {groupEntries.length > 0 ? (
                       <div className="space-y-2">
-                        {groupEntries.map((entry, idx) => (
-                          <Card key={entry.id} className="transition-all">
-                            <CardContent className="py-3">
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                  <span className="text-sm font-mono text-muted-foreground w-6 text-right">
-                                    #{groupEntries.length - idx}
-                                  </span>
-                                  <div>
-                                    <p className="font-medium text-foreground text-sm">
-                                      Désinfection
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                      DPS : {entry.dps_name || "—"}
-                                    </p>
-                                  </div>
-                                </div>
-                                <span className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-                                  <Clock className="h-3.5 w-3.5" />
-                                  {formatDateShort(entry.created_at || "")}
-                                </span>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {groupEntries.map((entry, idx) =>
+                          renderDesinfectionEntry(entry, idx, groupEntries.length)
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground italic py-2">
@@ -743,29 +859,9 @@ export default function LogPage() {
                     Autres
                   </h2>
                   <div className="space-y-2">
-                    {desinfectionGrouped["other"].map((entry, idx) => (
-                      <Card key={entry.id} className="transition-all">
-                        <CardContent className="py-3">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm font-mono text-muted-foreground w-6 text-right">
-                                #{desinfectionGrouped["other"].length - idx}
-                              </span>
-                              <div>
-                                <p className="font-medium text-foreground text-sm">Désinfection</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  DPS : {entry.dps_name || "—"}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-                              <Clock className="h-3.5 w-3.5" />
-                              {formatDateShort(entry.created_at || "")}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {desinfectionGrouped["other"].map((entry, idx) =>
+                      renderDesinfectionEntry(entry, idx, desinfectionGrouped["other"].length)
+                    )}
                   </div>
                 </div>
               )}
@@ -773,6 +869,47 @@ export default function LogPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Dialog for editing désinfection date */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Modifier la date de désinfection</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Mois et année
+            </label>
+            <Input
+              type="month"
+              value={editMonth}
+              onChange={(e) => setEditMonth(e.target.value)}
+              className="w-full"
+            />
+            {editingEntry && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Date actuelle : {formatMonthYear(editingEntry.created_at || "")}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              className="cursor-pointer"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleSaveDate}
+              disabled={!editMonth}
+              className="cursor-pointer"
+            >
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

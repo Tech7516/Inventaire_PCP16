@@ -273,6 +273,20 @@ export async function getLogEntriesFromDb(lotId?: string): Promise<InventoryLogD
   }
 }
 
+export async function deleteLogEntryFromDb(logId: number): Promise<void> {
+  try {
+    await sharedApi("DELETE", `/logs/${logId}`);
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function updateLogEntryDateFromDb(logId: number, newCreatedAt: string): Promise<InventoryLogData> {
+  return await sharedApi<InventoryLogData>("PATCH", `/logs/${logId}`, {
+    created_at: newCreatedAt,
+  });
+}
+
 export async function clearLogEntriesFromDb(): Promise<void> {
   try {
     await sharedApi("DELETE", "/logs");

@@ -163,6 +163,54 @@ async def add_log_entry(data: AddLogEntryRequest, db: AsyncSession = Depends(get
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete("/logs/{log_id}")
+async def delete_single_log(log_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete a single inventory log entry by id"""
+    try:
+        result = await db.execute(
+            select(Inventory_logs).where(Inventory_logs.id == log_id).limit(1)
+        )
+        entry = result.scalar_one_or_none()
+        if not entry:
+            raise HTTPException(status_code=404, detail="Log entry not found")
+        await db.delete(entry)
+        await db.commit()
+        return {"deleted": 1}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error deleting log entry: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class UpdateLogEntryRequest(BaseModel):
+    created_at: Optional[datetime] = None
+
+
+@router.patch("/logs/{log_id}", response_model=InventoryLogResponse)
+async def update_single_log(log_id: int, data: UpdateLogEntryRequest, db: AsyncSession = Depends(get_db)):
+    """Update a single inventory log entry (e.g. change date)"""
+    try:
+        result = await db.execute(
+            select(Inventory_logs).where(Inventory_logs.id == log_id).limit(1)
+        )
+        entry = result.scalar_one_or_none()
+        if not entry:
+            raise HTTPException(status_code=404, detail="Log entry not found")
+        if data.created_at is not None:
+            entry.created_at = data.created_at
+        await db.commit()
+        await db.refresh(entry)
+        return entry
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error updating log entry: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.delete("/logs")
 async def clear_all_logs(db: AsyncSession = Depends(get_db)):
     """Delete all inventory logs"""
