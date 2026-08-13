@@ -437,15 +437,6 @@ export default function SubEntitiesPage() {
               </div>
             </div>
             </div>
-            {!session && (
-              <Button
-                onClick={handleValidateDps}
-                disabled={(!dpsName.trim() && interventionType !== "desinfection") || creatingSession}
-                className="cursor-pointer shrink-0"
-              >
-                {creatingSession ? "Création..." : "Inventaire"}
-              </Button>
-            )}
           </div>
         </div>
       </header>
@@ -664,13 +655,21 @@ export default function SubEntitiesPage() {
           </div>
         )}
 
-        {/* No session yet — show message */}
+        {/* No session yet — show message + Valider button */}
         {!session && !sessionLoading && (
-          <div className="text-center py-12">
+          <div className="text-center py-12 space-y-6">
             <ClipboardList className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-lg text-muted-foreground">
               Saisissez et validez le nom du DPS pour commencer l'inventaire.
             </p>
+            <Button
+              onClick={handleValidateDps}
+              disabled={(!dpsName.trim() && interventionType !== "desinfection") || creatingSession}
+              className="cursor-pointer"
+              size="lg"
+            >
+              {creatingSession ? "Création..." : "Valider"}
+            </Button>
           </div>
         )}
 

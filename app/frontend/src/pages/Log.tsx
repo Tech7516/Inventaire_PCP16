@@ -532,7 +532,7 @@ export default function LogPage() {
                                   </p>
                                   <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                                     <span>
-                                      DPS : {entry.dps_name || "—"}
+                                      {entry.intervention_type === "desinfection" ? "Désinfection" : `DPS : ${entry.dps_name || "—"}`}
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Clock className="h-3.5 w-3.5" />
@@ -584,7 +584,7 @@ export default function LogPage() {
                               </p>
                               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                                 <span>
-                                  DPS : {entry.dps_name || "—"}
+                                  {entry.intervention_type === "desinfection" ? "Désinfection" : `DPS : ${entry.dps_name || "—"}`}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Clock className="h-3.5 w-3.5" />

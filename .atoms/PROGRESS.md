@@ -108,6 +108,8 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Bouton Desinfection ajoute sur les lots directs (Lot CAI, Lot V) dans Inventory.tsx
 - [x] Validation renforcee : impossible de valider/enregistrer sans nom DPS ni clic Desinfection
 - [x] Propagation intervention_type dans les logs des lots directs (Inventory.tsx)
+- [x] SubEntities : bouton Valider deplace en bas centre (plus dans le header), renomme de Inventaire vers Valider
+- [x] Journal : afficher Desinfection au lieu de DPS : - quand intervention_type = desinfection
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
