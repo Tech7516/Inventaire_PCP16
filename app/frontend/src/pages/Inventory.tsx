@@ -67,6 +67,7 @@ export default function InventoryPage() {
 
   // DPS name for direct inventory lots (Lot CAI, Lot V)
   const [dpsName, setDpsName] = useState(() => getPref("dps-name") || "");
+  const [interventionType, setInterventionType] = useState<"verification" | "desinfection" | "">("");
 
   // Get the selected lot variant name for display (e.g. "VL Poussin")
   const lotVariantName = (() => {
@@ -253,8 +254,8 @@ export default function InventoryPage() {
     }
 
     // For direct inventory, DPS name is required
-    if (isDirectInventory && !dpsName.trim()) {
-      toast.error("Veuillez saisir le nom du DPS.");
+    if (isDirectInventory && !dpsName.trim() && interventionType !== "desinfection") {
+      toast.error("Veuillez saisir le nom du DPS ou cliquer sur « Désinfection ».");
       return;
     }
 
@@ -406,6 +407,7 @@ export default function InventoryPage() {
           lot_variant_name: lotVariantName,
           sac_type: null,
           dps_name: dpsName.trim(),
+          intervention_type: interventionType || null,
           completed_key: completedKey,
         });
 
@@ -456,7 +458,7 @@ export default function InventoryPage() {
                 </div>
               </div>
             </div>
-            <Button onClick={handleSubmit} disabled={saving} className="cursor-pointer">
+            <Button onClick={handleSubmit} disabled={saving || (isDirectInventory && !dpsName.trim() && interventionType !== "desinfection")} className="cursor-pointer">
               <Save className="h-4 w-4 mr-2" />
               {saving ? "Enregistrement..." : "Enregistrer"}
             </Button>
@@ -479,12 +481,14 @@ export default function InventoryPage() {
         <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* DPS name field for direct inventory lots */}
           {isDirectInventory && (
-            <div className="mb-6 bg-primary/5 rounded-lg px-4 py-3 flex items-center gap-3">
-              <Users className="h-5 w-5 text-primary shrink-0" />
-              <div className="flex-1">
-                <label htmlFor="dps-name-direct" className="block text-sm font-medium text-muted-foreground mb-1">
+            <div className="mb-6 bg-primary/5 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-3 mb-3">
+                <Users className="h-5 w-5 text-primary shrink-0" />
+                <label htmlFor="dps-name-direct" className="text-sm font-medium text-muted-foreground">
                   Nom du DPS
                 </label>
+              </div>
+              <div className="flex items-center gap-3">
                 <Input
                   id="dps-name-direct"
                   type="text"
@@ -493,10 +497,30 @@ export default function InventoryPage() {
                   onChange={(e) => {
                     setDpsName(e.target.value);
                     setPref("dps-name", e.target.value);
+                    if (e.target.value.trim()) {
+                      setInterventionType("verification");
+                    } else if (interventionType === "verification") {
+                      setInterventionType("");
+                    }
                   }}
                   className="max-w-md"
                 />
+                <Button
+                  type="button"
+                  variant={interventionType === "desinfection" ? "default" : "outline"}
+                  onClick={() => {
+                    setInterventionType("desinfection");
+                    setDpsName("");
+                    setPref("dps-name", "");
+                  }}
+                  className="cursor-pointer"
+                >
+                  Désinfection
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Saisissez le nom du DPS pour une vérification, ou cliquez sur « Désinfection » pour une désinfection.
+              </p>
             </div>
           )}
           <div className="space-y-8">

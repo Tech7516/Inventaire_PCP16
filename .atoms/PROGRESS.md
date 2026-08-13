@@ -102,7 +102,12 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Propagation intervention_type dans tous les appels addLogEntryToDb (handleSave) + affichage dans la session active
 - [x] Corriger 429 rate limit : cache singleton preferenceCache.ts (1 seul GET /preferences quel que soit le nombre de composants)
 - [x] Corriger 429 rate limit : backoff exponentiel dans sharedApi/inventoryApi (withRetry sur status 429)
-- [x] Corriger 429 rate limit : debounce écritures POST /preferences (500ms, fusion des writes simultanés)
+- [x] Corriger 429 rate limit : debounce writes POST /preferences (500ms, fusion des writes simultanés)
+- [x] Bouton Desinfection toujours cliquable (supprime disabled quand texte DPS saisi), clic efface automatiquement le champ DPS
+- [x] Bouton Inventaire dans le header SubEntities (remplace ancien bouton Valider dans le corps)
+- [x] Bouton Desinfection ajoute sur les lots directs (Lot CAI, Lot V) dans Inventory.tsx
+- [x] Validation renforcee : impossible de valider/enregistrer sans nom DPS ni clic Desinfection
+- [x] Propagation intervention_type dans les logs des lots directs (Inventory.tsx)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

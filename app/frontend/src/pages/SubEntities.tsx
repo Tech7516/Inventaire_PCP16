@@ -396,7 +396,8 @@ export default function SubEntitiesPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
@@ -435,6 +436,16 @@ export default function SubEntitiesPage() {
                 </p>
               </div>
             </div>
+            </div>
+            {!session && (
+              <Button
+                onClick={handleValidateDps}
+                disabled={(!dpsName.trim() && interventionType !== "desinfection") || creatingSession}
+                className="cursor-pointer shrink-0"
+              >
+                {creatingSession ? "Création..." : "Inventaire"}
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -471,22 +482,12 @@ export default function SubEntitiesPage() {
                     setInterventionType("desinfection");
                     setDpsName("");
                   }}
-                  disabled={!!dpsName.trim()}
                   className="cursor-pointer"
                 >
                   Désinfection
                 </Button>
               </div>
-              <div className="mt-3">
-                <Button
-                  onClick={handleValidateDps}
-                  disabled={(!dpsName.trim() && interventionType !== "desinfection") || creatingSession}
-                  className="cursor-pointer"
-                >
-                  {creatingSession ? "Création..." : "Valider"}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-2">
                 Saisissez le nom du DPS pour une vérification, ou cliquez sur « Désinfection » pour une désinfection.
               </p>
             </div>
