@@ -11,7 +11,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, Pencil, ShieldCheck, Calendar, X } from "lucide-react";
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, Pencil, ShieldCheck, Calendar, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   getLogEntriesFromDb,
   clearLogEntriesFromDb,
@@ -220,6 +226,9 @@ export default function LogPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<InventoryLogData | null>(null);
   const [editMonth, setEditMonth] = useState(""); // "YYYY-MM"
+
+  // Active tab tracking
+  const [activeTab, setActiveTab] = useState("verifications");
 
   // Confirm delete state
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
@@ -445,17 +454,9 @@ export default function LogPage() {
                 <Calendar className="h-3.5 w-3.5" />
                 {formatMonthYear(entry.created_at || "")}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleOpenEditDate(entry)}
-                className="cursor-pointer h-7 w-7 p-0"
-                title="Modifier la date"
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
               {isConfirmDelete ? (
                 <div className="flex items-center gap-1">
+                  <span className="text-xs text-destructive font-medium">Supprimer ?</span>
                   <Button
                     variant="destructive"
                     size="sm"
@@ -474,15 +475,34 @@ export default function LogPage() {
                   </Button>
                 </div>
               ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDeleteConfirmId(entry.id)}
-                  className="cursor-pointer h-7 w-7 p-0 text-destructive hover:text-destructive"
-                  title="Supprimer cette désinfection"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="cursor-pointer h-7 w-7 p-0"
+                      title="Options"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => handleOpenEditDate(entry)}
+                      className="cursor-pointer"
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Modifier la date
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setDeleteConfirmId(entry.id)}
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -517,7 +537,7 @@ export default function LogPage() {
                 </div>
               </div>
             </div>
-            {entries.length > 0 && (
+            {entries.length > 0 && activeTab === "verifications" && (
               <Button
                 variant="outline"
                 size="sm"
@@ -533,7 +553,7 @@ export default function LogPage() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <Tabs defaultValue="verifications" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="verifications" className="cursor-pointer gap-1.5">
               <ScrollText className="h-4 w-4" />

@@ -115,6 +115,9 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal Désinfection : boutons supprimer (avec confirmation Oui/Non) et modifier la date (sélecteur mois-année)
 - [x] Journal Désinfection : compteur sur fenêtre glissante 12 mois (au lieu d'année civile)
 - [x] API frontend : ajout deleteLogEntryFromDb et updateLogEntryDateFromDb dans inventory-api.ts
+- [x] Journal Désinfection : bouton ✕ remplacé par menu ⋮ (Modifier la date / Supprimer) pour éviter clics accidentels
+- [x] Journal Désinfection : option "Modifier la date" dans le menu déroulant
+- [x] Journal Désinfection : bouton "Effacer le journal" supprimé de l'onglet Désinfection (visible uniquement sur Vérifications)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
