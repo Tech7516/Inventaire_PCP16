@@ -10,6 +10,7 @@ export interface SessionData {
   lot_id: string;
   variant_id: string | null;
   dps_name: string;
+  intervention_type: string | null;
   status: string | null;
   completed_at: string | null;
   created_at: string | null;
@@ -89,13 +90,15 @@ export async function getAllActiveSessions(): Promise<SessionData[]> {
 export async function createSession(
   lotId: string,
   dpsName: string,
-  variantId?: string | null
+  variantId?: string | null,
+  interventionType?: string | null
 ): Promise<SessionData> {
   try {
     return await inventoryApi<SessionData>("POST", "/create-session", {
       lot_id: lotId,
       dps_name: dpsName,
       variant_id: variantId || null,
+      intervention_type: interventionType || null,
     });
   } catch (e: any) {
     // Re-throw with meaningful message
@@ -203,6 +206,7 @@ export interface InventoryLogData {
   lot_variant_name: string | null;
   sac_type: string | null;
   dps_name: string;
+  intervention_type: string | null;
   completed_key: string;
   created_at: string | null;
 }
@@ -215,6 +219,7 @@ export async function addLogEntryToDb(entry: {
   lot_variant_name?: string | null;
   sac_type?: string | null;
   dps_name: string;
+  intervention_type?: string | null;
   completed_key: string;
 }): Promise<InventoryLogData> {
   return await sharedApi<InventoryLogData>("POST", "/logs", {
@@ -225,6 +230,7 @@ export async function addLogEntryToDb(entry: {
     lot_variant_name: entry.lot_variant_name || null,
     sac_type: entry.sac_type || null,
     dps_name: entry.dps_name,
+    intervention_type: entry.intervention_type || null,
     completed_key: entry.completed_key,
   });
 }

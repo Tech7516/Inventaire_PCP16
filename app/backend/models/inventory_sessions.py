@@ -11,6 +11,7 @@ class Inventory_sessions(Base):
     lot_id = Column(String, index=True, nullable=False)
     variant_id = Column(String, index=True, nullable=True)
     dps_name = Column(String, nullable=False)
+    intervention_type = Column(String, nullable=True)
     status = Column(String, nullable=True)
     completed_at = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.now)

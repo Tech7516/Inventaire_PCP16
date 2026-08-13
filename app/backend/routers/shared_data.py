@@ -35,6 +35,7 @@ class InventoryLogResponse(BaseModel):
     lot_variant_name: Optional[str] = None
     sac_type: Optional[str] = None
     dps_name: str
+    intervention_type: Optional[str] = None
     completed_key: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -51,6 +52,7 @@ class AddLogEntryRequest(BaseModel):
     lot_variant_name: Optional[str] = None
     sac_type: Optional[str] = None
     dps_name: str
+    intervention_type: Optional[str] = None
     completed_key: str
 
 
@@ -135,6 +137,7 @@ async def add_log_entry(data: AddLogEntryRequest, db: AsyncSession = Depends(get
             existing_entry.lot_variant_name = data.lot_variant_name
             existing_entry.sac_type = data.sac_type
             existing_entry.dps_name = data.dps_name
+            existing_entry.intervention_type = data.intervention_type
             await db.commit()
             await db.refresh(existing_entry)
             return existing_entry
@@ -147,6 +150,7 @@ async def add_log_entry(data: AddLogEntryRequest, db: AsyncSession = Depends(get
             lot_variant_name=data.lot_variant_name,
             sac_type=data.sac_type,
             dps_name=data.dps_name,
+            intervention_type=data.intervention_type,
             completed_key=data.completed_key,
         )
         db.add(entry)

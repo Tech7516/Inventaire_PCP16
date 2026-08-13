@@ -25,12 +25,14 @@ class CreateSessionRequest(BaseModel):
     lot_id: str
     variant_id: Optional[str] = None
     dps_name: str
+    intervention_type: Optional[str] = None
 
 class SessionResponse(BaseModel):
     id: int
     lot_id: str
     variant_id: Optional[str] = None
     dps_name: str
+    intervention_type: Optional[str] = None
     status: Optional[str] = None
     completed_at: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -150,6 +152,7 @@ async def create_session(data: CreateSessionRequest, db: AsyncSession = Depends(
             lot_id=data.lot_id,
             variant_id=data.variant_id,
             dps_name=data.dps_name,
+            intervention_type=data.intervention_type,
             status="active",
         )
         db.add(session)

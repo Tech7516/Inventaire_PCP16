@@ -15,6 +15,7 @@ class Inventory_logs(Base):
     lot_variant_name = Column(String, nullable=True)
     sac_type = Column(String, nullable=True)
     dps_name = Column(String, nullable=False)
+    intervention_type = Column(String, nullable=True)
     completed_key = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.now)
     updated_at = Column(DateTime(timezone=True), default=datetime.now, onupdate=datetime.now)

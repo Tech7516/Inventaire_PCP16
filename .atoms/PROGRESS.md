@@ -98,6 +98,8 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal : bouton édition (Pencil) par variante (Lot B, Lot C, Lot V, groupes centralisés)
 - [x] Journal : Lot V affiche 2 boutons rapport (Poussin + Passy) au lieu d'un seul
 - [x] Report.tsx : mode édition (mode=edit) avec quantités modifiables, bouton Sauvegarder, sauvegarde BDD
+- [x] Ajout sélecteur obligatoire Désinfection vs Vérification de matériel (DPS) à côté du champ Nom du DPS, bloquant la création de session tant que non sélectionné
+- [x] Propagation intervention_type dans tous les appels addLogEntryToDb (handleSave) + affichage dans la session active
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
