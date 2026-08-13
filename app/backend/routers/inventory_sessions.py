@@ -20,9 +20,10 @@ router = APIRouter(prefix="/api/v1/entities/inventory_sessions", tags=["inventor
 # ---------- Pydantic Schemas ----------
 class Inventory_sessionsData(BaseModel):
     """Entity data schema (for create/update)"""
-    lot_id: str
+    lot_id: str = None
     variant_id: str = None
-    dps_name: str
+    dps_name: str = None
+    intervention_type: str = None
     status: str = None
     completed_at: str = None
 
@@ -32,6 +33,7 @@ class Inventory_sessionsUpdateData(BaseModel):
     lot_id: Optional[str] = None
     variant_id: Optional[str] = None
     dps_name: Optional[str] = None
+    intervention_type: Optional[str] = None
     status: Optional[str] = None
     completed_at: Optional[str] = None
 
@@ -39,9 +41,10 @@ class Inventory_sessionsUpdateData(BaseModel):
 class Inventory_sessionsResponse(BaseModel):
     """Entity response schema"""
     id: int
-    lot_id: str
+    lot_id: Optional[str] = None
     variant_id: Optional[str] = None
-    dps_name: str
+    dps_name: Optional[str] = None
+    intervention_type: Optional[str] = None
     status: Optional[str] = None
     completed_at: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -161,23 +164,25 @@ async def query_inventory_sessionss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}")
+@router.get("/{id}", response_model=Inventory_sessionsResponse)
 async def get_inventory_sessions(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single inventory_sessions by ID - returns null instead of 404 for SDK compatibility"""
+    """Get a single inventory_sessions by ID"""
     logger.debug(f"Fetching inventory_sessions with id: {id}, fields={fields}")
     
     service = Inventory_sessionsService(db)
     try:
         result = await service.get_by_id(id)
         if not result:
-            logger.debug(f"Inventory_sessions with id {id} not found - returning null for SDK compatibility")
-            return None
+            logger.warning(f"Inventory_sessions with id {id} not found")
+            raise HTTPException(status_code=404, detail="Inventory_sessions not found")
         
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching inventory_sessions {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

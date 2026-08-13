@@ -20,14 +20,15 @@ router = APIRouter(prefix="/api/v1/entities/inventory_logs", tags=["inventory_lo
 # ---------- Pydantic Schemas ----------
 class Inventory_logsData(BaseModel):
     """Entity data schema (for create/update)"""
-    lot_id: str
-    lot_name: str
-    sub_entity_name: str
+    lot_id: str = None
+    lot_name: str = None
+    sub_entity_name: str = None
     variant_name: str = None
     lot_variant_name: str = None
     sac_type: str = None
-    dps_name: str
-    completed_key: str
+    dps_name: str = None
+    intervention_type: str = None
+    completed_key: str = None
 
 
 class Inventory_logsUpdateData(BaseModel):
@@ -39,20 +40,22 @@ class Inventory_logsUpdateData(BaseModel):
     lot_variant_name: Optional[str] = None
     sac_type: Optional[str] = None
     dps_name: Optional[str] = None
+    intervention_type: Optional[str] = None
     completed_key: Optional[str] = None
 
 
 class Inventory_logsResponse(BaseModel):
     """Entity response schema"""
     id: int
-    lot_id: str
-    lot_name: str
-    sub_entity_name: str
+    lot_id: Optional[str] = None
+    lot_name: Optional[str] = None
+    sub_entity_name: Optional[str] = None
     variant_name: Optional[str] = None
     lot_variant_name: Optional[str] = None
     sac_type: Optional[str] = None
-    dps_name: str
-    completed_key: str
+    dps_name: Optional[str] = None
+    intervention_type: Optional[str] = None
+    completed_key: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -170,23 +173,25 @@ async def query_inventory_logss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}")
+@router.get("/{id}", response_model=Inventory_logsResponse)
 async def get_inventory_logs(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single inventory_logs by ID — returns null instead of 404 for SDK internal sync compatibility"""
+    """Get a single inventory_logs by ID"""
     logger.debug(f"Fetching inventory_logs with id: {id}, fields={fields}")
     
     service = Inventory_logsService(db)
     try:
         result = await service.get_by_id(id)
         if not result:
-            logger.debug(f"Inventory_logs with id {id} not found — returning null for SDK compatibility")
-            return None
+            logger.warning(f"Inventory_logs with id {id} not found")
+            raise HTTPException(status_code=404, detail="Inventory_logs not found")
         
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching inventory_logs {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
