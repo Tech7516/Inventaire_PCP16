@@ -110,6 +110,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Propagation intervention_type dans les logs des lots directs (Inventory.tsx)
 - [x] SubEntities : bouton Valider deplace en bas centre (plus dans le header), renomme de Inventaire vers Valider
 - [x] Journal : afficher Desinfection au lieu de DPS : - quand intervention_type = desinfection
+- [x] Journal : 2e onglet Desinfection avec historique complet (pas de dedup), compteur N/3 par an, groupes lot+variante uniquement
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
