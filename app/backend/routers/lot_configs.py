@@ -152,25 +152,23 @@ async def query_lot_configss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}", response_model=Lot_configsResponse)
+@router.get("/{id}")
 async def get_lot_configs(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single lot_configs by ID"""
+    """Get a single lot_configs by ID - returns null instead of 404 for SDK compatibility"""
     logger.debug(f"Fetching lot_configs with id: {id}, fields={fields}")
     
     service = Lot_configsService(db)
     try:
         result = await service.get_by_id(id)
         if not result:
-            logger.warning(f"Lot_configs with id {id} not found")
-            raise HTTPException(status_code=404, detail="Lot_configs not found")
+            logger.debug(f"Lot_configs with id {id} not found - returning null for SDK compatibility")
+            return None
         
         return result
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error fetching lot_configs {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

@@ -152,25 +152,23 @@ async def query_app_preferencess_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}", response_model=App_preferencesResponse)
+@router.get("/{id}")
 async def get_app_preferences(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single app_preferences by ID"""
+    """Get a single app_preferences by ID - returns null instead of 404 for SDK compatibility"""
     logger.debug(f"Fetching app_preferences with id: {id}, fields={fields}")
     
     service = App_preferencesService(db)
     try:
         result = await service.get_by_id(id)
         if not result:
-            logger.warning(f"App_preferences with id {id} not found")
-            raise HTTPException(status_code=404, detail="App_preferences not found")
+            logger.debug(f"App_preferences with id {id} not found - returning null for SDK compatibility")
+            return None
         
         return result
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error fetching app_preferences {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

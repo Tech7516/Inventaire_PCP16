@@ -173,25 +173,23 @@ async def query_discrepancy_reportss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}", response_model=Discrepancy_reportsResponse)
+@router.get("/{id}")
 async def get_discrepancy_reports(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single discrepancy_reports by ID"""
+    """Get a single discrepancy_reports by ID — returns null instead of 404 for SDK compatibility"""
     logger.debug(f"Fetching discrepancy_reports with id: {id}, fields={fields}")
     
     service = Discrepancy_reportsService(db)
     try:
         result = await service.get_by_id(id)
         if not result:
-            logger.warning(f"Discrepancy_reports with id {id} not found")
-            raise HTTPException(status_code=404, detail="Discrepancy_reports not found")
+            logger.debug(f"Discrepancy_reports with id {id} not found — returning null for SDK compatibility")
+            return None
         
         return result
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error fetching discrepancy_reports {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

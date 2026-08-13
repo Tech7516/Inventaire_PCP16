@@ -161,25 +161,23 @@ async def query_sub_entity_checkss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}", response_model=Sub_entity_checksResponse)
+@router.get("/{id}")
 async def get_sub_entity_checks(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single sub_entity_checks by ID"""
+    """Get a single sub_entity_checks by ID - returns null instead of 404 for SDK compatibility"""
     logger.debug(f"Fetching sub_entity_checks with id: {id}, fields={fields}")
     
     service = Sub_entity_checksService(db)
     try:
         result = await service.get_by_id(id)
         if not result:
-            logger.warning(f"Sub_entity_checks with id {id} not found")
-            raise HTTPException(status_code=404, detail="Sub_entity_checks not found")
+            logger.debug(f"Sub_entity_checks with id {id} not found - returning null for SDK compatibility")
+            return None
         
         return result
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error fetching sub_entity_checks {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

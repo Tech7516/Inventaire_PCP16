@@ -170,25 +170,23 @@ async def query_inventory_itemss_all(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@router.get("/{id}", response_model=Inventory_itemsResponse)
+@router.get("/{id}")
 async def get_inventory_items(
     id: int,
     fields: str = Query(None, description="Comma-separated list of fields to return"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get a single inventory_items by ID"""
+    """Get a single inventory_items by ID - returns null instead of 404 for SDK compatibility"""
     logger.debug(f"Fetching inventory_items with id: {id}, fields={fields}")
     
     service = Inventory_itemsService(db)
     try:
         result = await service.get_by_id(id)
         if not result:
-            logger.warning(f"Inventory_items with id {id} not found")
-            raise HTTPException(status_code=404, detail="Inventory_items not found")
+            logger.debug(f"Inventory_items with id {id} not found - returning null for SDK compatibility")
+            return None
         
         return result
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error fetching inventory_items {id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
