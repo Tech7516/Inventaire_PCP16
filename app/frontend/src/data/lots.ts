@@ -23,7 +23,7 @@ export interface SubEntity {
   name: string;
   description: string;
   variants?: SubEntityVariant[];
-  inventoryType?: "standard" | "lot-b";
+  inventoryType?: "standard" | "lot-b" | "dsa";
 }
 
 export interface ConsumableItem {
@@ -117,6 +117,13 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
     { id: "caisse-1", name: "Caisse 1/2", description: "" },
     { id: "caisse-2", name: "Caisse 2/2", description: "" },
     { id: "materiel-comp", name: "Matériel complémentaire", description: "" },
+    {
+      id: "dsa-a",
+      name: "DSA",
+      description: "Défibrillateur semi-automatique",
+      inventoryType: "dsa",
+      variants: dsaVariants,
+    },
   ],
   "lot-003": [
     {
@@ -147,6 +154,13 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
         { id: "bravo", name: "Caisse Bravo" },
       ],
     },
+    {
+      id: "dsa-c",
+      name: "DSA",
+      description: "Défibrillateur semi-automatique",
+      inventoryType: "dsa",
+      variants: dsaVariants,
+    },
   ],
   "lot-vps": [
     { id: "vps-cellule-avant", name: "Cellule avant", description: "" },
@@ -162,6 +176,13 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
         { id: "auteuil", name: "Lot B Auteuil" },
         { id: "neuilly", name: "Lot B Neuilly" },
       ],
+    },
+    {
+      id: "dsa-v",
+      name: "DSA",
+      description: "Défibrillateur semi-automatique",
+      inventoryType: "dsa",
+      variants: dsaVariants,
     },
   ],
 };
@@ -500,9 +521,60 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
         { id: "lb-dsa-003", name: "Électrodes DSA Pédiatrique", expectedQuantity: 1 },
         { id: "lb-dsa-004", name: "Jesco", expectedQuantity: 1 },
         { id: "lb-dsa-005", name: "Chiffon absorbant", expectedQuantity: 1 },
-        { id: "lb-dsa-006", name: "Câble DSA", expectedQuantity: 1 },
+        { id: "lb-dsa-006", name: "Cahier DSA", expectedQuantity: 1 },
         { id: "lb-dsa-007", name: "Rasoir", expectedQuantity: 2 },
         { id: "lb-dsa-008", name: "Batterie (dont 1 pré-branchée)", expectedQuantity: 2 },
+      ],
+    },
+  ],
+  // Lot A — DSA
+  "dsa-a": [
+    {
+      id: "dsa-a-content",
+      title: "DSA",
+      items: [
+        { id: "dsa-a-001", name: "DSA", expectedQuantity: 1 },
+        { id: "dsa-a-002", name: "Électrodes DSA Adulte", expectedQuantity: 2 },
+        { id: "dsa-a-003", name: "Électrodes DSA Pédiatrique", expectedQuantity: 1 },
+        { id: "dsa-a-004", name: "Jesco", expectedQuantity: 1 },
+        { id: "dsa-a-005", name: "Chiffon absorbant", expectedQuantity: 1 },
+        { id: "dsa-a-006", name: "Cahier DSA", expectedQuantity: 1 },
+        { id: "dsa-a-007", name: "Rasoir", expectedQuantity: 2 },
+        { id: "dsa-a-008", name: "Batterie (dont 1 pré-branchée)", expectedQuantity: 2 },
+      ],
+    },
+  ],
+  // Lot C — DSA
+  "dsa-c": [
+    {
+      id: "dsa-c-content",
+      title: "DSA",
+      items: [
+        { id: "dsa-c-001", name: "DSA", expectedQuantity: 1 },
+        { id: "dsa-c-002", name: "Électrodes DSA Adulte", expectedQuantity: 2 },
+        { id: "dsa-c-003", name: "Électrodes DSA Pédiatrique", expectedQuantity: 1 },
+        { id: "dsa-c-004", name: "Jesco", expectedQuantity: 1 },
+        { id: "dsa-c-005", name: "Chiffon absorbant", expectedQuantity: 1 },
+        { id: "dsa-c-006", name: "Cahier DSA", expectedQuantity: 1 },
+        { id: "dsa-c-007", name: "Rasoir", expectedQuantity: 2 },
+        { id: "dsa-c-008", name: "Batterie (dont 1 pré-branchée)", expectedQuantity: 2 },
+      ],
+    },
+  ],
+  // Lot V — DSA
+  "dsa-v": [
+    {
+      id: "dsa-v-content",
+      title: "DSA",
+      items: [
+        { id: "dsa-v-001", name: "DSA", expectedQuantity: 1 },
+        { id: "dsa-v-002", name: "Électrodes DSA Adulte", expectedQuantity: 2 },
+        { id: "dsa-v-003", name: "Électrodes DSA Pédiatrique", expectedQuantity: 1 },
+        { id: "dsa-v-004", name: "Jesco", expectedQuantity: 1 },
+        { id: "dsa-v-005", name: "Chiffon absorbant", expectedQuantity: 1 },
+        { id: "dsa-v-006", name: "Cahier DSA", expectedQuantity: 1 },
+        { id: "dsa-v-007", name: "Rasoir", expectedQuantity: 2 },
+        { id: "dsa-v-008", name: "Batterie (dont 1 pré-branchée)", expectedQuantity: 2 },
       ],
     },
   ],

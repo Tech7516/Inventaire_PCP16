@@ -85,11 +85,18 @@ interface LogGroup {
   matchFn: (entry: InventoryLogData) => boolean;
 }
 
-// Helper: detect if an entry is a Lot B entry (regardless of parent lot)
+// Helper: detect if an entry is a DSA entry
+const isDsaEntry = (e: InventoryLogData): boolean =>
+  e.sac_type === "dsa" ||
+  e.sub_entity_name === "DSA" ||
+  (e.completed_key?.includes("dsa") && !!e.sac_type);
+
+// Helper: detect if an entry is a Lot B entry (regardless of parent lot), excluding DSA
 const isLotBEntry = (e: InventoryLogData): boolean =>
-  e.lot_id === "lot-b" ||
+  !isDsaEntry(e) &&
+  (e.lot_id === "lot-b" ||
   e.sub_entity_name === "Lot B" ||
-  (e.completed_key?.includes("lot-b") && !!e.sac_type);
+  (e.completed_key?.includes("lot-b") && !!e.sac_type));
 
 // The 4 Lot B variants (always shown in the report section)
 const LOT_B_VARIANTS = [
@@ -178,6 +185,34 @@ const LOG_GROUPS: LogGroup[] = [
     label: "Lot CAI",
     reportKey: "lot-cai-central",
     matchFn: (e) => e.lot_id === "lot-cai",
+  },
+];
+
+// --- DSA et AMS groups ---
+const DSA_GROUPS: LogGroup[] = [
+  {
+    key: "dsa-lot-a",
+    label: "DSA — Lot A",
+    reportKey: null,
+    matchFn: (e) => isDsaEntry(e) && e.lot_id === "lot-001",
+  },
+  {
+    key: "dsa-lot-b",
+    label: "DSA — Lot B",
+    reportKey: null,
+    matchFn: (e) => isDsaEntry(e) && (e.lot_id === "lot-b" || e.completed_key?.includes("lot-b")),
+  },
+  {
+    key: "dsa-lot-c",
+    label: "DSA — Lot C",
+    reportKey: null,
+    matchFn: (e) => isDsaEntry(e) && e.lot_id === "lot-003",
+  },
+  {
+    key: "dsa-lot-v",
+    label: "DSA — Lot V",
+    reportKey: null,
+    matchFn: (e) => isDsaEntry(e) && e.lot_id === "lot-vps",
   },
 ];
 
@@ -343,6 +378,42 @@ export default function LogPage() {
     );
   })();
   groupedEntries["lot-b"] = dedupedLotB;
+
+  // --- DSA entries grouping ---
+  const dsaEntries = useMemo(
+    () => entries.filter(isDsaEntry),
+    [entries]
+  );
+
+  const dsaGrouped = useMemo(() => {
+    const groups: Record<string, InventoryLogData[]> = {};
+    DSA_GROUPS.forEach((g) => {
+      groups[g.key] = [];
+    });
+    groups["other"] = [];
+
+    dsaEntries.forEach((entry) => {
+      let matched = false;
+      for (const group of DSA_GROUPS) {
+        if (group.matchFn(entry)) {
+          groups[group.key].push(entry);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        groups["other"].push(entry);
+      }
+    });
+
+    Object.keys(groups).forEach((key) => {
+      groups[key].sort(
+        (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
+      );
+    });
+
+    return groups;
+  }, [dsaEntries]);
 
   const getLotBVariantNames = (groupEntries: InventoryLogData[]): string[] => {
     const variants = new Set<string>();
@@ -562,6 +633,10 @@ export default function LogPage() {
             <TabsTrigger value="desinfection" className="cursor-pointer gap-1.5">
               <ShieldCheck className="h-4 w-4" />
               Désinfection
+            </TabsTrigger>
+            <TabsTrigger value="dsa-ams" className="cursor-pointer gap-1.5">
+              <FileText className="h-4 w-4" />
+              DSA et AMS
             </TabsTrigger>
           </TabsList>
 
@@ -838,6 +913,114 @@ export default function LogPage() {
                     {desinfectionGrouped["other"].map((entry, idx) =>
                       renderDesinfectionEntry(entry, idx, desinfectionGrouped["other"].length)
                     )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ===== Onglet DSA et AMS ===== */}
+          <TabsContent value="dsa-ams">
+            <div className="space-y-8">
+              {DSA_GROUPS.map((group) => {
+                const groupEntries = dsaGrouped[group.key] || [];
+                const hasEntries = groupEntries.length > 0;
+
+                return (
+                  <div key={group.key}>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-blue-500" />
+                        {group.label}
+                      </h2>
+                      {hasEntries && (
+                        <span className="text-sm text-muted-foreground">
+                          {groupEntries.length} vérification{groupEntries.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+
+                    {hasEntries ? (
+                      <div className="space-y-2">
+                        {groupEntries.map((entry) => {
+                          const subLabel = entry.sub_entity_name;
+                          const variantLabel = entry.variant_name;
+                          const detailParts: string[] = ["Cahier DSA"];
+                          if (subLabel) detailParts.push(subLabel);
+                          if (variantLabel) detailParts.push(variantLabel);
+                          const detailLine = detailParts.join(" — ");
+
+                          return (
+                            <Card key={entry.id} className="transition-all">
+                              <CardContent className="py-3">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-foreground">
+                                      {detailLine}
+                                    </p>
+                                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                      <span>
+                                        DPS : {entry.dps_name || "—"}
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5" />
+                                        {formatDateTime(entry.created_at || "")}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic py-2">
+                        Aucune vérification DSA enregistrée
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
+              {dsaGrouped["other"] && dsaGrouped["other"].length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
+                    Autres DSA
+                  </h2>
+                  <div className="space-y-2">
+                    {dsaGrouped["other"].map((entry) => {
+                      const subLabel = entry.sub_entity_name;
+                      const variantLabel = entry.variant_name;
+                      const detailParts: string[] = ["Cahier DSA"];
+                      if (subLabel) detailParts.push(subLabel);
+                      if (variantLabel) detailParts.push(variantLabel);
+                      const detailLine = detailParts.join(" — ");
+
+                      return (
+                        <Card key={entry.id} className="transition-all">
+                          <CardContent className="py-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-foreground">
+                                  {detailLine}
+                                </p>
+                                <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                  <span>
+                                    DPS : {entry.dps_name || "—"}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    {formatDateTime(entry.created_at || "")}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               )}

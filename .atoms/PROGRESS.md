@@ -126,6 +126,12 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Logging DSA dans handleSave — multi-instances Lot B dans Lot A (instanceKey, completed_key avec idx)
 - [x] Anti-doublon DSA validé — getUsedDsaVariants exclut la variante courante, désactive les options déjà prises par d'autres instances
 - [x] configStore.ts charge section DSA pour lot-b — corrige "Aucun article défini…" sur Inventory.tsx
+- [x] DSA : correction libellé "Câble DSA" → "Cahier DSA" dans lots.ts
+- [x] DSA : tuiles DSA Lot A/C/V (inventoryType "dsa") avec sections consommables dsa-a, dsa-c, dsa-v
+- [x] DSA : bouton "Vérifier le DSA" dans SubEntities.tsx pour inventoryType "dsa"
+- [x] DSA : sélecteur variante DSA (libellé + placeholder adaptés) dans SubEntities.tsx
+- [x] DSA : journal "DSA et AMS" séparé de Lot B — onglet dédié, groupes DSA Lot A/B/C/V, isDsaEntry exclue de isLotBEntry
+- [x] DSA : configStore.ts charge sections DSA pour inventoryType "dsa" (dsa-a, dsa-c, dsa-v via staticSections)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

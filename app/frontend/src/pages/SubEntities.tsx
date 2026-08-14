@@ -750,14 +750,14 @@ export default function SubEntitiesPage() {
                     {hasVariants && (
                       <div className="space-y-1">
                         <label className="text-sm font-medium text-muted-foreground">
-                          {sub.inventoryType === "lot-b" ? "Choix du lot B :" : `Choix du ${sub.name.toLowerCase()} :`}
+                          {sub.inventoryType === "lot-b" ? "Choix du lot B :" : sub.inventoryType === "dsa" ? "Variante DSA :" : `Choix du ${sub.name.toLowerCase()} :`}
                         </label>
                         <Select
                           value={selectedVariant || ""}
                           onValueChange={(value) => persistVariant(sub.id, value)}
                         >
                           <SelectTrigger className="w-full cursor-pointer">
-                            <SelectValue placeholder={`Choisir ${sub.inventoryType === "lot-b" ? "un lot B" : `un ${sub.name.toLowerCase()}`}...`} />
+                            <SelectValue placeholder={`Choisir ${sub.inventoryType === "lot-b" ? "un lot B" : sub.inventoryType === "dsa" ? "une variante DSA" : `un ${sub.name.toLowerCase()}`}...`} />
                           </SelectTrigger>
                           <SelectContent>
                             {sub.variants!.map((variant) => (
@@ -848,6 +848,22 @@ export default function SubEntitiesPage() {
                             Vérifier le DSA
                           </Button>
                         </>
+                      ) : hasVariants && sub.inventoryType === "dsa" ? (
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}?session=${session.id}`);
+                            }
+                          }}
+                        >
+                          {isSubChecked(sub.id, selectedVariant) && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier le DSA
+                        </Button>
                       ) : hasVariants ? (
                         <Button
                           className="w-full cursor-pointer"
