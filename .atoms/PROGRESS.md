@@ -120,6 +120,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal Désinfection : bouton "Effacer le journal" supprimé de l'onglet Désinfection (visible uniquement sur Vérifications)
 - [x] Bug champ DPS bloqué : retiré getPref des deps du useEffect d'initialisation (empêchait la modification du champ DPS)
 - [x] Journal Vérifications : supprimé les boutons crayon (Pencil) "Modifier le rapport" à côté de chaque groupe (Lot A, Lot B, Lot C, Lot V, VPS, Lot CAI)
+- [x] Lot A : multi-instances Lot B — bouton "+" pour ajouter plusieurs tuiles Lot B, anti-doublon de variante (même variante désactivée dans les autres tuiles), persistance cloud, logging multi-instance au save
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

@@ -11,8 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { loadLotConfig } from "@/lib/configStore";
-import type { Lot, SubEntity, ConsumableSection } from "@/data/lots";
-import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users } from "lucide-react";
+import type { Lot, SubEntity, SubEntityVariant, ConsumableSection } from "@/data/lots";
+import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   getActiveSession,
@@ -49,6 +49,9 @@ export default function SubEntitiesPage() {
 
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
+  // Multiple Lot B instances for Lot A (gros postes de secours)
+  const [lotBInstances, setLotBInstances] = useState<number[]>([0]);
+
   // Load preferences from cloud on mount (only once per lotId change)
   // NOTE: getPref/setPref are intentionally excluded from deps — we only want
   // to initialize dpsName and variants on mount, not overwrite user input on
@@ -82,7 +85,7 @@ export default function SubEntitiesPage() {
         if (lotId === "lot-001") {
           const lotAVariant = parsed["lot-001"];
           if (lotAVariant && (lotAVariant === "alpha" || lotAVariant === "bravo" || lotAVariant === "auteuil" || lotAVariant === "neuilly")) {
-            initial["lot-b"] = lotAVariant;
+            initial["lot-b-0"] = lotAVariant;
           }
         }
       } catch { /* ignore */ }
@@ -91,8 +94,28 @@ export default function SubEntitiesPage() {
     if (Object.keys(initial).length > 0) {
       setPref("selected-variants", JSON.stringify(initial));
     }
+
+    // Load Lot B instances for Lot A
+    if (lotId === "lot-001") {
+      const lotBInstRaw = getPref("lot-b-instances");
+      if (lotBInstRaw) {
+        try {
+          const parsed = JSON.parse(lotBInstRaw) as number[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLotBInstances(parsed);
+          }
+        } catch { /* ignore */ }
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lotId]);
+
+  // Persist Lot B instances to cloud preferences
+  useEffect(() => {
+    if (lotId === "lot-001" && lotBInstances.length > 0) {
+      setPref("lot-b-instances", JSON.stringify(lotBInstances));
+    }
+  }, [lotBInstances, lotId, setPref]);
 
   // Load lot config from DB (configStore) on mount
   useEffect(() => {
@@ -240,6 +263,9 @@ export default function SubEntitiesPage() {
 
       const logPromises: Promise<any>[] = [];
       subEntities.forEach((sub) => {
+        // Skip lot-b sub-entity for Lot A (handled separately as multi-instance)
+        if (lotId === "lot-001" && sub.id === "lot-b") return;
+
         const hasVariants = sub.variants && sub.variants.length > 0;
         const selectedVariant = selectedVariants[sub.id];
 
@@ -321,6 +347,49 @@ export default function SubEntitiesPage() {
         }
       });
 
+      // Log Lot B instances for Lot A (multi-instance)
+      if (lotId === "lot-001") {
+        const lotBSubDef = subEntities.find((s) => s.id === "lot-b");
+        lotBInstances.forEach((idx, arrIndex) => {
+          const instanceKey = `lot-b-${idx}`;
+          const variantId = selectedVariants[instanceKey];
+          if (!variantId) return;
+          const soinCheck = checks.find(
+            (c) => c.sub_entity_id === "lot-b" && c.variant_id === variantId && c.sac_type === "soin"
+          );
+          const o2Check = checks.find(
+            (c) => c.sub_entity_id === "lot-b" && c.variant_id === variantId && c.sac_type === "o2"
+          );
+          const variantObj = lotBSubDef?.variants?.find((v) => v.id === variantId);
+          if (soinCheck) {
+            logPromises.push(addLogEntryToDb({
+              lot_id: "lot-b",
+              lot_name: "Lot B",
+              sub_entity_name: `Lot B #${arrIndex + 1}`,
+              variant_name: variantObj?.name || null,
+              lot_variant_name: null,
+              sac_type: "soin",
+              dps_name: dpsNameValue,
+              intervention_type: session.intervention_type || interventionType || null,
+              completed_key: `lot-b-${idx}-${variantId}-soin`,
+            }));
+          }
+          if (o2Check) {
+            logPromises.push(addLogEntryToDb({
+              lot_id: "lot-b",
+              lot_name: "Lot B",
+              sub_entity_name: `Lot B #${arrIndex + 1}`,
+              variant_name: variantObj?.name || null,
+              lot_variant_name: null,
+              sac_type: "o2",
+              dps_name: dpsNameValue,
+              intervention_type: session.intervention_type || interventionType || null,
+              completed_key: `lot-b-${idx}-${variantId}-o2`,
+            }));
+          }
+        });
+      }
+
       await Promise.all(logPromises);
 
       // Clear session state (cloud preferences)
@@ -394,6 +463,35 @@ export default function SubEntitiesPage() {
     const variantId = selectedVariants[subId];
     if (!variantId) return false;
     return isSubChecked(subId, variantId);
+  };
+
+  // Lot A: multiple Lot B instances support (gros postes de secours)
+  const isLotA = lotId === "lot-001";
+  const lotBSub = isLotA ? subEntities.find((s) => s.id === "lot-b") : null;
+  const otherSubs = isLotA ? subEntities.filter((s) => s.id !== "lot-b") : subEntities;
+
+  // Get already-used variant IDs across all Lot B instances (excluding a specific instance)
+  const getUsedLotBVariants = (excludeIdx?: number): Set<string> => {
+    const used = new Set<string>();
+    lotBInstances.forEach((i) => {
+      if (i === excludeIdx) return;
+      const v = selectedVariants[`lot-b-${i}`];
+      if (v) used.add(v);
+    });
+    return used;
+  };
+
+  // Check if a specific Lot B instance is complete
+  const isLotBInstanceComplete = (idx: number): boolean => {
+    const variantId = selectedVariants[`lot-b-${idx}`];
+    if (!variantId) return false;
+    return isSubChecked("lot-b", variantId, "soin") && isSubChecked("lot-b", variantId, "o2");
+  };
+
+  // Check if all Lot B instances are complete (for Lot A)
+  const areAllLotBComplete = (): boolean => {
+    if (!isLotA || !lotBSub) return true;
+    return lotBInstances.every((idx) => isLotBInstanceComplete(idx));
   };
 
   return (
@@ -524,7 +622,7 @@ export default function SubEntitiesPage() {
         {/* Sub-entities grid — only visible when session is active */}
         {session && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {subEntities.map((sub) => {
+            {(isLotA ? otherSubs : subEntities).map((sub) => {
               const sections = configSections[sub.id] || [];
               const itemCount = sections.reduce(
                 (total, section) => total + section.items.length,
@@ -656,6 +754,141 @@ export default function SubEntitiesPage() {
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {/* Lot A — Multiple Lot B instances (gros postes de secours) */}
+        {session && isLotA && lotBSub && (
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">
+                Gros postes de secours (Lot B)
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLotBInstances((prev) => [...prev, prev.length > 0 ? Math.max(...prev) + 1 : 0]);
+                }}
+                disabled={lotBInstances.length >= (lotBSub.variants?.length || 0)}
+                className="cursor-pointer"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Ajouter un Lot B
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {lotBInstances.map((idx, arrIndex) => {
+                const instanceKey = `lot-b-${idx}`;
+                const selectedVariant = selectedVariants[instanceKey];
+                const usedVariants = getUsedLotBVariants(idx);
+                const isCompleted = isLotBInstanceComplete(idx);
+
+                return (
+                  <Card
+                    key={idx}
+                    className={`group transition-all duration-200 hover:shadow-md ${
+                      isCompleted ? "border-emerald-300 bg-emerald-50/30" : "hover:border-primary/30"
+                    }`}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-lg font-semibold text-foreground">
+                          Lot B #{arrIndex + 1}
+                        </CardTitle>
+                        <div className="flex items-center gap-1">
+                          {isCompleted && (
+                            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                          )}
+                          {lotBInstances.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                setLotBInstances((prev) => prev.filter((i) => i !== idx));
+                                setSelectedVariants((prev) => {
+                                  const next = { ...prev };
+                                  delete next[instanceKey];
+                                  setPref("selected-variants", JSON.stringify(next));
+                                  return next;
+                                });
+                              }}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Choix du lot B :
+                        </label>
+                        <Select
+                          value={selectedVariant || ""}
+                          onValueChange={(value) => persistVariant(instanceKey, value)}
+                        >
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue placeholder="Choisir un lot B..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lotBSub.variants!.map((variant) => {
+                              const isUsed = usedVariants.has(variant.id);
+                              return (
+                                <SelectItem
+                                  key={variant.id}
+                                  value={variant.id}
+                                  disabled={isUsed}
+                                  className={`cursor-pointer ${isUsed ? "opacity-50" : ""}`}
+                                >
+                                  {variant.name}
+                                  {isUsed ? " (déjà sélectionné)" : ""}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="pt-3 border-t space-y-2">
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/lot-b/${selectedVariant}/soin?session=${session.id}`);
+                            }
+                          }}
+                        >
+                          {isSubChecked("lot-b", selectedVariant, "soin") && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier le sac de soin
+                        </Button>
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/lot-b/${selectedVariant}/o2?session=${session.id}`);
+                            }
+                          }}
+                        >
+                          {isSubChecked("lot-b", selectedVariant, "o2") && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier le sac d'O2
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         )}
 
