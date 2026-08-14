@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { loadLotConfig } from "@/lib/configStore";
 import type { Lot, SubEntity, SubEntityVariant, ConsumableSection } from "@/data/lots";
+import { dsaVariants } from "@/data/lots";
 import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -48,6 +49,7 @@ export default function SubEntitiesPage() {
   const [completing, setCompleting] = useState(false);
 
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
+  const [selectedDsaVariants, setSelectedDsaVariants] = useState<Record<string, string>>({});
 
   // Multiple Lot B instances for Lot A (gros postes de secours)
   const [lotBInstances, setLotBInstances] = useState<number[]>([0]);
@@ -93,6 +95,17 @@ export default function SubEntitiesPage() {
     setSelectedVariants(initial);
     if (Object.keys(initial).length > 0) {
       setPref("selected-variants", JSON.stringify(initial));
+    }
+
+    // Load DSA variant selections from cloud
+    const dsaVarsRaw = getPref("selected-dsa-variants");
+    if (dsaVarsRaw) {
+      try {
+        const parsed = JSON.parse(dsaVarsRaw);
+        if (typeof parsed === "object" && parsed !== null) {
+          setSelectedDsaVariants(parsed);
+        }
+      } catch { /* ignore */ }
     }
 
     // Load Lot B instances for Lot A
@@ -177,6 +190,33 @@ export default function SubEntitiesPage() {
       setPref("selected-variants", JSON.stringify(next));
       return next;
     });
+  };
+
+  const persistDsaVariant = (key: string, value: string) => {
+    setSelectedDsaVariants((prev) => {
+      const next = { ...prev, [key]: value };
+      setPref("selected-dsa-variants", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const removeDsaVariant = (key: string) => {
+    setSelectedDsaVariants((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      setPref("selected-dsa-variants", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Get already-used DSA variant IDs across all Lot B instances (excluding a specific key)
+  const getUsedDsaVariants = (excludeKey?: string): Set<string> => {
+    const used = new Set<string>();
+    Object.entries(selectedDsaVariants).forEach(([k, v]) => {
+      if (k === excludeKey) return;
+      if (v) used.add(v);
+    });
+    return used;
   };
 
   const handleValidateDps = async () => {
@@ -306,6 +346,25 @@ export default function SubEntitiesPage() {
                 completed_key: `lot-b-${selectedVariant}-o2`,
               }));
             }
+            const dsaCheck = checks.find(
+              (c) => c.sub_entity_id === sub.id && c.variant_id === selectedVariant && c.sac_type === "dsa"
+            );
+            if (dsaCheck) {
+              const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
+              const dsaVariantId = selectedDsaVariants[sub.id];
+              const dsaVariantObj = dsaVariants.find((dv) => dv.id === dsaVariantId);
+              logPromises.push(addLogEntryToDb({
+                lot_id: "lot-b",
+                lot_name: "Lot B",
+                sub_entity_name: sub.name,
+                variant_name: dsaVariantObj ? `${variantObj?.name || ""} — ${dsaVariantObj.name}` : variantObj?.name || null,
+                lot_variant_name: null,
+                sac_type: "dsa",
+                dps_name: dpsNameValue,
+                intervention_type: session.intervention_type || interventionType || null,
+                completed_key: `lot-b-${selectedVariant}-dsa${dsaVariantId ? `-${dsaVariantId}` : ""}`,
+              }));
+            }
           }
         } else if (hasVariants) {
           if (selectedVariant) {
@@ -385,6 +444,24 @@ export default function SubEntitiesPage() {
               dps_name: dpsNameValue,
               intervention_type: session.intervention_type || interventionType || null,
               completed_key: `lot-b-${idx}-${variantId}-o2`,
+            }));
+          }
+          const dsaCheck = checks.find(
+            (c) => c.sub_entity_id === "lot-b" && c.variant_id === variantId && c.sac_type === "dsa"
+          );
+          if (dsaCheck) {
+            const dsaVariantId = selectedDsaVariants[instanceKey];
+            const dsaVariantObj = dsaVariants.find((dv) => dv.id === dsaVariantId);
+            logPromises.push(addLogEntryToDb({
+              lot_id: "lot-b",
+              lot_name: "Lot B",
+              sub_entity_name: `Lot B #${arrIndex + 1}`,
+              variant_name: dsaVariantObj ? `${variantObj?.name || ""} — ${dsaVariantObj.name}` : variantObj?.name || null,
+              lot_variant_name: null,
+              sac_type: "dsa",
+              dps_name: dpsNameValue,
+              intervention_type: session.intervention_type || interventionType || null,
+              completed_key: `lot-b-${idx}-${variantId}-dsa${dsaVariantId ? `-${dsaVariantId}` : ""}`,
             }));
           }
         });
@@ -726,10 +803,39 @@ export default function SubEntitiesPage() {
                             )}
                             Vérifier le sac d'O2
                           </Button>
+                          <div className="space-y-1 pt-2 border-t">
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Variante DSA :
+                            </label>
+                            <Select
+                              value={selectedDsaVariants[sub.id] || ""}
+                              onValueChange={(value) => persistDsaVariant(sub.id, value)}
+                            >
+                              <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder="Choisir une variante DSA..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dsaVariants.map((dv) => {
+                                  const isUsed = getUsedDsaVariants(sub.id).has(dv.id);
+                                  return (
+                                    <SelectItem
+                                      key={dv.id}
+                                      value={dv.id}
+                                      disabled={isUsed}
+                                      className={`cursor-pointer ${isUsed ? "opacity-50" : ""}`}
+                                    >
+                                      {dv.name}
+                                      {isUsed ? " (déjà sélectionné)" : ""}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <Button
                             className="w-full cursor-pointer"
                             variant="default"
-                            disabled={!selectedVariant}
+                            disabled={!selectedVariant || !selectedDsaVariants[sub.id]}
                             onClick={() => {
                               if (selectedVariant) {
                                 navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/dsa?session=${session.id}`);
@@ -828,6 +934,7 @@ export default function SubEntitiesPage() {
                                   setPref("selected-variants", JSON.stringify(next));
                                   return next;
                                 });
+                                removeDsaVariant(instanceKey);
                               }}
                             >
                               <XCircle className="h-4 w-4" />
@@ -898,10 +1005,39 @@ export default function SubEntitiesPage() {
                           )}
                           Vérifier le sac d'O2
                         </Button>
+                        <div className="space-y-1 pt-2 border-t">
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Variante DSA :
+                            </label>
+                            <Select
+                              value={selectedDsaVariants[instanceKey] || ""}
+                              onValueChange={(value) => persistDsaVariant(instanceKey, value)}
+                            >
+                              <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder="Choisir une variante DSA..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dsaVariants.map((dv) => {
+                                  const isUsed = getUsedDsaVariants(instanceKey).has(dv.id);
+                                  return (
+                                    <SelectItem
+                                      key={dv.id}
+                                      value={dv.id}
+                                      disabled={isUsed}
+                                      className={`cursor-pointer ${isUsed ? "opacity-50" : ""}`}
+                                    >
+                                      {dv.name}
+                                      {isUsed ? " (déjà sélectionné)" : ""}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         <Button
                           className="w-full cursor-pointer"
                           variant="default"
-                          disabled={!selectedVariant}
+                          disabled={!selectedVariant || !selectedDsaVariants[instanceKey]}
                           onClick={() => {
                             if (selectedVariant) {
                               navigate(`/inventory/${lotId}/lot-b/${selectedVariant}/dsa?session=${session.id}`);

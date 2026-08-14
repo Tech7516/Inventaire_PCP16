@@ -122,6 +122,10 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Journal Vérifications : supprimé les boutons crayon (Pencil) "Modifier le rapport" à côté de chaque groupe (Lot A, Lot B, Lot C, Lot V, VPS, Lot CAI)
 - [x] Lot A : multi-instances Lot B — bouton "+" pour ajouter plusieurs tuiles Lot B, anti-doublon de variante (même variante désactivée dans les autres tuiles), persistance cloud, logging multi-instance au save
 - [x] Renommer "Gros postes de secours (Lot B)" en "Lot B" + ajouter 3e bouton "Vérifier le DSA" sur toutes les tuiles Lot B (hors Lot A et multi-instances Lot A) + section DSA (DSA, électrodes adulte/pédiatrique, jesco, chiffon absorbant, câble DSA, 2 rasoir, 2 batteries dont 1 pré-branchée) + alias lot-b-c-dsa et vps-lot-b-dsa
+- [x] Logging DSA dans handleSave — tuiles Lot B régulières (sac_type="dsa", variant_name inclut variante DSA)
+- [x] Logging DSA dans handleSave — multi-instances Lot B dans Lot A (instanceKey, completed_key avec idx)
+- [x] Anti-doublon DSA validé — getUsedDsaVariants exclut la variante courante, désactive les options déjà prises par d'autres instances
+- [x] configStore.ts charge section DSA pour lot-b — corrige "Aucun article défini…" sur Inventory.tsx
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

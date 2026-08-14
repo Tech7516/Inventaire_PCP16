@@ -38,6 +38,15 @@ export interface ConsumableSection {
   items: ConsumableItem[];
 }
 
+export const dsaVariants: SubEntityVariant[] = [
+  { id: "dsa-alpha", name: "DSA Alpha" },
+  { id: "dsa-bravo", name: "DSA Bravo" },
+  { id: "dsa-charlie", name: "DSA Charlie" },
+  { id: "dsa-delta", name: "DSA Delta" },
+  { id: "t7-alpha", name: "T7 Alpha" },
+  { id: "t7-bravo", name: "T7 Bravo" },
+];
+
 export const lots: Lot[] = [
   {
     id: "lot-001",

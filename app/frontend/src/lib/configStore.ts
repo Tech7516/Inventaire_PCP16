@@ -43,12 +43,14 @@ function staticToConfig(lotId: string): LotConfig | null {
     if (subSections) {
       sections[sub.id] = subSections;
     }
-    // Handle lot-b type with soin/o2 variants
+    // Handle lot-b type with soin/o2/dsa variants
     if (sub.inventoryType === "lot-b") {
       const soinKey = `${sub.id}-soin`;
       const o2Key = `${sub.id}-o2`;
+      const dsaKey = `${sub.id}-dsa`;
       if (staticSections[soinKey]) sections[soinKey] = staticSections[soinKey];
       if (staticSections[o2Key]) sections[o2Key] = staticSections[o2Key];
+      if (staticSections[dsaKey]) sections[dsaKey] = staticSections[dsaKey];
     }
   }
   // Direct inventory lots store sections under the lot id itself
