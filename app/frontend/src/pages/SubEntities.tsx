@@ -49,7 +49,10 @@ export default function SubEntitiesPage() {
 
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
 
-  // Load preferences from cloud on mount
+  // Load preferences from cloud on mount (only once per lotId change)
+  // NOTE: getPref/setPref are intentionally excluded from deps — we only want
+  // to initialize dpsName and variants on mount, not overwrite user input on
+  // every cache update (which would make the DPS field read-only).
   useEffect(() => {
     const dpsVal = getPref("dps-name");
     if (dpsVal) setDpsName(dpsVal);
@@ -88,7 +91,8 @@ export default function SubEntitiesPage() {
     if (Object.keys(initial).length > 0) {
       setPref("selected-variants", JSON.stringify(initial));
     }
-  }, [getPref, lotId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lotId]);
 
   // Load lot config from DB (configStore) on mount
   useEffect(() => {
