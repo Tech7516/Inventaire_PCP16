@@ -24,6 +24,7 @@ export interface SubEntity {
   description: string;
   variants?: SubEntityVariant[];
   inventoryType?: "standard" | "lot-b" | "dsa";
+  optional?: boolean;
 }
 
 export interface ConsumableItem {
@@ -183,6 +184,7 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
       description: "Défibrillateur semi-automatique",
       inventoryType: "dsa",
       variants: dsaVariants,
+      optional: true,
     },
   ],
 };

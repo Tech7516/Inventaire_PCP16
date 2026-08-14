@@ -50,6 +50,15 @@ export default function SubEntitiesPage() {
 
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [selectedDsaVariants, setSelectedDsaVariants] = useState<Record<string, string>>({});
+  const [dsaEnabled, setDsaEnabled] = useState<Record<string, boolean>>({});
+
+  const toggleDsaEnabled = (subId: string) => {
+    setDsaEnabled((prev) => {
+      const next = { ...prev, [subId]: !prev[subId] };
+      setPref("dsa-enabled", JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Multiple Lot B instances for Lot A (gros postes de secours)
   const [lotBInstances, setLotBInstances] = useState<number[]>([0]);
@@ -104,6 +113,17 @@ export default function SubEntitiesPage() {
         const parsed = JSON.parse(dsaVarsRaw);
         if (typeof parsed === "object" && parsed !== null) {
           setSelectedDsaVariants(parsed);
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Load DSA enabled toggles from cloud
+    const dsaEnabledRaw = getPref("dsa-enabled");
+    if (dsaEnabledRaw) {
+      try {
+        const parsed = JSON.parse(dsaEnabledRaw);
+        if (typeof parsed === "object" && parsed !== null) {
+          setDsaEnabled(parsed);
         }
       } catch { /* ignore */ }
     }
@@ -533,7 +553,8 @@ export default function SubEntitiesPage() {
   const isLotBComplete = (subId: string) => {
     const variantId = selectedVariants[subId];
     if (!variantId) return false;
-    return isSubChecked(subId, variantId, "soin") && isSubChecked(subId, variantId, "o2") && isSubChecked(subId, variantId, "dsa");
+    const dsaOk = isSubChecked(subId, variantId, "dsa") || !dsaEnabled[subId];
+    return isSubChecked(subId, variantId, "soin") && isSubChecked(subId, variantId, "o2") && dsaOk;
   };
 
   const isVariantComplete = (subId: string) => {
@@ -707,11 +728,13 @@ export default function SubEntitiesPage() {
               );
               const hasVariants = sub.variants && sub.variants.length > 0;
               const selectedVariant = selectedVariants[sub.id];
-              const isCompleted = hasVariants
-                ? sub.inventoryType === "lot-b"
-                  ? isLotBComplete(sub.id)
-                  : isVariantComplete(sub.id)
-                : isSubChecked(sub.id);
+              const isCompleted = sub.optional && sub.inventoryType === "dsa" && !dsaEnabled[sub.id]
+                ? true
+                : hasVariants
+                  ? sub.inventoryType === "lot-b"
+                    ? isLotBComplete(sub.id)
+                    : isVariantComplete(sub.id)
+                  : isSubChecked(sub.id);
 
               return (
                 <Card
@@ -803,67 +826,107 @@ export default function SubEntitiesPage() {
                             )}
                             Vérifier le sac d'O2
                           </Button>
-                          <div className="space-y-1 pt-2 border-t">
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Variante DSA :
-                            </label>
-                            <Select
-                              value={selectedDsaVariants[sub.id] || ""}
-                              onValueChange={(value) => persistDsaVariant(sub.id, value)}
-                            >
-                              <SelectTrigger className="w-full cursor-pointer">
-                                <SelectValue placeholder="Choisir une variante DSA..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {dsaVariants.map((dv) => {
-                                  const isUsed = getUsedDsaVariants(sub.id).has(dv.id);
-                                  return (
-                                    <SelectItem
-                                      key={dv.id}
-                                      value={dv.id}
-                                      disabled={isUsed}
-                                      className={`cursor-pointer ${isUsed ? "opacity-50" : ""}`}
-                                    >
-                                      {dv.name}
-                                      {isUsed ? " (déjà sélectionné)" : ""}
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button
-                            className="w-full cursor-pointer"
-                            variant="default"
-                            disabled={!selectedVariant || !selectedDsaVariants[sub.id]}
-                            onClick={() => {
-                              if (selectedVariant) {
-                                navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/dsa?session=${session.id}`);
-                              }
-                            }}
-                          >
-                            {isSubChecked(sub.id, selectedVariant, "dsa") && (
-                              <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
-                            )}
-                            Vérifier le DSA
-                          </Button>
+                          {sub.optional && (
+                            <div className="flex items-center justify-between pt-2 border-t">
+                              <label className="text-sm font-medium text-muted-foreground">
+                                Inclure le DSA
+                              </label>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={!!dsaEnabled[sub.id]}
+                                onClick={() => toggleDsaEnabled(sub.id)}
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${dsaEnabled[sub.id] ? "bg-primary" : "bg-muted"}`}
+                              >
+                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${dsaEnabled[sub.id] ? "translate-x-4" : "translate-x-0"}`} />
+                              </button>
+                            </div>
+                          )}
+                          {(!sub.optional || dsaEnabled[sub.id]) && (
+                            <>
+                              <div className="space-y-1 pt-2 border-t">
+                                <label className="text-sm font-medium text-muted-foreground">
+                                  Variante DSA :
+                                </label>
+                                <Select
+                                  value={selectedDsaVariants[sub.id] || ""}
+                                  onValueChange={(value) => persistDsaVariant(sub.id, value)}
+                                >
+                                  <SelectTrigger className="w-full cursor-pointer">
+                                    <SelectValue placeholder="Choisir une variante DSA..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {dsaVariants.map((dv) => {
+                                      const isUsed = getUsedDsaVariants(sub.id).has(dv.id);
+                                      return (
+                                        <SelectItem
+                                          key={dv.id}
+                                          value={dv.id}
+                                          disabled={isUsed}
+                                          className={`cursor-pointer ${isUsed ? "opacity-50" : ""}`}
+                                        >
+                                          {dv.name}
+                                          {isUsed ? " (déjà sélectionné)" : ""}
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Button
+                                className="w-full cursor-pointer"
+                                variant="default"
+                                disabled={!selectedVariant || !selectedDsaVariants[sub.id]}
+                                onClick={() => {
+                                  if (selectedVariant) {
+                                    navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/dsa?session=${session.id}`);
+                                  }
+                                }}
+                              >
+                                {isSubChecked(sub.id, selectedVariant, "dsa") && (
+                                  <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                                )}
+                                Vérifier le DSA
+                              </Button>
+                            </>
+                          )}
                         </>
                       ) : hasVariants && sub.inventoryType === "dsa" ? (
-                        <Button
-                          className="w-full cursor-pointer"
-                          variant="default"
-                          disabled={!selectedVariant}
-                          onClick={() => {
-                            if (selectedVariant) {
-                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}?session=${session.id}`);
-                            }
-                          }}
-                        >
-                          {isSubChecked(sub.id, selectedVariant) && (
-                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                        <>
+                          {sub.optional && (
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-muted-foreground">
+                                Inclure le DSA
+                              </label>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={!!dsaEnabled[sub.id]}
+                                onClick={() => toggleDsaEnabled(sub.id)}
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${dsaEnabled[sub.id] ? "bg-primary" : "bg-muted"}`}
+                              >
+                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${dsaEnabled[sub.id] ? "translate-x-4" : "translate-x-0"}`} />
+                              </button>
+                            </div>
                           )}
-                          Vérifier le DSA
-                        </Button>
+                          {(!sub.optional || dsaEnabled[sub.id]) && (
+                            <Button
+                              className="w-full cursor-pointer"
+                              variant="default"
+                              disabled={!selectedVariant}
+                              onClick={() => {
+                                if (selectedVariant) {
+                                  navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}?session=${session.id}`);
+                                }
+                              }}
+                            >
+                              {isSubChecked(sub.id, selectedVariant) && (
+                                <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                              )}
+                              Vérifier le DSA
+                            </Button>
+                          )}
+                        </>
                       ) : hasVariants ? (
                         <Button
                           className="w-full cursor-pointer"

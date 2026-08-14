@@ -132,6 +132,12 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] DSA : sélecteur variante DSA (libellé + placeholder adaptés) dans SubEntities.tsx
 - [x] DSA : journal "DSA et AMS" séparé de Lot B — onglet dédié, groupes DSA Lot A/B/C/V, isDsaEntry exclue de isLotBEntry
 - [x] DSA : configStore.ts charge sections DSA pour inventoryType "dsa" (dsa-a, dsa-c, dsa-v via staticSections)
+- [x] DSA optionnel VPS : flag `optional: true` sur dsa-v dans lots.ts
+- [x] DSA optionnel VPS : toggle "Inclure le DSA" (switch) dans carte lot-b VPS + carte DSA standalone
+- [x] DSA optionnel VPS : sélecteur variante DSA + bouton "Vérifier le DSA" conditionnés par dsaEnabled
+- [x] DSA optionnel VPS : isLotBComplete ignore DSA quand dsaEnabled=false
+- [x] DSA optionnel VPS : isCompleted=true pour carte DSA optionnelle désactivée
+- [x] DSA optionnel VPS : persistance cloud dsa-enabled via useCloudPreferences
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
