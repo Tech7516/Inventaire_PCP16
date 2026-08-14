@@ -603,17 +603,6 @@ export default function LogPage() {
                               Rapport
                             </Button>
                           )}
-                          {hasCentralReport && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`/report/key/${encodeURIComponent(group.reportKey!)}?from=log&mode=edit`)}
-                              className="cursor-pointer shrink-0 h-8 w-8 p-0"
-                              title="Modifier le rapport"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
                         </div>
                       ) : group.key === "lot-b" ? (
                         <div className="flex items-center gap-2 flex-wrap">
@@ -632,17 +621,6 @@ export default function LogPage() {
                                   <FileText className="h-4 w-4 mr-1.5" />
                                   {v.name}
                                 </Button>
-                                {hasReport && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log&mode=edit`)}
-                                    className="cursor-pointer shrink-0 h-8 w-8 p-0"
-                                    title="Modifier le rapport"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
                               </div>
                             );
                           })}
@@ -664,17 +642,6 @@ export default function LogPage() {
                                   <FileText className="h-4 w-4 mr-1.5" />
                                   {v.name}
                                 </Button>
-                                {hasReport && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log&mode=edit`)}
-                                    className="cursor-pointer shrink-0 h-8 w-8 p-0"
-                                    title="Modifier le rapport"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
                               </div>
                             );
                           })}
@@ -696,17 +663,6 @@ export default function LogPage() {
                                   <FileText className="h-4 w-4 mr-1.5" />
                                   {v.name}
                                 </Button>
-                                {hasReport && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => navigate(`/report/key/${encodeURIComponent(reportKey!)}?from=log&mode=edit`)}
-                                    className="cursor-pointer shrink-0 h-8 w-8 p-0"
-                                    title="Modifier le rapport"
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
                               </div>
                             );
                           })}
