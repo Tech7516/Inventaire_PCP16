@@ -480,6 +480,23 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
     },
   ],
   "lot-b": [],
+  // Lot B — DSA
+  "lot-b-dsa": [
+    {
+      id: "lb-dsa-content",
+      title: "DSA",
+      items: [
+        { id: "lb-dsa-001", name: "DSA", expectedQuantity: 1 },
+        { id: "lb-dsa-002", name: "Électrodes DSA Adulte", expectedQuantity: 2 },
+        { id: "lb-dsa-003", name: "Électrodes DSA Pédiatrique", expectedQuantity: 1 },
+        { id: "lb-dsa-004", name: "Jesco", expectedQuantity: 1 },
+        { id: "lb-dsa-005", name: "Chiffon absorbant", expectedQuantity: 1 },
+        { id: "lb-dsa-006", name: "Câble DSA", expectedQuantity: 1 },
+        { id: "lb-dsa-007", name: "Rasoir", expectedQuantity: 2 },
+        { id: "lb-dsa-008", name: "Batterie (dont 1 pré-branchée)", expectedQuantity: 2 },
+      ],
+    },
+  ],
   "caisse-1": [
     {
       id: "c1-kits",
@@ -673,6 +690,7 @@ subEntitySections["pom-c"] = [
 ];
 subEntitySections["lot-b-c-soin"] = subEntitySections["lot-b-soin"];
 subEntitySections["lot-b-c-o2"] = subEntitySections["lot-b-o2"];
+subEntitySections["lot-b-c-dsa"] = subEntitySections["lot-b-dsa"];
 subEntitySections["caisse-c"] = [
   {
     id: "caisse-c-admin",
@@ -927,6 +945,7 @@ subEntitySections["vps-cellule-arriere"] = [
 // VPS — Lot B (même contenu que les autres Lot B)
 subEntitySections["vps-lot-b-soin"] = subEntitySections["lot-b-soin"];
 subEntitySections["vps-lot-b-o2"] = subEntitySections["lot-b-o2"];
+subEntitySections["vps-lot-b-dsa"] = subEntitySections["lot-b-dsa"];
 
 // Lot V — inventaire direct (pas de page intermédiaire)
 subEntitySections["lot-cai"] = [

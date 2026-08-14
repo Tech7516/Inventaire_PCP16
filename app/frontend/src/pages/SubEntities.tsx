@@ -456,7 +456,7 @@ export default function SubEntitiesPage() {
   const isLotBComplete = (subId: string) => {
     const variantId = selectedVariants[subId];
     if (!variantId) return false;
-    return isSubChecked(subId, variantId, "soin") && isSubChecked(subId, variantId, "o2");
+    return isSubChecked(subId, variantId, "soin") && isSubChecked(subId, variantId, "o2") && isSubChecked(subId, variantId, "dsa");
   };
 
   const isVariantComplete = (subId: string) => {
@@ -485,7 +485,7 @@ export default function SubEntitiesPage() {
   const isLotBInstanceComplete = (idx: number): boolean => {
     const variantId = selectedVariants[`lot-b-${idx}`];
     if (!variantId) return false;
-    return isSubChecked("lot-b", variantId, "soin") && isSubChecked("lot-b", variantId, "o2");
+    return isSubChecked("lot-b", variantId, "soin") && isSubChecked("lot-b", variantId, "o2") && isSubChecked("lot-b", variantId, "dsa");
   };
 
   // Check if all Lot B instances are complete (for Lot A)
@@ -726,6 +726,21 @@ export default function SubEntitiesPage() {
                             )}
                             Vérifier le sac d'O2
                           </Button>
+                          <Button
+                            className="w-full cursor-pointer"
+                            variant="default"
+                            disabled={!selectedVariant}
+                            onClick={() => {
+                              if (selectedVariant) {
+                                navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/dsa?session=${session.id}`);
+                              }
+                            }}
+                          >
+                            {isSubChecked(sub.id, selectedVariant, "dsa") && (
+                              <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                            )}
+                            Vérifier le DSA
+                          </Button>
                         </>
                       ) : hasVariants ? (
                         <Button
@@ -762,7 +777,7 @@ export default function SubEntitiesPage() {
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">
-                Gros postes de secours (Lot B)
+                Lot B
               </h2>
               <Button
                 variant="outline"
@@ -882,6 +897,21 @@ export default function SubEntitiesPage() {
                             <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
                           )}
                           Vérifier le sac d'O2
+                        </Button>
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/lot-b/${selectedVariant}/dsa?session=${session.id}`);
+                            }
+                          }}
+                        >
+                          {isSubChecked("lot-b", selectedVariant, "dsa") && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier le DSA
                         </Button>
                       </div>
                     </CardContent>
