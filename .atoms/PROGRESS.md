@@ -148,6 +148,10 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] DSA : afficher uniquement le nom de variante DSA (ex: « DSA Bravo ») sans le contexte parent dans les deux onglets
 - [x] DSA : bloquer uniquement les DSA utilisés sur des lots avec session active (inventaire/désinfection en cours)
 - [x] DSA : permettre de cliquer les DSA présélectionnés sur les lots sans session active
+- [x] T7 : ajouter section « Accessoires T7 » (5 éléments) à l'inventaire DSA quand variante T7 sélectionnée (t7-alpha, t7-bravo)
+- [x] T7 : passage dsaVariant en query param depuis SubEntities.tsx vers Inventory.tsx
+- [x] T7 : définition section t7-accessoires dans lots.ts (Glucomètre, Thermomètre, Câble sat, Brassard tension, Câble ECG)
+- [x] T7 : lint et build validés
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

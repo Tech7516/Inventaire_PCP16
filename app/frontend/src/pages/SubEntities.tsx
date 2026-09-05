@@ -957,7 +957,7 @@ export default function SubEntitiesPage() {
                                 disabled={!selectedVariant || !selectedDsaVariants[sub.id]}
                                 onClick={() => {
                                   if (selectedVariant) {
-                                    navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/dsa?session=${session.id}`);
+                                    navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/dsa?session=${session.id}${selectedDsaVariants[sub.id] ? `&dsaVariant=${selectedDsaVariants[sub.id]}` : ""}`);
                                   }
                                 }}
                               >
@@ -1197,7 +1197,7 @@ export default function SubEntitiesPage() {
                           disabled={!selectedVariant || !selectedDsaVariants[instanceKey]}
                           onClick={() => {
                             if (selectedVariant) {
-                              navigate(`/inventory/${lotId}/lot-b/${selectedVariant}/dsa?session=${session.id}`);
+                              navigate(`/inventory/${lotId}/lot-b/${selectedVariant}/dsa?session=${session.id}${selectedDsaVariants[instanceKey] ? `&dsaVariant=${selectedDsaVariants[instanceKey]}` : ""}`);
                             }
                           }}
                         >

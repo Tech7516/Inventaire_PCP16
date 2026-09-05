@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loadLotConfig } from "@/lib/configStore";
+import { subEntitySections } from "@/data/lots";
 import type { Lot, SubEntity, ConsumableSection } from "@/data/lots";
 import { ArrowLeft, Save, ClipboardList, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +32,9 @@ export default function InventoryPage() {
   const sessionId = searchParams.get("session") ? parseInt(searchParams.get("session")!) : null;
   const { getPref, setPref } = useCloudPreferences();
 
+  const dsaVariant = searchParams.get("dsaVariant");
+  const isT7 = dsaVariant === "t7-alpha" || dsaVariant === "t7-bravo";
+
   const [lot, setLot] = useState<Lot | null>(null);
   const [subEntity, setSubEntity] = useState<SubEntity | null>(null);
   const [sections, setSections] = useState<ConsumableSection[]>([]);
@@ -49,11 +53,17 @@ export default function InventoryPage() {
         if (config) {
           setLot(config.lot);
           const sectionKey = sacType ? `${subId}-${sacType}` : subId;
+          let loadedSections: ConsumableSection[] = [];
           if (config.lot.directInventory) {
-            setSections(config.sections[lotId] || []);
+            loadedSections = config.sections[lotId] || [];
           } else if (subId) {
-            setSections(config.sections[sectionKey] || config.sections[subId] || []);
+            loadedSections = config.sections[sectionKey] || config.sections[subId] || [];
           }
+          // Add T7 accessories section when a T7 variant is selected
+          if (isT7 && subEntitySections["t7-accessoires"]) {
+            loadedSections = [...loadedSections, ...subEntitySections["t7-accessoires"]];
+          }
+          setSections(loadedSections);
           if (subId && !config.lot.directInventory) {
             const found = config.subEntities.find((s) => s.id === subId);
             setSubEntity(found || null);
@@ -63,7 +73,7 @@ export default function InventoryPage() {
       setConfigLoading(false);
     };
     loadConfig();
-  }, [lotId, subId, sacType]);
+  }, [lotId, subId, sacType, isT7]);
 
   // DPS name for direct inventory lots (Lot CAI, Lot V)
   const [dpsName, setDpsName] = useState(() => getPref("dps-name") || "");

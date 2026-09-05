@@ -1065,6 +1065,21 @@ subEntitySections["lot-cai"] = [
   },
 ];
 
+// T7 — accessoires supplémentaires (quand variante T7 sélectionnée)
+subEntitySections["t7-accessoires"] = [
+  {
+    id: "t7-acc-content",
+    title: "Accessoires T7",
+    items: [
+      { id: "t7-acc-001", name: "Glucomètre avec bandelette", expectedQuantity: 1 },
+      { id: "t7-acc-002", name: "Thermomètre tympanique + embout", expectedQuantity: 1 },
+      { id: "t7-acc-003", name: "Câble de sat", expectedQuantity: 1 },
+      { id: "t7-acc-004", name: "Brassard tension", expectedQuantity: 4 },
+      { id: "t7-acc-005", name: "Câble ECG", expectedQuantity: 1 },
+    ],
+  },
+];
+
 subEntitySections["lot-v"] = [
   {
     id: "lv-securite",
