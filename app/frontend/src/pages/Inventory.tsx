@@ -162,7 +162,7 @@ export default function InventoryPage() {
     loadExisting();
   }, [sessionId, subId, variantId, sacType]);
 
-  const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : "";
+  const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : sacType === "ams" ? "AMS" : "";
   const displayTitle = isDirectInventory
     ? lotVariantName || lot?.name || ""
     : variant

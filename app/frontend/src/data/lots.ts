@@ -23,7 +23,7 @@ export interface SubEntity {
   name: string;
   description: string;
   variants?: SubEntityVariant[];
-  inventoryType?: "standard" | "lot-b" | "dsa";
+  inventoryType?: "standard" | "lot-b" | "dsa" | "ams";
   optional?: boolean;
 }
 
@@ -46,6 +46,13 @@ export const dsaVariants: SubEntityVariant[] = [
   { id: "dsa-delta", name: "DSA Delta" },
   { id: "t7-alpha", name: "T7 Alpha" },
   { id: "t7-bravo", name: "T7 Bravo" },
+];
+
+export const amsVariants: SubEntityVariant[] = [
+  { id: "ams-alpha", name: "AMS Alpha" },
+  { id: "ams-bravo", name: "AMS Bravo" },
+  { id: "ams-charlie", name: "AMS Charlie" },
+  { id: "ams-delta", name: "AMS Delta" },
 ];
 
 export const lots: Lot[] = [
@@ -125,6 +132,13 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
       inventoryType: "dsa",
       variants: dsaVariants,
     },
+    {
+      id: "ams-a",
+      name: "AMS",
+      description: "Aspirateur de mucosités",
+      inventoryType: "ams",
+      variants: amsVariants,
+    },
   ],
   "lot-003": [
     {
@@ -161,6 +175,13 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
       description: "Défibrillateur semi-automatique",
       inventoryType: "dsa",
       variants: dsaVariants,
+    },
+    {
+      id: "ams-c",
+      name: "AMS",
+      description: "Aspirateur de mucosités",
+      inventoryType: "ams",
+      variants: amsVariants,
     },
   ],
   "lot-vps": [
@@ -1061,6 +1082,36 @@ subEntitySections["lot-cai"] = [
     title: "Administratif",
     items: [
       { id: "cai-013", name: "Fiches de suivi des impliqués", expectedQuantity: 1 },
+    ],
+  },
+];
+
+// AMS — Lot A
+subEntitySections["ams-a"] = [
+  {
+    id: "ams-a-content",
+    title: "AMS",
+    items: [
+      { id: "ams-a-001", name: "Sonde CH26", expectedQuantity: 5 },
+      { id: "ams-a-002", name: "Sonde CH12", expectedQuantity: 3 },
+      { id: "ams-a-003", name: "Stop vide (dont un pré branché)", expectedQuantity: 2 },
+      { id: "ams-a-004", name: "Tubulure pré branché", expectedQuantity: 1 },
+      { id: "ams-a-005", name: "Sac AMS", expectedQuantity: 1 },
+    ],
+  },
+];
+
+// AMS — Lot C
+subEntitySections["ams-c"] = [
+  {
+    id: "ams-c-content",
+    title: "AMS",
+    items: [
+      { id: "ams-c-001", name: "Sonde CH26", expectedQuantity: 5 },
+      { id: "ams-c-002", name: "Sonde CH12", expectedQuantity: 3 },
+      { id: "ams-c-003", name: "Stop vide (dont un pré branché)", expectedQuantity: 2 },
+      { id: "ams-c-004", name: "Tubulure pré branché", expectedQuantity: 1 },
+      { id: "ams-c-005", name: "Sac AMS", expectedQuantity: 1 },
     ],
   },
 ];

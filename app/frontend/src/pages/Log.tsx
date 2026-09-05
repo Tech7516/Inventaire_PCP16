@@ -91,6 +91,16 @@ const isDsaEntry = (e: InventoryLogData): boolean =>
   e.sub_entity_name === "DSA" ||
   (e.completed_key?.includes("dsa") && !!e.sac_type);
 
+// Helper: detect if an entry is an AMS entry
+const isAmsEntry = (e: InventoryLogData): boolean =>
+  e.sac_type === "ams" ||
+  e.sub_entity_name === "AMS" ||
+  (e.completed_key?.includes("ams") && e.sac_type === "ams");
+
+// Helper: detect if an entry is a DSA or AMS entry (for the "DSA et AMS" group)
+const isDsaOrAmsEntry = (e: InventoryLogData): boolean =>
+  isDsaEntry(e) || isAmsEntry(e);
+
 // Helper: detect if an entry is a Lot B entry (regardless of parent lot), including DSA
 const isLotBEntry = (e: InventoryLogData): boolean =>
   e.lot_id === "lot-b" ||
@@ -147,13 +157,13 @@ const LOG_GROUPS: LogGroup[] = [
     key: "dsa-ams",
     label: "DSA et AMS",
     reportKey: null,
-    matchFn: isDsaEntry,
+    matchFn: isDsaOrAmsEntry,
   },
   {
     key: "lot-b",
     label: "Lot B",
     reportKey: null,
-    matchFn: (e) => isLotBEntry(e) && !isDsaEntry(e),
+    matchFn: (e) => isLotBEntry(e) && !isDsaOrAmsEntry(e),
   },
   {
     key: "vps-auteuil",
@@ -201,19 +211,19 @@ interface DesinfectionGroup {
 }
 
 const DESINFECTION_GROUPS: DesinfectionGroup[] = [
-  { key: "dsa-ams", label: "DSA et AMS", matchFn: isDsaEntry },
-  { key: "lot-a", label: "Lot A", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-001" },
-  { key: "lot-b-alpha", label: "Lot B Alpha", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("alpha") || false) },
-  { key: "lot-b-bravo", label: "Lot B Bravo", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("bravo") || false) },
-  { key: "lot-b-auteuil", label: "Lot B Auteuil", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("auteuil") || false) },
-  { key: "lot-b-neuilly", label: "Lot B Neuilly", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("neuilly") || false) },
-  { key: "vps-auteuil", label: "VPS Auteuil", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly") },
-  { key: "vps-neuilly", label: "VPS Neuilly", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly") },
-  { key: "lot-c-alpha", label: "Lot C Alpha", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha") || false) },
-  { key: "lot-c-bravo", label: "Lot C Bravo", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo") || false) },
-  { key: "lot-v-poussin", label: "Lot V Poussin", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("poussin") || e.variant_name?.toLowerCase().includes("poussin") || false) },
-  { key: "lot-v-passy", label: "Lot V Passy", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("passy") || e.variant_name?.toLowerCase().includes("passy") || false) },
-  { key: "lot-cai", label: "Lot CAI", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-cai" },
+  { key: "dsa-ams", label: "DSA et AMS", matchFn: isDsaOrAmsEntry },
+  { key: "lot-a", label: "Lot A", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-001" },
+  { key: "lot-b-alpha", label: "Lot B Alpha", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("alpha") || false) },
+  { key: "lot-b-bravo", label: "Lot B Bravo", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("bravo") || false) },
+  { key: "lot-b-auteuil", label: "Lot B Auteuil", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("auteuil") || false) },
+  { key: "lot-b-neuilly", label: "Lot B Neuilly", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("neuilly") || false) },
+  { key: "vps-auteuil", label: "VPS Auteuil", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly") },
+  { key: "vps-neuilly", label: "VPS Neuilly", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly") },
+  { key: "lot-c-alpha", label: "Lot C Alpha", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha") || false) },
+  { key: "lot-c-bravo", label: "Lot C Bravo", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo") || false) },
+  { key: "lot-v-poussin", label: "Lot V Poussin", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("poussin") || e.variant_name?.toLowerCase().includes("poussin") || false) },
+  { key: "lot-v-passy", label: "Lot V Passy", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("passy") || e.variant_name?.toLowerCase().includes("passy") || false) },
+  { key: "lot-cai", label: "Lot CAI", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-cai" },
 ];
 
 const REQUIRED_PER_ROLLING_YEAR = 3;
@@ -459,8 +469,11 @@ export default function LogPage() {
                 #{total - idx}
               </span>
               <span className="font-medium text-foreground text-sm truncate">
-                {isDsaEntry(entry)
+                {isDsaOrAmsEntry(entry)
                   ? (() => {
+                      if (isAmsEntry(entry)) {
+                        return entry.variant_name || "AMS";
+                      }
                       const vl = entry.variant_name || "";
                       const dashIdx = vl.lastIndexOf(" — ");
                       if (dashIdx >= 0) {

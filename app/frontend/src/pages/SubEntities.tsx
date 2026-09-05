@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { loadLotConfig } from "@/lib/configStore";
 import type { Lot, SubEntity, SubEntityVariant, ConsumableSection } from "@/data/lots";
-import { dsaVariants } from "@/data/lots";
+import { dsaVariants, amsVariants } from "@/data/lots";
 import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -463,6 +463,26 @@ export default function SubEntitiesPage() {
               }));
             }
           }
+        } else if (hasVariants && sub.inventoryType === "ams") {
+          if (selectedVariant) {
+            const amsCheck = checks.find(
+              (c) => c.sub_entity_id === sub.id && c.variant_id === selectedVariant && c.sac_type === "ams"
+            );
+            if (amsCheck) {
+              const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
+              logPromises.push(addLogEntryToDb({
+                lot_id: lotId || "",
+                lot_name: lot?.name || "",
+                sub_entity_name: sub.name,
+                variant_name: variantObj?.name || null,
+                lot_variant_name: currentLotVariantName,
+                sac_type: "ams",
+                dps_name: dpsNameValue,
+                intervention_type: session.intervention_type || interventionType || null,
+                completed_key: `${lotId}-${sub.id}-${selectedVariant}-ams`,
+              }));
+            }
+          }
         } else if (hasVariants) {
           if (selectedVariant) {
             const check = checks.find(
@@ -641,6 +661,12 @@ export default function SubEntitiesPage() {
     return isSubChecked(subId, variantId);
   };
 
+  const isAmsComplete = (subId: string) => {
+    const variantId = selectedVariants[subId];
+    if (!variantId) return false;
+    return isSubChecked(subId, variantId, "ams");
+  };
+
   // Lot A: multiple Lot B instances support (gros postes de secours)
   const isLotA = lotId === "lot-001";
   const lotBSub = isLotA ? subEntities.find((s) => s.id === "lot-b") : null;
@@ -811,7 +837,9 @@ export default function SubEntitiesPage() {
                 : hasVariants
                   ? sub.inventoryType === "lot-b"
                     ? isLotBComplete(sub.id)
-                    : isVariantComplete(sub.id)
+                    : sub.inventoryType === "ams"
+                      ? isAmsComplete(sub.id)
+                      : isVariantComplete(sub.id)
                   : isSubChecked(sub.id);
 
               return (
@@ -851,14 +879,14 @@ export default function SubEntitiesPage() {
                     {hasVariants && (
                       <div className="space-y-1">
                         <label className="text-sm font-medium text-muted-foreground">
-                          {sub.inventoryType === "lot-b" ? "Choix du lot B :" : sub.inventoryType === "dsa" ? "Variante DSA :" : `Choix du ${sub.name.toLowerCase()} :`}
+                          {sub.inventoryType === "lot-b" ? "Choix du lot B :" : sub.inventoryType === "dsa" ? "Variante DSA :" : sub.inventoryType === "ams" ? "Variante AMS :" : `Choix du ${sub.name.toLowerCase()} :`}
                         </label>
                         <Select
                           value={selectedVariant || ""}
                           onValueChange={(value) => persistVariant(sub.id, value)}
                         >
                           <SelectTrigger className="w-full cursor-pointer">
-                            <SelectValue placeholder={`Choisir ${sub.inventoryType === "lot-b" ? "un lot B" : sub.inventoryType === "dsa" ? "une variante DSA" : `un ${sub.name.toLowerCase()}`}...`} />
+                            <SelectValue placeholder={`Choisir ${sub.inventoryType === "lot-b" ? "un lot B" : sub.inventoryType === "dsa" ? "une variante DSA" : sub.inventoryType === "ams" ? "une variante AMS" : `un ${sub.name.toLowerCase()}`}...`} />
                           </SelectTrigger>
                           <SelectContent>
                             {sub.variants!.map((variant) => (
@@ -1004,6 +1032,44 @@ export default function SubEntitiesPage() {
                               Vérifier le DSA
                             </Button>
                           )}
+                        </>
+                      ) : hasVariants && sub.inventoryType === "ams" ? (
+                        <>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Variante AMS :
+                            </label>
+                            <Select
+                              value={selectedVariant || ""}
+                              onValueChange={(value) => persistVariant(sub.id, value)}
+                            >
+                              <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue placeholder="Choisir une variante AMS..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {amsVariants.map((av) => (
+                                  <SelectItem key={av.id} value={av.id} className="cursor-pointer">
+                                    {av.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            className="w-full cursor-pointer"
+                            variant="default"
+                            disabled={!selectedVariant}
+                            onClick={() => {
+                              if (selectedVariant) {
+                                navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/ams?session=${session.id}`);
+                              }
+                            }}
+                          >
+                            {isSubChecked(sub.id, selectedVariant, "ams") && (
+                              <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                            )}
+                            Vérifier l&apos;AMS
+                          </Button>
                         </>
                       ) : hasVariants ? (
                         <Button

@@ -403,7 +403,7 @@ export async function saveDiscrepancyReportToDb(report: {
     }
     const lotVariantPart = data.lotVariantName || null;
     const sacLabel =
-      data.sacType === "soin" ? "Sac de soin" : data.sacType === "o2" ? "Sac d'O2" : null;
+      data.sacType === "soin" ? "Sac de soin" : data.sacType === "o2" ? "Sac d'O2" : data.sacType === "ams" ? "AMS" : null;
     const locationParts: string[] = [];
     if (lotVariantPart) locationParts.push(lotVariantPart);
     if (subLabel) locationParts.push(subLabel);

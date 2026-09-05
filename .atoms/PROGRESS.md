@@ -152,6 +152,14 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] T7 : passage dsaVariant en query param depuis SubEntities.tsx vers Inventory.tsx
 - [x] T7 : définition section t7-accessoires dans lots.ts (Glucomètre, Thermomètre, Câble sat, Brassard tension, Câble ECG)
 - [x] T7 : lint et build validés
+- [x] AMS : sous-entités ams-a et ams-c dans lots.ts avec 4 variantes AMS et articles (Sonde CH26×5, Sonde CH12×3, Stop vide×2, Tubulure prébranchée×1, Sac AMS×1)
+- [x] AMS : sélection variante AMS, bouton inventaire, détection complétion dans SubEntities.tsx
+- [x] AMS : logging explicite avec sac_type="ams" et completed_key suffixé -ams dans SubEntities.tsx
+- [x] AMS : label AMS dans Inventory.tsx (sacLabel) et inventory-api.ts (rapport d'écart)
+- [x] AMS : helpers isAmsEntry/isDsaOrAmsEntry dans Log.tsx, groupe « DSA et AMS » élargi aux AMS
+- [x] AMS : exclusion AMS des autres groupes (Lot A, Lot B, VPS, Lot C, Lot V, Lot CAI) dans LOG_GROUPS et DESINFECTION_GROUPS
+- [x] AMS : rendu entrée AMS (variant_name || "AMS") dans l'onglet Désinfection
+- [x] AMS : lint et build validés
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
