@@ -144,10 +144,16 @@ const findLotVReportKey = (variantId: string, availableKeys: Set<string>): strin
 
 const LOG_GROUPS: LogGroup[] = [
   {
+    key: "dsa-ams",
+    label: "DSA et AMS",
+    reportKey: null,
+    matchFn: isDsaEntry,
+  },
+  {
     key: "lot-b",
     label: "Lot B",
     reportKey: null,
-    matchFn: isLotBEntry,
+    matchFn: (e) => isLotBEntry(e) && !isDsaEntry(e),
   },
   {
     key: "vps-auteuil",
@@ -195,18 +201,19 @@ interface DesinfectionGroup {
 }
 
 const DESINFECTION_GROUPS: DesinfectionGroup[] = [
-  { key: "lot-a", label: "Lot A", matchFn: (e) => e.lot_id === "lot-001" },
-  { key: "lot-b-alpha", label: "Lot B Alpha", matchFn: (e) => isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("alpha") || false) },
-  { key: "lot-b-bravo", label: "Lot B Bravo", matchFn: (e) => isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("bravo") || false) },
-  { key: "lot-b-auteuil", label: "Lot B Auteuil", matchFn: (e) => isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("auteuil") || false) },
-  { key: "lot-b-neuilly", label: "Lot B Neuilly", matchFn: (e) => isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("neuilly") || false) },
-  { key: "vps-auteuil", label: "VPS Auteuil", matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly") },
-  { key: "vps-neuilly", label: "VPS Neuilly", matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly") },
-  { key: "lot-c-alpha", label: "Lot C Alpha", matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha") || false) },
-  { key: "lot-c-bravo", label: "Lot C Bravo", matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo") || false) },
-  { key: "lot-v-poussin", label: "Lot V Poussin", matchFn: (e) => e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("poussin") || e.variant_name?.toLowerCase().includes("poussin") || false) },
-  { key: "lot-v-passy", label: "Lot V Passy", matchFn: (e) => e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("passy") || e.variant_name?.toLowerCase().includes("passy") || false) },
-  { key: "lot-cai", label: "Lot CAI", matchFn: (e) => e.lot_id === "lot-cai" },
+  { key: "dsa-ams", label: "DSA et AMS", matchFn: isDsaEntry },
+  { key: "lot-a", label: "Lot A", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-001" },
+  { key: "lot-b-alpha", label: "Lot B Alpha", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("alpha") || false) },
+  { key: "lot-b-bravo", label: "Lot B Bravo", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("bravo") || false) },
+  { key: "lot-b-auteuil", label: "Lot B Auteuil", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("auteuil") || false) },
+  { key: "lot-b-neuilly", label: "Lot B Neuilly", matchFn: (e) => !isDsaEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("neuilly") || false) },
+  { key: "vps-auteuil", label: "VPS Auteuil", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly") },
+  { key: "vps-neuilly", label: "VPS Neuilly", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly") },
+  { key: "lot-c-alpha", label: "Lot C Alpha", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha") || false) },
+  { key: "lot-c-bravo", label: "Lot C Bravo", matchFn: (e) => !isDsaEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo") || false) },
+  { key: "lot-v-poussin", label: "Lot V Poussin", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("poussin") || e.variant_name?.toLowerCase().includes("poussin") || false) },
+  { key: "lot-v-passy", label: "Lot V Passy", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("passy") || e.variant_name?.toLowerCase().includes("passy") || false) },
+  { key: "lot-cai", label: "Lot CAI", matchFn: (e) => !isDsaEntry(e) && e.lot_id === "lot-cai" },
 ];
 
 const REQUIRED_PER_ROLLING_YEAR = 3;
@@ -452,7 +459,18 @@ export default function LogPage() {
                 #{total - idx}
               </span>
               <span className="font-medium text-foreground text-sm truncate">
-                Désinfection
+                {isDsaEntry(entry)
+                  ? (() => {
+                      const vl = entry.variant_name || "";
+                      const dashIdx = vl.lastIndexOf(" — ");
+                      if (dashIdx >= 0) {
+                        const parentCtx = vl.substring(0, dashIdx).trim();
+                        const dsaName = vl.substring(dashIdx + 3).trim();
+                        return parentCtx ? `${parentCtx} — ${dsaName}` : dsaName;
+                      }
+                      return vl || "Désinfection";
+                    })()
+                  : "Désinfection"}
               </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -584,8 +602,6 @@ export default function LogPage() {
                 const lotBVariants = group.key === "lot-b" ? getLotBVariantNames(groupEntries) : [];
                 const lotVVariants = group.key === "lot-v" ? getLotVVariantNames(groupEntries) : [];
                 const groupComplete = isGroupComplete(group, lotBVariants, lotVVariants);
-                const dsaInGroup = groupEntries.filter(isDsaEntry);
-                const hasDsa = dsaInGroup.length > 0;
 
                 return (
                   <div key={group.key}>
@@ -593,11 +609,6 @@ export default function LogPage() {
                       <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-primary" />
                         {group.label}
-                        {hasDsa && (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                            DSA et AMS
-                          </span>
-                        )}
                       </h2>
                       {group.reportKey ? (
                         <div className="flex items-center gap-1">
@@ -699,9 +710,18 @@ export default function LogPage() {
                           const entryIsDsa = isDsaEntry(entry);
                           const detailParts: string[] = [];
                           if (entryIsDsa) {
-                            detailParts.push("Cahier DSA");
-                            if (subLabel && subLabel !== "DSA") detailParts.push(subLabel);
-                            if (variantLabel) detailParts.push(variantLabel);
+                            // variant_name format: "Lot B Alpha — DSA Charlie" or just "DSA Charlie"
+                            // Extract DSA/T7 variant name (after last —) and parent lot context (before —)
+                            const dashIdx = variantLabel?.lastIndexOf(" — ");
+                            if (dashIdx !== undefined && dashIdx !== null && dashIdx >= 0 && variantLabel) {
+                              const parentCtx = variantLabel.substring(0, dashIdx).trim();
+                              const dsaName = variantLabel.substring(dashIdx + 3).trim();
+                              if (parentCtx) detailParts.push(parentCtx);
+                              detailParts.push(dsaName);
+                            } else {
+                              if (variantLabel) detailParts.push(variantLabel);
+                              else if (subLabel && subLabel !== "DSA") detailParts.push(subLabel);
+                            }
                           } else if (group.key === "lot-b") {
                             const cleanVariant = variantLabel?.replace(/^Lot\s*B\s+/i, "") || null;
                             if (cleanVariant) detailParts.push(`Lot B ${cleanVariant}`);
