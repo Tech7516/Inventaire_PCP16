@@ -731,6 +731,10 @@ export default function LogPage() {
                               if (variantLabel) detailParts.push(variantLabel);
                               else if (subLabel && subLabel !== "DSA") detailParts.push(subLabel);
                             }
+                          } else if (isAmsEntry(entry)) {
+                            // AMS: only show variant name (e.g. "AMS Bravo"), not "AMS — AMS Bravo"
+                            if (variantLabel) detailParts.push(variantLabel);
+                            else detailParts.push("AMS");
                           } else if (group.key === "lot-b") {
                             const cleanVariant = variantLabel?.replace(/^Lot\s*B\s+/i, "") || null;
                             if (cleanVariant) detailParts.push(`Lot B ${cleanVariant}`);
@@ -801,8 +805,14 @@ export default function LogPage() {
                             ? "Sac d'O2"
                             : null;
 
-                      const detailParts = [subLabel];
-                      if (variantLabel) detailParts.push(variantLabel);
+                      const detailParts: string[] = [];
+                      if (isAmsEntry(entry)) {
+                        if (variantLabel) detailParts.push(variantLabel);
+                        else detailParts.push("AMS");
+                      } else {
+                        detailParts.push(subLabel);
+                        if (variantLabel) detailParts.push(variantLabel);
+                      }
                       if (sacLabel) detailParts.push(sacLabel);
                       const detailLine = detailParts.join(" — ");
 
