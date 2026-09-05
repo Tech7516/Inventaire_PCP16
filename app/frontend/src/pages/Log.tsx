@@ -154,16 +154,22 @@ const findLotVReportKey = (variantId: string, availableKeys: Set<string>): strin
 
 const LOG_GROUPS: LogGroup[] = [
   {
-    key: "dsa-ams",
-    label: "DSA et AMS",
-    reportKey: null,
-    matchFn: isDsaOrAmsEntry,
+    key: "lot-a",
+    label: "Lot A",
+    reportKey: "lot-a-central",
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-001",
   },
   {
     key: "lot-b",
     label: "Lot B",
     reportKey: null,
     matchFn: (e) => isLotBEntry(e) && !isDsaOrAmsEntry(e),
+  },
+  {
+    key: "lot-c",
+    label: "Lot C",
+    reportKey: null,
+    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003",
   },
   {
     key: "vps-auteuil",
@@ -178,16 +184,10 @@ const LOG_GROUPS: LogGroup[] = [
     matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly"),
   },
   {
-    key: "lot-a",
-    label: "Lot A",
-    reportKey: "lot-a-central",
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-001",
-  },
-  {
-    key: "lot-c",
-    label: "Lot C",
+    key: "dsa-ams",
+    label: "DSA et AMS",
     reportKey: null,
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003",
+    matchFn: isDsaOrAmsEntry,
   },
   {
     key: "lot-v",
@@ -211,16 +211,16 @@ interface DesinfectionGroup {
 }
 
 const DESINFECTION_GROUPS: DesinfectionGroup[] = [
-  { key: "dsa-ams", label: "DSA et AMS", matchFn: isDsaOrAmsEntry },
   { key: "lot-a", label: "Lot A", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-001" },
   { key: "lot-b-alpha", label: "Lot B Alpha", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("alpha") || false) },
   { key: "lot-b-bravo", label: "Lot B Bravo", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("bravo") || false) },
   { key: "lot-b-auteuil", label: "Lot B Auteuil", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("auteuil") || false) },
   { key: "lot-b-neuilly", label: "Lot B Neuilly", matchFn: (e) => !isDsaOrAmsEntry(e) && isLotBEntry(e) && (e.variant_name?.toLowerCase().includes("neuilly") || false) },
-  { key: "vps-auteuil", label: "VPS Auteuil", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly") },
-  { key: "vps-neuilly", label: "VPS Neuilly", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly") },
   { key: "lot-c-alpha", label: "Lot C Alpha", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Alpha") || e.variant_name?.includes("Alpha") || false) },
   { key: "lot-c-bravo", label: "Lot C Bravo", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo") || false) },
+  { key: "vps-auteuil", label: "VPS Auteuil", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly") },
+  { key: "vps-neuilly", label: "VPS Neuilly", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly") },
+  { key: "dsa-ams", label: "DSA et AMS", matchFn: isDsaOrAmsEntry },
   { key: "lot-v-poussin", label: "Lot V Poussin", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("poussin") || e.variant_name?.toLowerCase().includes("poussin") || false) },
   { key: "lot-v-passy", label: "Lot V Passy", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("passy") || e.variant_name?.toLowerCase().includes("passy") || false) },
   { key: "lot-cai", label: "Lot CAI", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-cai" },

@@ -161,6 +161,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] AMS : rendu entrée AMS (variant_name || "AMS") dans l'onglet Désinfection
 - [x] AMS : lint et build validés
 - [x] AMS : affichage logs simplifié — uniquement variant_name (ex: « AMS Bravo ») sans préfixe redondant « AMS — » dans les deux onglets Vérifications et Désinfection
+- [x] Journal : réordonner les groupes — Lot A, Lot B, Lot C, VPS, DSA et AMS, Lot V, Lot CAI (onglets Vérifications et Désinfection)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
