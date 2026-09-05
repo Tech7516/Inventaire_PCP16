@@ -322,9 +322,46 @@ export default function SubEntitiesPage() {
       })();
 
       const logPromises: Promise<any>[] = [];
+      const effectiveInterventionType = session.intervention_type || interventionType || null;
+      const isDesinfection = effectiveInterventionType === "desinfection";
+
+      if (isDesinfection) {
+        // Désinfection : une seule ligne par lot (ou par variante Lot B)
+        if (lotId && lotId !== "lot-b") {
+          logPromises.push(addLogEntryToDb({
+            lot_id: lotId,
+            lot_name: lot?.name || "",
+            sub_entity_name: lot?.name || "",
+            variant_name: null,
+            lot_variant_name: currentLotVariantName,
+            sac_type: null,
+            dps_name: dpsNameValue,
+            intervention_type: "desinfection",
+            completed_key: `${lotId}-desinfection${currentLotVariantName ? `-${currentLotVariantName}` : ""}`,
+          }));
+        }
+
+        // Lot B (standalone) : une seule ligne pour le lot entier
+        if (lotId === "lot-b") {
+          logPromises.push(addLogEntryToDb({
+            lot_id: "lot-b",
+            lot_name: "Lot B",
+            sub_entity_name: "Lot B",
+            variant_name: null,
+            lot_variant_name: null,
+            sac_type: null,
+            dps_name: dpsNameValue,
+            intervention_type: "desinfection",
+            completed_key: `lot-b-desinfection`,
+          }));
+        }
+        // Lot A : la ligne Lot A ci-dessus couvre déjà tout le lot,
+        // pas de ligne supplémentaire pour les instances Lot B
+      } else {
+        // Vérification : log par sous-entité
       subEntities.forEach((sub) => {
         // Skip lot-b sub-entity for Lot A (handled separately as multi-instance)
-        if (lotId === "lot-001" && sub.id === "lot-b") return;
+        if (lotId === "lot-001" && sub.id === "lot-b") return; 
 
         const hasVariants = sub.variants && sub.variants.length > 0;
         const selectedVariant = selectedVariants[sub.id];
@@ -486,6 +523,7 @@ export default function SubEntitiesPage() {
           }
         });
       }
+      } // fin else (vérification)
 
       await Promise.all(logPromises);
 

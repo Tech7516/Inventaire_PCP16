@@ -138,6 +138,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] DSA optionnel VPS : isLotBComplete ignore DSA quand dsaEnabled=false
 - [x] DSA optionnel VPS : isCompleted=true pour carte DSA optionnelle désactivée
 - [x] DSA optionnel VPS : persistance cloud dsa-enabled via useCloudPreferences
+- [x] Desinfection : une seule ligne par lot entier (plus une par sous-lot) - Lot B standalone simplifie, instances Lot B dans Lot A supprimees, fermeture syntaxique du bloc else verification
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
