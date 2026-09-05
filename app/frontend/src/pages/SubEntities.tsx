@@ -17,6 +17,7 @@ import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users, 
 import { toast } from "sonner";
 import {
   getActiveSession,
+  getAllActiveSessions,
   createSession,
   abandonSession,
   completeSession,
@@ -51,6 +52,7 @@ export default function SubEntitiesPage() {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [selectedDsaVariants, setSelectedDsaVariants] = useState<Record<string, string>>({});
   const [dsaEnabled, setDsaEnabled] = useState<Record<string, boolean>>({});
+  const [activeSessionLotIds, setActiveSessionLotIds] = useState<Set<string>>(new Set());
 
   const toggleDsaEnabled = (subId: string) => {
     setDsaEnabled((prev) => {
@@ -191,6 +193,38 @@ export default function SubEntitiesPage() {
     initSession();
   }, [lotId]);
 
+  // Load all active sessions to know which lots have in-progress inventories
+  useEffect(() => {
+    const loadActiveSessions = async () => {
+      try {
+        const sessions = await getAllActiveSessions();
+        const activeLots = new Set(
+          sessions
+            .filter((s) => s.status === "active")
+            .map((s) => s.lot_id)
+        );
+        setActiveSessionLotIds(activeLots);
+      } catch { /* ignore */ }
+    };
+    loadActiveSessions();
+    // Refresh every poll interval
+    const interval = setInterval(loadActiveSessions, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Map a DSA variant key to its parent lot ID
+  // Keys: "vps-lot-b" → lot-vps, "lot-b-c" → lot-003, "dsa-a" → lot-001,
+  //       "dsa-c" → lot-003, "dsa-v" → lot-vps, "lot-b-0"/"lot-b-1" → lot-001
+  const getDsaKeyLotId = (key: string): string | null => {
+    if (key === "vps-lot-b" || key === "dsa-v") return "lot-vps";
+    if (key === "lot-b-c" || key === "dsa-c") return "lot-003";
+    if (key === "dsa-a") return "lot-001";
+    if (key.startsWith("lot-b-")) return "lot-001";
+    // Fallback: try to match known lot IDs
+    if (key === "lot-001" || key === "lot-003" || key === "lot-vps") return key;
+    return null;
+  };
+
   // Polling for checks updates
   useEffect(() => {
     if (!session) return;
@@ -229,12 +263,18 @@ export default function SubEntitiesPage() {
     });
   };
 
-  // Get already-used DSA variant IDs across all Lot B instances (excluding a specific key)
+  // Get already-used DSA variant IDs, but only for lots that have an active session
+  // DSA on lots without an active session are free to re-select
   const getUsedDsaVariants = (excludeKey?: string): Set<string> => {
     const used = new Set<string>();
     Object.entries(selectedDsaVariants).forEach(([k, v]) => {
       if (k === excludeKey) return;
-      if (v) used.add(v);
+      if (!v) return;
+      // Only block if the parent lot has an active session
+      const parentLotId = getDsaKeyLotId(k);
+      if (parentLotId && activeSessionLotIds.has(parentLotId)) {
+        used.add(v);
+      }
     });
     return used;
   };
