@@ -464,9 +464,7 @@ export default function LogPage() {
                       const vl = entry.variant_name || "";
                       const dashIdx = vl.lastIndexOf(" — ");
                       if (dashIdx >= 0) {
-                        const parentCtx = vl.substring(0, dashIdx).trim();
-                        const dsaName = vl.substring(dashIdx + 3).trim();
-                        return parentCtx ? `${parentCtx} — ${dsaName}` : dsaName;
+                        return vl.substring(dashIdx + 3).trim();
                       }
                       return vl || "Désinfection";
                     })()
@@ -711,12 +709,10 @@ export default function LogPage() {
                           const detailParts: string[] = [];
                           if (entryIsDsa) {
                             // variant_name format: "Lot B Alpha — DSA Charlie" or just "DSA Charlie"
-                            // Extract DSA/T7 variant name (after last —) and parent lot context (before —)
+                            // Only show the DSA/T7 variant name (after last —), not the parent lot context
                             const dashIdx = variantLabel?.lastIndexOf(" — ");
                             if (dashIdx !== undefined && dashIdx !== null && dashIdx >= 0 && variantLabel) {
-                              const parentCtx = variantLabel.substring(0, dashIdx).trim();
                               const dsaName = variantLabel.substring(dashIdx + 3).trim();
-                              if (parentCtx) detailParts.push(parentCtx);
                               detailParts.push(dsaName);
                             } else {
                               if (variantLabel) detailParts.push(variantLabel);

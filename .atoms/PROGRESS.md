@@ -145,6 +145,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Entrées DSA/T7 affichent le nom de variante (ex: Lot B Alpha — DSA Charlie) dans l’onglet Désinfection
 - [x] Variables inutilisées dsaInGroup/hasDsa nettoyées
 - [x] Lint et build validés après suppression Cahier DSA et catégorie DSA et AMS
+- [x] DSA : afficher uniquement le nom de variante DSA (ex: « DSA Bravo ») sans le contexte parent dans les deux onglets
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
