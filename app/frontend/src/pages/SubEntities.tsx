@@ -1034,43 +1034,21 @@ export default function SubEntitiesPage() {
                           )}
                         </>
                       ) : hasVariants && sub.inventoryType === "ams" ? (
-                        <>
-                          <div className="space-y-1">
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Variante AMS :
-                            </label>
-                            <Select
-                              value={selectedVariant || ""}
-                              onValueChange={(value) => persistVariant(sub.id, value)}
-                            >
-                              <SelectTrigger className="w-full cursor-pointer">
-                                <SelectValue placeholder="Choisir une variante AMS..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {amsVariants.map((av) => (
-                                  <SelectItem key={av.id} value={av.id} className="cursor-pointer">
-                                    {av.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button
-                            className="w-full cursor-pointer"
-                            variant="default"
-                            disabled={!selectedVariant}
-                            onClick={() => {
-                              if (selectedVariant) {
-                                navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/ams?session=${session.id}`);
-                              }
-                            }}
-                          >
-                            {isSubChecked(sub.id, selectedVariant, "ams") && (
-                              <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
-                            )}
-                            Vérifier l&apos;AMS
-                          </Button>
-                        </>
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}/ams?session=${session.id}`);
+                            }
+                          }}
+                        >
+                          {isSubChecked(sub.id, selectedVariant, "ams") && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier l&apos;AMS
+                        </Button>
                       ) : hasVariants ? (
                         <Button
                           className="w-full cursor-pointer"
