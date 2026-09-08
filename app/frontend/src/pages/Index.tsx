@@ -91,12 +91,23 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleStartInventory = (lotId: string) => {
+  const handleStartInventory = (lotId: string, variantId?: string) => {
     const lot = dynamicLots.find((l) => l.id === lotId);
+    const query = variantId ? `?variant=${encodeURIComponent(variantId)}` : "";
     if (lot?.directInventory) {
-      navigate(`/inventory/${lotId}/${lotId}`);
+      navigate(`/inventory/${lotId}/${lotId}${query}`);
     } else {
-      navigate(`/lot/${lotId}`);
+      navigate(`/lot/${lotId}${query}`);
+    }
+  };
+
+  const handleJoinSession = (lotId: string, sessionId: number, variantId?: string) => {
+    const lot = dynamicLots.find((l) => l.id === lotId);
+    const variantQuery = variantId ? `&variant=${encodeURIComponent(variantId)}` : "";
+    if (lot?.directInventory) {
+      navigate(`/inventory/${lotId}/${lotId}?session=${sessionId}${variantQuery}`);
+    } else {
+      navigate(`/lot/${lotId}?session=${sessionId}${variantQuery}`);
     }
   };
 
@@ -218,7 +229,7 @@ export default function HomePage() {
                         <Button
                           key={session.id}
                           className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-amber-500 hover:bg-amber-600 text-white"
-                          onClick={() => handleStartInventory(lot.id)}
+                          onClick={() => handleJoinSession(lot.id, session.id, session.variant_id || undefined)}
                         >
                           <Users className="h-4 w-4 shrink-0" />
                           {label}
@@ -228,7 +239,7 @@ export default function HomePage() {
                     <Button
                       className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-[#002D74FF] hover:bg-primary/90 text-white"
                       disabled={hasVariants && (!selectedVariant || lockedVariantIds.has(selectedVariant))}
-                      onClick={() => handleStartInventory(lot.id)}
+                      onClick={() => handleStartInventory(lot.id, selectedVariant)}
                     >
                       <ClipboardList className="h-4 w-4 shrink-0" />
                       Démarrer l'inventaire

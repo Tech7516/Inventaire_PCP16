@@ -22,9 +22,11 @@ import {
   addLogEntryToDb,
   saveDiscrepancyReportToDb,
   getActiveSession,
+  getAllActiveSessions,
   createSession,
   abandonSession,
   completeSession,
+  getSession,
   type InventoryItemData,
   type SessionData,
 } from "@/lib/inventory-api";
@@ -41,6 +43,8 @@ export default function InventoryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session") ? parseInt(searchParams.get("session")!) : null;
+  const urlVariantId = searchParams.get("variant") || undefined;
+  const urlSessionId = searchParams.get("session");
   const { getPref, setPref } = useCloudPreferences();
 
   const dsaVariant = searchParams.get("dsaVariant");
@@ -63,15 +67,62 @@ export default function InventoryPage() {
   const effectiveSessionId = sessionId || (directSession?.id ?? null);
 
   // Check for active session on mount for direct inventory lots
+  // URL params take priority (same logic as SubEntities):
+  //   ?session=N  → join that specific session
+  //   ?variant=V  → only resume a session matching that variant
+  //   (none)      → resume any active session for this lot
   useEffect(() => {
     if (!lotId || !isDirectInventory) return;
     const checkSession = async () => {
       setSessionLoading(true);
       try {
+        // Case 1: explicit session ID in URL
+        if (urlSessionId) {
+          const specificSession = await getSession(Number(urlSessionId));
+          if (specificSession && specificSession.status === "active") {
+            setDirectSession(specificSession);
+            if (specificSession.variant_id) {
+              try {
+                const raw = getPref("lot-variants");
+                const parsed = raw ? JSON.parse(raw) : {};
+                if (parsed[lotId] !== specificSession.variant_id) {
+                  parsed[lotId] = specificSession.variant_id;
+                  setPref("lot-variants", JSON.stringify(parsed));
+                }
+              } catch { /* ignore */ }
+            }
+          }
+          setSessionLoading(false);
+          return;
+        }
+
+        // Case 2: variant specified in URL — only resume matching session
+        if (urlVariantId) {
+          const allSessions = await getAllActiveSessions();
+          const matching = allSessions.find(
+            (s) => s.lot_id === lotId && s.status === "active" && s.variant_id === urlVariantId
+          );
+          if (matching) {
+            setDirectSession(matching);
+            if (matching.variant_id) {
+              try {
+                const raw = getPref("lot-variants");
+                const parsed = raw ? JSON.parse(raw) : {};
+                if (parsed[lotId] !== matching.variant_id) {
+                  parsed[lotId] = matching.variant_id;
+                  setPref("lot-variants", JSON.stringify(parsed));
+                }
+              } catch { /* ignore */ }
+            }
+          }
+          setSessionLoading(false);
+          return;
+        }
+
+        // Case 3: no URL hints — legacy: resume any active session
         const existing = await getActiveSession(lotId);
         if (existing && existing.status === "active") {
           setDirectSession(existing);
-          // Sync variant from session into preferences
           if (existing.variant_id) {
             try {
               const raw = getPref("lot-variants");
@@ -90,7 +141,8 @@ export default function InventoryPage() {
     // Poll every 5s to keep session state fresh
     const interval = setInterval(checkSession, 5000);
     return () => clearInterval(interval);
-  }, [lotId, isDirectInventory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lotId, isDirectInventory, urlVariantId, urlSessionId]);
 
   // Create a session for direct inventory when DPS name is set and no session exists
   const ensureDirectSession = async (): Promise<number | null> => {
@@ -166,24 +218,28 @@ export default function InventoryPage() {
   const [interventionType, setInterventionType] = useState<"verification" | "desinfection" | "">("");
 
   // Get the selected lot variant name for display (e.g. "VL Poussin")
+  // URL variant param takes priority over preferences
   const lotVariantName = (() => {
     if (!lot?.variants) return null;
-    try {
-      const lotVarsRaw = getPref("lot-variants");
-      if (lotVarsRaw) {
-        const parsed = JSON.parse(lotVarsRaw);
-        const selectedVId = parsed[lotId || ""];
-        if (selectedVId) {
-          const v = lot.variants.find((vv) => vv.id === selectedVId);
-          if (v) return v.name;
+    const effectiveVId = urlVariantId || (() => {
+      try {
+        const lotVarsRaw = getPref("lot-variants");
+        if (lotVarsRaw) {
+          const parsed = JSON.parse(lotVarsRaw);
+          return parsed[lotId || ""] || null;
         }
-      }
-    } catch { /* ignore */ }
+      } catch { /* ignore */ }
+      return null;
+    })();
+    if (effectiveVId) {
+      const v = lot.variants.find((vv) => vv.id === effectiveVId);
+      if (v) return v.name;
+    }
     return null;
   })();
 
-  // Get the selected lot variant ID
-  const lotVariantId = (() => {
+  // Get the selected lot variant ID — URL param takes priority over preferences
+  const lotVariantId = urlVariantId || (() => {
     try {
       const lotVarsRaw = getPref("lot-variants");
       if (lotVarsRaw) {

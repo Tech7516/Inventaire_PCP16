@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
   createSession,
   abandonSession,
   completeSession,
+  getSession,
   getSubEntityChecks,
   markSubEntity,
   addLogEntryToDb,
@@ -34,6 +35,9 @@ const POLL_INTERVAL = 5000; // 5 seconds
 export default function SubEntitiesPage() {
   const { lotId } = useParams<{ lotId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlVariantId = searchParams.get("variant") || undefined;
+  const urlSessionId = searchParams.get("session");
   const { getPref, setPref, removePref } = useCloudPreferences();
   const [lot, setLot] = useState<Lot | null>(null);
   const [subEntities, setSubEntities] = useState<SubEntity[]>([]);
@@ -174,11 +178,54 @@ export default function SubEntitiesPage() {
   }, [lotId]);
 
   // Load or create session on mount — check API directly (no localStorage cache)
+  // URL params take priority:
+  //   ?session=N  → join that specific session
+  //   ?variant=V  → only resume a session matching that variant, otherwise show DPS form
+  //   (none)      → resume any active session for this lot (legacy behaviour)
   useEffect(() => {
     const initSession = async () => {
       if (!lotId) return;
       setSessionLoading(true);
       try {
+        // Case 1: explicit session ID in URL (joining from homepage)
+        if (urlSessionId) {
+          const specificSession = await getSession(Number(urlSessionId));
+          if (specificSession && specificSession.status === "active") {
+            setSession(specificSession);
+            setDpsName(specificSession.dps_name);
+            setPref("dps-name", specificSession.dps_name);
+            if (specificSession.intervention_type === "verification" || specificSession.intervention_type === "desinfection") {
+              setInterventionType(specificSession.intervention_type);
+            }
+            const checksData = await getSubEntityChecks(specificSession.id);
+            setChecks(checksData);
+          }
+          setSessionLoading(false);
+          return;
+        }
+
+        // Case 2: variant specified in URL — only resume a session that matches
+        if (urlVariantId) {
+          const allSessions = await getAllActiveSessions();
+          const matching = allSessions.find(
+            (s) => s.lot_id === lotId && s.status === "active" && s.variant_id === urlVariantId
+          );
+          if (matching) {
+            setSession(matching);
+            setDpsName(matching.dps_name);
+            setPref("dps-name", matching.dps_name);
+            if (matching.intervention_type === "verification" || matching.intervention_type === "desinfection") {
+              setInterventionType(matching.intervention_type);
+            }
+            const checksData = await getSubEntityChecks(matching.id);
+            setChecks(checksData);
+          }
+          // If no matching session, leave session null → DPS form will show
+          setSessionLoading(false);
+          return;
+        }
+
+        // Case 3: no URL hints — legacy: resume any active session for this lot
         const activeSession = await getActiveSession(lotId);
         if (activeSession && activeSession.status === "active") {
           setSession(activeSession);
@@ -194,7 +241,8 @@ export default function SubEntitiesPage() {
       setSessionLoading(false);
     };
     initSession();
-  }, [lotId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lotId, urlVariantId, urlSessionId]);
 
   // Load all active sessions to know which lots have in-progress inventories
   useEffect(() => {
@@ -296,14 +344,16 @@ export default function SubEntitiesPage() {
 
     setCreatingSession(true);
     try {
-      // Get variant from cloud preferences
-      const lotVarsRaw = getPref("lot-variants");
-      let variantId: string | null = null;
-      if (lotVarsRaw) {
-        try {
-          const parsed = JSON.parse(lotVarsRaw);
-          variantId = parsed[lotId] || null;
-        } catch { /* ignore */ }
+      // Get variant: URL param takes priority, then cloud preferences
+      let variantId: string | null = urlVariantId || null;
+      if (!variantId) {
+        const lotVarsRaw = getPref("lot-variants");
+        if (lotVarsRaw) {
+          try {
+            const parsed = JSON.parse(lotVarsRaw);
+            variantId = parsed[lotId] || null;
+          } catch { /* ignore */ }
+        }
       }
 
       const newSession = await createSession(lotId, dpsName.trim(), variantId, interventionType);
