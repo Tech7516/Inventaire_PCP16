@@ -216,11 +216,7 @@ export default function HomePage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {activeSession?.variant_id && (
-                        <p className="text-xs text-amber-600">
-                          Variante verrouillée — inventaire en cours
-                        </p>
-                      )}
+
                     </div>
                   )}
 
