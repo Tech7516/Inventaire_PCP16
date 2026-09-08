@@ -189,6 +189,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Admin : kits Accouchement, AERV, SNV et Risque biologique renforcé rendus éditables (visible dans la section Kits personnalisés) ; renommé « Kit Mater / Accouchement » en « Kit Accouchement » ; description mise à jour avec les 7 kits
 - [x] Uniformisation casse kits : « Kit pharmacie » en « Kit Pharmacie », « Kit membre arraché » en « Kit Membre arraché », « Kit accident exposition risque viral » en « Kit AERV » dans Lot V
 - [x] Lint et build validés après uniformisation casse kits
+- [x] Fichier requirements.md créé avec toutes les informations d hébergement (langages, BDD, stack, déploiement, checklist)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
