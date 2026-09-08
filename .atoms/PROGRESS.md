@@ -170,6 +170,11 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Lot A : ajout kit dédié « Kit de risque biologique renforcé » (kit-risque-biologique-renforce, items vides — inventaire à définir plus tard)
 - [x] Suppression définitive dsaEnabled : toggles « Inclure le DSA » retirés, conditions d'affichage DSA VPS simplifiées, flag optional retiré de lots.ts, DSA VPS géré exclusivement par dsaInstances/selectedDsaVariants
 - [x] Lint et build validés après suppression complète dsaEnabled
+- [x] Verrouillage cloud des variantes pour lots A, C et V : variant_id transmis à createSession(), sélecteur désactivé pendant session active, reprise uniquement sur la variante verrouillée, réactivation après abandon/complétion
+- [x] Indicateur Lock (icône + badge « Variante verrouillée ») ajouté dans SubEntities.tsx et Inventory.tsx
+- [x] Cohérence vérifiée entre Index.tsx, SubEntities.tsx, Inventory.tsx, SessionData.variant_id et préférences cloud
+- [x] completeSession() confirmé pour Lot V et inventaires directs (Inventory.tsx)
+- [x] Lint et build validés après finalisation du verrouillage variantes
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

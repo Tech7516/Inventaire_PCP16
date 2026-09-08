@@ -13,7 +13,7 @@ import {
 import { loadLotConfig, loadEditableKitOverrides } from "@/lib/configStore";
 import { subEntitySections, findKitDefinition, type KitItem } from "@/data/lots";
 import type { Lot, SubEntity, ConsumableSection } from "@/data/lots";
-import { ArrowLeft, Save, ClipboardList, Users, ChevronDown, ChevronRight, PackageOpen } from "lucide-react";
+import { ArrowLeft, Save, ClipboardList, Users, ChevronDown, ChevronRight, PackageOpen, Lock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   saveInventoryItems,
@@ -21,7 +21,12 @@ import {
   getInventoryItems,
   addLogEntryToDb,
   saveDiscrepancyReportToDb,
+  getActiveSession,
+  createSession,
+  abandonSession,
+  completeSession,
   type InventoryItemData,
+  type SessionData,
 } from "@/lib/inventory-api";
 import { useCloudPreferences } from "@/lib/useCloudPreferences";
 
@@ -48,6 +53,81 @@ export default function InventoryPage() {
 
   const isDirectInventory = lot?.directInventory === true;
   const variant = subEntity?.variants?.find((v) => v.id === variantId);
+
+  // --- Session management for direct inventory lots (Lot V, Lot CAI, Lot A, Lot C) ---
+  const [directSession, setDirectSession] = useState<SessionData | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [abandoning, setAbandoning] = useState(false);
+
+  // Resolve effective session: either from URL param (non-direct) or direct session state
+  const effectiveSessionId = sessionId || (directSession?.id ?? null);
+
+  // Check for active session on mount for direct inventory lots
+  useEffect(() => {
+    if (!lotId || !isDirectInventory) return;
+    const checkSession = async () => {
+      setSessionLoading(true);
+      try {
+        const existing = await getActiveSession(lotId);
+        if (existing && existing.status === "active") {
+          setDirectSession(existing);
+          // Sync variant from session into preferences
+          if (existing.variant_id) {
+            try {
+              const raw = getPref("lot-variants");
+              const parsed = raw ? JSON.parse(raw) : {};
+              if (parsed[lotId] !== existing.variant_id) {
+                parsed[lotId] = existing.variant_id;
+                setPref("lot-variants", JSON.stringify(parsed));
+              }
+            } catch { /* ignore */ }
+          }
+        }
+      } catch { /* ignore */ }
+      setSessionLoading(false);
+    };
+    checkSession();
+    // Poll every 5s to keep session state fresh
+    const interval = setInterval(checkSession, 5000);
+    return () => clearInterval(interval);
+  }, [lotId, isDirectInventory]);
+
+  // Create a session for direct inventory when DPS name is set and no session exists
+  const ensureDirectSession = async (): Promise<number | null> => {
+    if (!isDirectInventory || !lotId) return sessionId;
+    if (directSession?.id) return directSession.id;
+    const dps = dpsName.trim();
+    if (!dps && interventionType !== "desinfection") return null;
+    try {
+      const s = await createSession(
+        lotId,
+        dps || "Désinfection",
+        lotVariantId || null,
+        interventionType || null
+      );
+      setDirectSession(s);
+      return s.id;
+    } catch (e: any) {
+      toast.error(e?.message || "Impossible de créer la session");
+      return null;
+    }
+  };
+
+  // Abandon the direct inventory session
+  const handleAbandon = async () => {
+    if (!directSession?.id) return;
+    setAbandoning(true);
+    try {
+      await abandonSession(directSession.id);
+      setDirectSession(null);
+      toast.success("Session abandonnée");
+      navigate("/");
+    } catch {
+      toast.error("Erreur lors de l'abandon");
+    } finally {
+      setAbandoning(false);
+    }
+  };
 
   // Load lot config from DB (configStore) on mount
   useEffect(() => {
@@ -181,13 +261,13 @@ export default function InventoryPage() {
   // Load existing items from DB if session exists
   useEffect(() => {
     const loadExisting = async () => {
-      if (!sessionId) {
+      if (!effectiveSessionId) {
         setLoadingExisting(false);
         return;
       }
       try {
         const existingItems = await getInventoryItems(
-          sessionId,
+          effectiveSessionId,
           subId,
           variantId || undefined,
           sacType || undefined
@@ -211,7 +291,7 @@ export default function InventoryPage() {
       setLoadingExisting(false);
     };
     loadExisting();
-  }, [sessionId, subId, variantId, sacType]);
+  }, [effectiveSessionId, subId, variantId, sacType]);
 
   const sacLabel = sacType === "o2" ? "Sac d'O2" : sacType === "soin" ? "Sac de soin" : sacType === "ams" ? "AMS" : "";
   const displayTitle = isDirectInventory
@@ -338,8 +418,20 @@ export default function InventoryPage() {
     setSaving(true);
 
     try {
+      // For direct inventory, ensure a session exists before saving
+      let currentSessionId = effectiveSessionId;
+      if (isDirectInventory && !currentSessionId) {
+        const createdId = await ensureDirectSession();
+        if (!createdId) {
+          toast.error("Impossible de créer la session. Veuillez saisir le nom du DPS.");
+          setSaving(false);
+          return;
+        }
+        currentSessionId = createdId;
+      }
+
       // Save only discrepancies (non-conforming items) to DB
-      if (sessionId) {
+      if (currentSessionId) {
         const discrepancies = allItems.filter(
           (item) => !safeEntries[item.id]?.validated || safeEntries[item.id]?.customQuantity?.trim()
         );
@@ -351,7 +443,7 @@ export default function InventoryPage() {
 
         if (itemsPayload.length > 0) {
           await saveInventoryItems(
-            sessionId,
+            currentSessionId,
             subId || lotId || "",
             itemsPayload,
             dpsName.trim(),
@@ -362,7 +454,7 @@ export default function InventoryPage() {
 
         // Mark sub-entity as checked
         await markSubEntity(
-          sessionId,
+          currentSessionId,
           subId || lotId || "",
           dpsName.trim(),
           variantId || null,
@@ -487,6 +579,15 @@ export default function InventoryPage() {
           completed_key: completedKey,
         });
 
+        // Complete the direct inventory session to unlock the variant
+        if (currentSessionId) {
+          try {
+            await completeSession(currentSessionId);
+          } catch (completeErr: any) {
+            console.warn("Session completion failed (non-blocking):", completeErr);
+          }
+        }
+
         navigate(`/report/${lotId}`);
       } else {
         // Go back to sub-entities page
@@ -534,10 +635,29 @@ export default function InventoryPage() {
                 </div>
               </div>
             </div>
-            <Button onClick={handleSubmit} disabled={saving || (isDirectInventory && !dpsName.trim() && interventionType !== "desinfection")} className="cursor-pointer">
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? "Enregistrement..." : "Enregistrer"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {isDirectInventory && directSession && (
+                <Button
+                  variant="outline"
+                  onClick={handleAbandon}
+                  disabled={abandoning || saving}
+                  className="cursor-pointer text-amber-600 border-amber-300 hover:bg-amber-50"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  {abandoning ? "Abandon..." : "Abandonner"}
+                </Button>
+              )}
+              {isDirectInventory && directSession?.variant_id && (
+                <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 rounded-md px-2 py-1">
+                  <Lock className="h-3 w-3" />
+                  <span>Variante verrouillée</span>
+                </div>
+              )}
+              <Button onClick={handleSubmit} disabled={saving || (isDirectInventory && !dpsName.trim() && interventionType !== "desinfection")} className="cursor-pointer">
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? "Enregistrement..." : "Enregistrer"}
+              </Button>
+            </div>
           </div>
         </div>
       </header>

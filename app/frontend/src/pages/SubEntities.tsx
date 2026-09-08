@@ -13,7 +13,7 @@ import {
 import { loadLotConfig } from "@/lib/configStore";
 import type { Lot, SubEntity, SubEntityVariant, ConsumableSection } from "@/data/lots";
 import { dsaVariants, amsVariants } from "@/data/lots";
-import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users, Plus } from "lucide-react";
+import { ArrowLeft, ClipboardList, Package, CheckCircle2, Save, XCircle, Users, Plus, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   getActiveSession,
@@ -893,6 +893,12 @@ export default function SubEntitiesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {session.variant_id && (
+                  <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 rounded-md px-2 py-1">
+                    <Lock className="h-3 w-3" />
+                    <span>Variante verrouillée</span>
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

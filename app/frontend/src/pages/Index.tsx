@@ -42,7 +42,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { getPref, setPref } = useCloudPreferences();
   const [selectedLotVariants, setSelectedLotVariants] = useState<Record<string, string>>({});
-  const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string }>>({});
+  const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string; variant_id: string | null }>>({});
   const [logEntries, setLogEntries] = useState<InventoryLogData[]>([]);
   const [dynamicLots, setDynamicLots] = useState<Lot[]>(staticLots);
 
@@ -64,7 +64,26 @@ export default function HomePage() {
     });
   };
 
-  // Check for active sessions, log entries, and dynamic lots on mount
+  // Auto-sync variant from active session into local state & cloud prefs
+  useEffect(() => {
+    if (Object.keys(activeSessions).length === 0) return;
+    setSelectedLotVariants((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [lotId, session] of Object.entries(activeSessions)) {
+        if (session.variant_id && next[lotId] !== session.variant_id) {
+          next[lotId] = session.variant_id;
+          changed = true;
+        }
+      }
+      if (changed) {
+        setPref("lot-variants", JSON.stringify(next));
+      }
+      return changed ? next : prev;
+    });
+  }, [activeSessions, setPref]);
+
+  // Check for active sessions, log entries, and dynamic lots on mount + polling
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -73,10 +92,10 @@ export default function HomePage() {
           getLogEntriesFromDb(),
           getMergedLots(),
         ]);
-        const sessions: Record<string, { id: number; dps_name: string }> = {};
+        const sessions: Record<string, { id: number; dps_name: string; variant_id: string | null }> = {};
         for (const s of allSessions) {
           if (s.status === "active") {
-            sessions[s.lot_id] = { id: s.id, dps_name: s.dps_name };
+            sessions[s.lot_id] = { id: s.id, dps_name: s.dps_name, variant_id: s.variant_id };
           }
         }
         setActiveSessions(sessions);
@@ -85,6 +104,8 @@ export default function HomePage() {
       } catch { /* ignore */ }
     };
     loadData();
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleStartInventory = (lotId: string) => {
@@ -185,20 +206,30 @@ export default function HomePage() {
                         Choix du {lot.name} :
                       </label>
                       <Select
-                        value={selectedVariant || ""}
+                        value={activeSession?.variant_id || selectedVariant || ""}
                         onValueChange={(value) => persistLotVariant(lot.id, value)}
+                        disabled={!!activeSession}
                       >
-                        <SelectTrigger className="w-full cursor-pointer">
+                        <SelectTrigger className={`w-full ${activeSession ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}>
                           <SelectValue placeholder={`Choisir un ${lot.name}...`} />
                         </SelectTrigger>
                         <SelectContent>
                           {lot.variants!.map((variant) => (
-                            <SelectItem key={variant.id} value={variant.id} className="cursor-pointer">
+                            <SelectItem
+                              key={variant.id}
+                              value={variant.id}
+                              className={`cursor-pointer ${activeSession && variant.id !== activeSession.variant_id ? "opacity-40 pointer-events-none" : ""}`}
+                            >
                               {variant.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {activeSession?.variant_id && (
+                        <p className="text-xs text-amber-600">
+                          Variante verrouillée — inventaire en cours
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -206,7 +237,7 @@ export default function HomePage() {
                     <Button
                       className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-10 px-4 py-2 w-full cursor-pointer mt-[0px] mr-[0px] mb-[0px] ml-[0px] pt-[8px] pr-[16px] pb-[8px] pl-[16px] rounded-md text-[14px] font-medium text-center text-[#FFFFFF] bg-[#002D74FF] opacity-100"
                       variant={activeSession ? "outline" : "default"}
-                      disabled={hasVariants && !selectedVariant}
+                      disabled={!activeSession && hasVariants && !selectedVariant}
                       onClick={() => handleStartInventory(lot.id)}
                     >
                       {activeSession
