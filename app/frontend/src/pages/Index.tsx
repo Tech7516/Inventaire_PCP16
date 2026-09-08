@@ -228,9 +228,13 @@ export default function HomePage() {
                     >
                       <Users className="h-4 w-4 shrink-0" />
                       {activeSession
-                        ? activeSession.intervention_type === "desinfection"
-                          ? "Rejoindre — Désinfection"
-                          : `Rejoindre — DPS : ${activeSession.dps_name}`
+                        ? (() => {
+                            const vName = lot.variants?.find(v => v.id === activeSession.variant_id)?.name;
+                            const prefix = vName ? `Rejoindre ${vName} —` : "Rejoindre —";
+                            return activeSession.intervention_type === "desinfection"
+                              ? `${prefix} Désinfection`
+                              : `${prefix} DPS : ${activeSession.dps_name}`;
+                          })()
                         : "Démarrer l'inventaire"}
                     </Button>
                   </div>
