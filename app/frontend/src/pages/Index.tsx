@@ -38,6 +38,10 @@ function getLastVerificationDate(logEntries: InventoryLogData[], lotId: string):
   return formatDateTimeShort(entries[0].created_at || "");
 }
 
+const startBtnClass = "inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-[#002D74FF] hover:bg-primary/90 text-white";
+
+const joinBtnClass = "inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-amber-500 hover:bg-amber-600 text-white";
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { getPref, setPref } = useCloudPreferences();
@@ -125,7 +129,7 @@ export default function HomePage() {
                   Gestion des Inventaires
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                  Sélectionnez un lot pour démarrer l'inventaire
+                  Sélectionnez un lot pour démarrer l&apos;inventaire
                 </p>
               </div>
             </div>
@@ -158,7 +162,6 @@ export default function HomePage() {
             const selectedVariant = selectedLotVariants[lot.id];
             const showLocation = lot.id === "lot-001";
             const lotSessions = activeSessions[lot.id] || [];
-            const activeSession = lotSessions[0];
             const lockedVariantIds = new Set(lotSessions.map(s => s.variant_id).filter(Boolean) as string[]);
             const allVariantsInProgress = hasVariants
               ? lot.variants!.every((v) => lockedVariantIds.has(v.id))
@@ -192,71 +195,80 @@ export default function HomePage() {
                     </div>
                   )}
 
+                  {/* Sélecteur de variante + bouton Démarrer groupés */}
                   {hasVariants && !allVariantsInProgress && (
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Choix du {lot.name} :
-                      </label>
-                      <Select
-                        value={selectedVariant || ""}
-                        onValueChange={(value) => persistLotVariant(lot.id, value)}
-                      >
-                        <SelectTrigger className="w-full cursor-pointer">
-                          <SelectValue placeholder={`Choisir un ${lot.name}...`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {lot.variants!.map((variant) => {
-                            const isLocked = lockedVariantIds.has(variant.id);
-                            return (
-                              <SelectItem
-                                key={variant.id}
-                                value={variant.id}
-                                className={`cursor-pointer ${isLocked ? "opacity-40 pointer-events-none" : ""}`}
-                              >
-                                {variant.name}{isLocked ? " (en cours)" : ""}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-
-                    </div>
-                  )}
-                  {hasVariants && allVariantsInProgress && (
-                    <p className="text-sm font-medium text-amber-600">
-                      Toutes les variantes sont en cours de vérification
-                    </p>
-                  )}
-
-                  <div className="pt-3 border-t space-y-2">
-                    {lotSessions.map((session) => {
-                      const vName = lot.variants?.find(v => v.id === session.variant_id)?.name;
-                      const prefix = vName ? `Rejoindre ${vName} —` : "Rejoindre —";
-                      const label = session.intervention_type === "desinfection"
-                        ? `${prefix} Désinfection`
-                        : `${prefix} DPS : ${session.dps_name}`;
-                      return (
-                        <Button
-                          key={session.id}
-                          className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-amber-500 hover:bg-amber-600 text-white"
-                          onClick={() => handleJoinSession(lot.id, session.id, session.variant_id || undefined)}
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Choix du {lot.name} :
+                        </label>
+                        <Select
+                          value={selectedVariant || ""}
+                          onValueChange={(value) => persistLotVariant(lot.id, value)}
                         >
-                          <Users className="h-4 w-4 shrink-0" />
-                          {label}
-                        </Button>
-                      );
-                    })}
-                    {!allVariantsInProgress && (
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue placeholder={`Choisir un ${lot.name}...`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lot.variants!.map((variant) => {
+                              const isLocked = lockedVariantIds.has(variant.id);
+                              return (
+                                <SelectItem
+                                  key={variant.id}
+                                  value={variant.id}
+                                  className={`cursor-pointer ${isLocked ? "opacity-40 pointer-events-none" : ""}`}
+                                >
+                                  {variant.name}{isLocked ? " (en cours)" : ""}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <Button
-                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-[#002D74FF] hover:bg-primary/90 text-white"
-                        disabled={hasVariants && (!selectedVariant || lockedVariantIds.has(selectedVariant))}
+                        className={startBtnClass}
+                        disabled={!selectedVariant || lockedVariantIds.has(selectedVariant)}
                         onClick={() => handleStartInventory(lot.id, selectedVariant)}
                       >
                         <ClipboardList className="h-4 w-4 shrink-0" />
-                        Démarrer l'inventaire
+                        Démarrer l&apos;inventaire
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* Lot sans variante : bouton Démarrer seul */}
+                  {!hasVariants && !allVariantsInProgress && (
+                    <Button
+                      className={startBtnClass}
+                      onClick={() => handleStartInventory(lot.id)}
+                    >
+                      <ClipboardList className="h-4 w-4 shrink-0" />
+                      Démarrer l&apos;inventaire
+                    </Button>
+                  )}
+
+                  {/* Sessions actives : section séparée */}
+                  {lotSessions.length > 0 && (
+                    <div className="pt-3 border-t space-y-2">
+                      {lotSessions.map((session) => {
+                        const vName = lot.variants?.find(v => v.id === session.variant_id)?.name;
+                        const prefix = vName ? `Rejoindre ${vName} —` : "Rejoindre —";
+                        const label = session.intervention_type === "desinfection"
+                          ? `${prefix} Désinfection`
+                          : `${prefix} DPS : ${session.dps_name}`;
+                        return (
+                          <Button
+                            key={session.id}
+                            className={joinBtnClass}
+                            onClick={() => handleJoinSession(lot.id, session.id, session.variant_id || undefined)}
+                          >
+                            <Users className="h-4 w-4 shrink-0" />
+                            {label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
