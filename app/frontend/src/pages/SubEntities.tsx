@@ -51,19 +51,13 @@ export default function SubEntitiesPage() {
 
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [selectedDsaVariants, setSelectedDsaVariants] = useState<Record<string, string>>({});
-  const [dsaEnabled, setDsaEnabled] = useState<Record<string, boolean>>({});
   const [activeSessionLotIds, setActiveSessionLotIds] = useState<Set<string>>(new Set());
-
-  const toggleDsaEnabled = (subId: string) => {
-    setDsaEnabled((prev) => {
-      const next = { ...prev, [subId]: !prev[subId] };
-      setPref("dsa-enabled", JSON.stringify(next));
-      return next;
-    });
-  };
 
   // Multiple Lot B instances for Lot A (gros postes de secours)
   const [lotBInstances, setLotBInstances] = useState<number[]>([0]);
+
+  // Multiple DSA instances for VPS (added via button, like Lot B in Lot A)
+  const [dsaInstances, setDsaInstances] = useState<number[]>([]);
 
   // Load preferences from cloud on mount (only once per lotId change)
   // NOTE: getPref/setPref are intentionally excluded from deps — we only want
@@ -119,17 +113,6 @@ export default function SubEntitiesPage() {
       } catch { /* ignore */ }
     }
 
-    // Load DSA enabled toggles from cloud
-    const dsaEnabledRaw = getPref("dsa-enabled");
-    if (dsaEnabledRaw) {
-      try {
-        const parsed = JSON.parse(dsaEnabledRaw);
-        if (typeof parsed === "object" && parsed !== null) {
-          setDsaEnabled(parsed);
-        }
-      } catch { /* ignore */ }
-    }
-
     // Load Lot B instances for Lot A
     if (lotId === "lot-001") {
       const lotBInstRaw = getPref("lot-b-instances");
@@ -138,6 +121,19 @@ export default function SubEntitiesPage() {
           const parsed = JSON.parse(lotBInstRaw) as number[];
           if (Array.isArray(parsed) && parsed.length > 0) {
             setLotBInstances(parsed);
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    // Load DSA instances for VPS
+    if (lotId === "lot-vps") {
+      const dsaInstRaw = getPref("dsa-instances");
+      if (dsaInstRaw) {
+        try {
+          const parsed = JSON.parse(dsaInstRaw) as number[];
+          if (Array.isArray(parsed)) {
+            setDsaInstances(parsed);
           }
         } catch { /* ignore */ }
       }
@@ -151,6 +147,13 @@ export default function SubEntitiesPage() {
       setPref("lot-b-instances", JSON.stringify(lotBInstances));
     }
   }, [lotBInstances, lotId, setPref]);
+
+  // Persist DSA instances to cloud preferences
+  useEffect(() => {
+    if (lotId === "lot-vps") {
+      setPref("dsa-instances", JSON.stringify(dsaInstances));
+    }
+  }, [dsaInstances, lotId, setPref]);
 
   // Load lot config from DB (configStore) on mount
   useEffect(() => {
@@ -214,9 +217,10 @@ export default function SubEntitiesPage() {
 
   // Map a DSA variant key to its parent lot ID
   // Keys: "vps-lot-b" → lot-vps, "lot-b-c" → lot-003, "dsa-a" → lot-001,
-  //       "dsa-c" → lot-003, "dsa-v" → lot-vps, "lot-b-0"/"lot-b-1" → lot-001
+  //       "dsa-c" → lot-003, "dsa-v" → lot-vps, "lot-b-0"/"lot-b-1" → lot-001,
+  //       "dsa-v-0"/"dsa-v-1" → lot-vps (multi-instance DSA)
   const getDsaKeyLotId = (key: string): string | null => {
-    if (key === "vps-lot-b" || key === "dsa-v") return "lot-vps";
+    if (key === "vps-lot-b" || key === "dsa-v" || key.startsWith("dsa-v-")) return "lot-vps";
     if (key === "lot-b-c" || key === "dsa-c") return "lot-003";
     if (key === "dsa-a") return "lot-001";
     if (key.startsWith("lot-b-")) return "lot-001";
@@ -338,6 +342,31 @@ export default function SubEntitiesPage() {
       return;
     }
 
+    // Validate multi-instance completion before saving
+    if (lotId === "lot-vps" && dsaInstances.length > 0) {
+      const allDsaOk = dsaInstances.every((idx) => {
+        const vid = selectedDsaVariants[`dsa-v-${idx}`];
+        return vid && checks.some((c) => c.sub_entity_id === "dsa-v" && c.variant_id === vid);
+      });
+      if (!allDsaOk) {
+        toast.error("Veuillez vérifier tous les DSA avant de sauvegarder.");
+        return;
+      }
+    }
+    if (lotId === "lot-001" && lotBInstances.length > 0) {
+      const allLotBOk = lotBInstances.every((idx) => {
+        const vid = selectedVariants[`lot-b-${idx}`];
+        return vid
+          && checks.some((c) => c.sub_entity_id === "lot-b" && c.variant_id === vid && c.sac_type === "soin")
+          && checks.some((c) => c.sub_entity_id === "lot-b" && c.variant_id === vid && c.sac_type === "o2")
+          && checks.some((c) => c.sub_entity_id === "lot-b" && c.variant_id === vid && c.sac_type === "dsa");
+      });
+      if (!allLotBOk) {
+        toast.error("Veuillez vérifier tous les Lots B avant de sauvegarder.");
+        return;
+      }
+    }
+
     setCompleting(true);
     try {
       const completedSession = await completeSession(session.id);
@@ -401,7 +430,9 @@ export default function SubEntitiesPage() {
         // Vérification : log par sous-entité
       subEntities.forEach((sub) => {
         // Skip lot-b sub-entity for Lot A (handled separately as multi-instance)
-        if (lotId === "lot-001" && sub.id === "lot-b") return; 
+        if (lotId === "lot-001" && sub.id === "lot-b") return;
+        // Skip dsa-v sub-entity for VPS (handled separately as multi-instance)
+        if (lotId === "lot-vps" && sub.id === "dsa-v") return;
 
         const hasVariants = sub.variants && sub.variants.length > 0;
         const selectedVariant = selectedVariants[sub.id];
@@ -583,6 +614,32 @@ export default function SubEntitiesPage() {
           }
         });
       }
+
+      // Log DSA instances for VPS (multi-instance)
+      if (lotId === "lot-vps") {
+        dsaInstances.forEach((idx, arrIndex) => {
+          const instanceKey = `dsa-v-${idx}`;
+          const dsaVariantId = selectedDsaVariants[instanceKey];
+          if (!dsaVariantId) return;
+          const dsaCheck = checks.find(
+            (c) => c.sub_entity_id === "dsa-v" && c.variant_id === dsaVariantId
+          );
+          if (dsaCheck) {
+            const dsaVariantObj = dsaVSub?.variants?.find((v) => v.id === dsaVariantId);
+            logPromises.push(addLogEntryToDb({
+              lot_id: "lot-vps",
+              lot_name: "VPS",
+              sub_entity_name: `DSA #${arrIndex + 1}`,
+              variant_name: dsaVariantObj?.name || null,
+              lot_variant_name: currentLotVariantName,
+              sac_type: "dsa",
+              dps_name: dpsNameValue,
+              intervention_type: session.intervention_type || interventionType || null,
+              completed_key: `dsa-v-${idx}-${dsaVariantId}`,
+            }));
+          }
+        });
+      }
       } // fin else (vérification)
 
       await Promise.all(logPromises);
@@ -651,8 +708,7 @@ export default function SubEntitiesPage() {
   const isLotBComplete = (subId: string) => {
     const variantId = selectedVariants[subId];
     if (!variantId) return false;
-    const dsaOk = isSubChecked(subId, variantId, "dsa") || !dsaEnabled[subId];
-    return isSubChecked(subId, variantId, "soin") && isSubChecked(subId, variantId, "o2") && dsaOk;
+    return isSubChecked(subId, variantId, "soin") && isSubChecked(subId, variantId, "o2") && isSubChecked(subId, variantId, "dsa");
   };
 
   const isVariantComplete = (subId: string) => {
@@ -670,7 +726,14 @@ export default function SubEntitiesPage() {
   // Lot A: multiple Lot B instances support (gros postes de secours)
   const isLotA = lotId === "lot-001";
   const lotBSub = isLotA ? subEntities.find((s) => s.id === "lot-b") : null;
-  const otherSubs = isLotA ? subEntities.filter((s) => s.id !== "lot-b") : subEntities;
+  // VPS: DSA added via button (like Lot B in Lot A)
+  const isVps = lotId === "lot-vps";
+  const dsaVSub = isVps ? subEntities.find((s) => s.id === "dsa-v") : null;
+  const otherSubs = isLotA
+    ? subEntities.filter((s) => s.id !== "lot-b")
+    : isVps
+      ? subEntities.filter((s) => s.id !== "dsa-v")
+      : subEntities;
 
   // Get already-used variant IDs across all Lot B instances (excluding a specific instance)
   const getUsedLotBVariants = (excludeIdx?: number): Set<string> => {
@@ -681,6 +744,30 @@ export default function SubEntitiesPage() {
       if (v) used.add(v);
     });
     return used;
+  };
+
+  // Get already-used DSA variant IDs across all DSA instances for VPS (excluding a specific instance)
+  const getUsedDsaInstanceVariants = (excludeIdx?: number): Set<string> => {
+    const used = new Set<string>();
+    dsaInstances.forEach((i) => {
+      if (i === excludeIdx) return;
+      const v = selectedDsaVariants[`dsa-v-${i}`];
+      if (v) used.add(v);
+    });
+    return used;
+  };
+
+  // Check if a specific DSA instance is complete
+  const isDsaInstanceComplete = (idx: number): boolean => {
+    const variantId = selectedDsaVariants[`dsa-v-${idx}`];
+    if (!variantId) return false;
+    return isSubChecked("dsa-v", variantId);
+  };
+
+  // Check if all DSA instances are complete (for VPS)
+  const areAllDsaComplete = (): boolean => {
+    if (!isVps || !dsaVSub) return true;
+    return dsaInstances.every((idx) => isDsaInstanceComplete(idx));
   };
 
   // Check if a specific Lot B instance is complete
@@ -832,9 +919,7 @@ export default function SubEntitiesPage() {
               );
               const hasVariants = sub.variants && sub.variants.length > 0;
               const selectedVariant = selectedVariants[sub.id];
-              const isCompleted = sub.optional && sub.inventoryType === "dsa" && !dsaEnabled[sub.id]
-                ? true
-                : hasVariants
+              const isCompleted = hasVariants
                   ? sub.inventoryType === "lot-b"
                     ? isLotBComplete(sub.id)
                     : sub.inventoryType === "ams"
@@ -932,25 +1017,7 @@ export default function SubEntitiesPage() {
                             )}
                             Vérifier le sac d'O2
                           </Button>
-                          {sub.optional && (
-                            <div className="flex items-center justify-between pt-2 border-t">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                Inclure le DSA
-                              </label>
-                              <button
-                                type="button"
-                                role="switch"
-                                aria-checked={!!dsaEnabled[sub.id]}
-                                onClick={() => toggleDsaEnabled(sub.id)}
-                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${dsaEnabled[sub.id] ? "bg-primary" : "bg-muted"}`}
-                              >
-                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${dsaEnabled[sub.id] ? "translate-x-4" : "translate-x-0"}`} />
-                              </button>
-                            </div>
-                          )}
-                          {(!sub.optional || dsaEnabled[sub.id]) && (
-                            <>
-                              <div className="space-y-1 pt-2 border-t">
+                          <div className="space-y-1 pt-2 border-t">
                                 <label className="text-sm font-medium text-muted-foreground">
                                   Variante DSA :
                                 </label>
@@ -994,45 +1061,23 @@ export default function SubEntitiesPage() {
                                 )}
                                 Vérifier le DSA
                               </Button>
-                            </>
-                          )}
                         </>
                       ) : hasVariants && sub.inventoryType === "dsa" ? (
-                        <>
-                          {sub.optional && (
-                            <div className="flex items-center justify-between">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                Inclure le DSA
-                              </label>
-                              <button
-                                type="button"
-                                role="switch"
-                                aria-checked={!!dsaEnabled[sub.id]}
-                                onClick={() => toggleDsaEnabled(sub.id)}
-                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${dsaEnabled[sub.id] ? "bg-primary" : "bg-muted"}`}
-                              >
-                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${dsaEnabled[sub.id] ? "translate-x-4" : "translate-x-0"}`} />
-                              </button>
-                            </div>
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (selectedVariant) {
+                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}?session=${session.id}`);
+                            }
+                          }}
+                        >
+                          {isSubChecked(sub.id, selectedVariant) && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
                           )}
-                          {(!sub.optional || dsaEnabled[sub.id]) && (
-                            <Button
-                              className="w-full cursor-pointer"
-                              variant="default"
-                              disabled={!selectedVariant}
-                              onClick={() => {
-                                if (selectedVariant) {
-                                  navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}?session=${session.id}`);
-                                }
-                              }}
-                            >
-                              {isSubChecked(sub.id, selectedVariant) && (
-                                <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
-                              )}
-                              Vérifier le DSA
-                            </Button>
-                          )}
-                        </>
+                          Vérifier le DSA
+                        </Button>
                       ) : hasVariants && sub.inventoryType === "ams" ? (
                         <Button
                           className="w-full cursor-pointer"
@@ -1259,6 +1304,124 @@ export default function SubEntitiesPage() {
           </div>
         )}
 
+        {/* VPS — Multiple DSA instances (added via button, like Lot B in Lot A) */}
+        {session && isVps && dsaVSub && (
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">
+                DSA
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDsaInstances((prev) => [...prev, prev.length > 0 ? Math.max(...prev) + 1 : 0]);
+                }}
+                disabled={dsaInstances.length >= (dsaVSub.variants?.length || 0)}
+                className="cursor-pointer"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Ajouter un DSA
+              </Button>
+            </div>
+            {dsaInstances.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">
+                Cliquez sur « Ajouter un DSA » pour inclure un défibrillateur.
+              </p>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {dsaInstances.map((idx, arrIndex) => {
+                const instanceKey = `dsa-v-${idx}`;
+                const selectedDsaVariant = selectedDsaVariants[instanceKey];
+                const usedVariants = getUsedDsaInstanceVariants(idx);
+                const isCompleted = isDsaInstanceComplete(idx);
+
+                return (
+                  <Card
+                    key={idx}
+                    className={`group transition-all duration-200 hover:shadow-md ${
+                      isCompleted ? "border-emerald-300 bg-emerald-50/30" : "hover:border-primary/30"
+                    }`}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-lg font-semibold text-foreground">
+                          DSA #{arrIndex + 1}
+                        </CardTitle>
+                        <div className="flex items-center gap-1">
+                          {isCompleted && (
+                            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-destructive"
+                            onClick={() => {
+                              setDsaInstances((prev) => prev.filter((i) => i !== idx));
+                              removeDsaVariant(instanceKey);
+                            }}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Variante DSA :
+                        </label>
+                        <Select
+                          value={selectedDsaVariant || ""}
+                          onValueChange={(value) => persistDsaVariant(instanceKey, value)}
+                        >
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue placeholder="Choisir une variante DSA..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dsaVSub.variants!.map((variant) => {
+                              const isUsed = usedVariants.has(variant.id);
+                              return (
+                                <SelectItem
+                                  key={variant.id}
+                                  value={variant.id}
+                                  disabled={isUsed}
+                                  className={`cursor-pointer ${isUsed ? "opacity-50" : ""}`}
+                                >
+                                  {variant.name}
+                                  {isUsed ? " (déjà sélectionné)" : ""}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="pt-3 border-t space-y-2">
+                        <Button
+                          className="w-full cursor-pointer"
+                          variant="default"
+                          disabled={!selectedDsaVariant}
+                          onClick={() => {
+                            if (selectedDsaVariant) {
+                              navigate(`/inventory/${lotId}/dsa-v/${selectedDsaVariant}?session=${session.id}`);
+                            }
+                          }}
+                        >
+                          {isSubChecked("dsa-v", selectedDsaVariant) && (
+                            <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-200" />
+                          )}
+                          Vérifier le DSA
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* No session yet — show message + Valider button */}
         {!session && !sessionLoading && (
           <div className="text-center py-12 space-y-6">
@@ -1294,7 +1457,7 @@ export default function SubEntitiesPage() {
               variant="default"
               size="lg"
               onClick={handleSave}
-              disabled={completing}
+              disabled={completing || (isVps && dsaInstances.length > 0 && !areAllDsaComplete()) || (isLotA && lotBInstances.length > 0 && !areAllLotBComplete())}
             >
               <Save className="h-4 w-4 mr-2" />
               {completing ? "Sauvegarde..." : "Sauvegarder / Envoyer"}

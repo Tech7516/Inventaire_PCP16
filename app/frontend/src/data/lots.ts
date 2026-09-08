@@ -205,7 +205,6 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
       description: "Défibrillateur semi-automatique",
       inventoryType: "dsa",
       variants: dsaVariants,
-      optional: true,
     },
   ],
 };

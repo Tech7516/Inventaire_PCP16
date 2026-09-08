@@ -168,6 +168,8 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Lint et build validés après intégration kits éditables Admin + Inventory
 - [x] Corriger ordre d’initialisation Inventory.tsx : editableOverrides déclaré avant entries, sous-items kits initialisés via useEffect réactif
 - [x] Lot A : ajout kit dédié « Kit de risque biologique renforcé » (kit-risque-biologique-renforce, items vides — inventaire à définir plus tard)
+- [x] Suppression définitive dsaEnabled : toggles « Inclure le DSA » retirés, conditions d'affichage DSA VPS simplifiées, flag optional retiré de lots.ts, DSA VPS géré exclusivement par dsaInstances/selectedDsaVariants
+- [x] Lint et build validés après suppression complète dsaEnabled
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
