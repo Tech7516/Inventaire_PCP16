@@ -3,12 +3,15 @@ import {
   lots as staticLots,
   lotSubEntities as staticSubEntities,
   subEntitySections as staticSections,
+  kitDefinitions,
+  getEditableKitIds,
   type Lot,
   type SubEntity,
   type ConsumableSection,
   type LotVariant,
   type SubEntityVariant,
   type ConsumableItem,
+  type KitItem,
 } from "@/data/lots";
 
 const client = createClient();
@@ -236,4 +239,47 @@ export function createEmptyVariant(variantId: string, name: string): LotVariant 
 /** Create a new empty sub-entity variant */
 export function createEmptySubVariant(variantId: string, name: string): SubEntityVariant {
   return { id: variantId, name };
+}
+
+// ---------- Editable Kit Persistence ----------
+
+const KIT_CONFIG_KEY = "editable-kit-overrides";
+
+/** Load editable kit item overrides from DB (shared_data) */
+export async function loadEditableKitOverrides(): Promise<Record<string, KitItem[]>> {
+  try {
+    const res = await client.apiCall.invoke("GET", `/api/v1/shared/data/${KIT_CONFIG_KEY}`);
+    if (res && res.data) {
+      const parsed = JSON.parse(res.data) as Record<string, KitItem[]>;
+      return parsed;
+    }
+  } catch {
+    // DB not available
+  }
+  return {};
+}
+
+/** Save editable kit item overrides to DB (shared_data) */
+export async function saveEditableKitOverrides(overrides: Record<string, KitItem[]>): Promise<void> {
+  await client.apiCall.invoke("POST", "/api/v1/shared/data", {
+    key: KIT_CONFIG_KEY,
+    data: JSON.stringify(overrides),
+  });
+}
+
+/** Get all editable kit definitions with their current items (merged with overrides) */
+export async function getEditableKitsWithOverrides(): Promise<Record<string, { id: string; name: string; items: KitItem[] }>> {
+  const overrides = await loadEditableKitOverrides();
+  const result: Record<string, { id: string; name: string; items: KitItem[] }> = {};
+  for (const kitId of getEditableKitIds()) {
+    const def = kitDefinitions[kitId];
+    if (def) {
+      result[kitId] = {
+        id: def.id,
+        name: def.name,
+        items: overrides[kitId] || def.items,
+      };
+    }
+  }
+  return result;
 }

@@ -162,6 +162,11 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] AMS : lint et build validés
 - [x] AMS : affichage logs simplifié — uniquement variant_name (ex: « AMS Bravo ») sans préfixe redondant « AMS — » dans les deux onglets Vérifications et Désinfection
 - [x] Journal : réordonner les groupes — Lot A, Lot B, Lot C, VPS, DSA et AMS, Lot V, Lot CAI (onglets Vérifications et Désinfection)
+- [x] Admin : interface complète kits éditables (Membre arraché, Biologique, Pharmacie) — chargement overrides, ajout/modification/suppression articles, quantités, sauvegarde
+- [x] Inventory : chargement overrides kits éditables via loadEditableKitOverrides, passage à findKitDefinition pour affichage composants personnalisés
+- [x] Inventory : tous les appels findKitDefinition utilisent editableOverrides (initialisation, allItems, rendu)
+- [x] Lint et build validés après intégration kits éditables Admin + Inventory
+- [x] Corriger ordre d’initialisation Inventory.tsx : editableOverrides déclaré avant entries, sous-items kits initialisés via useEffect réactif
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

@@ -27,9 +27,12 @@ import {
   createEmptySubEntity,
   createEmptySection,
   createEmptyItem,
+  loadEditableKitOverrides,
+  saveEditableKitOverrides,
   type LotConfig,
 } from "@/lib/configStore";
 import type { Lot, SubEntity, ConsumableSection, ConsumableItem, LotVariant } from "@/data/lots";
+import { kitDefinitions, getEditableKitIds, type KitItem } from "@/data/lots";
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -38,6 +41,9 @@ export default function AdminPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [expandedLots, setExpandedLots] = useState<Set<string>>(new Set());
   const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
+  const [editableKitOverrides, setEditableKitOverrides] = useState<Record<string, KitItem[]>>({});
+  const [savingKits, setSavingKits] = useState(false);
+  const [expandedKits, setExpandedKits] = useState<Set<string>>(new Set());
 
   const loadConfigs = useCallback(async () => {
     setLoading(true);
@@ -53,6 +59,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadConfigs();
+    // Load editable kit overrides
+    loadEditableKitOverrides().then((overrides) => {
+      setEditableKitOverrides(overrides);
+    }).catch(() => { /* ignore */ });
   }, [loadConfigs]);
 
   const toggleLot = (lotId: string) => {
@@ -372,6 +382,54 @@ export default function AdminPage() {
           : c
       )
     );
+  };
+
+  // --- Editable Kit operations ---
+
+  const toggleKitExpand = (kitId: string) => {
+    setExpandedKits((prev) => {
+      const next = new Set(prev);
+      if (next.has(kitId)) next.delete(kitId);
+      else next.add(kitId);
+      return next;
+    });
+  };
+
+  const addKitItem = (kitId: string) => {
+    const itemId = generateId("kitem");
+    const newItem: KitItem = { id: itemId, name: "Nouvel article", expectedQuantity: 1 };
+    setEditableKitOverrides((prev) => ({
+      ...prev,
+      [kitId]: [...(prev[kitId] || kitDefinitions[kitId]?.items || []), newItem],
+    }));
+  };
+
+  const updateKitItem = (kitId: string, itemId: string, updates: Partial<KitItem>) => {
+    setEditableKitOverrides((prev) => ({
+      ...prev,
+      [kitId]: (prev[kitId] || kitDefinitions[kitId]?.items || []).map((it) =>
+        it.id === itemId ? { ...it, ...updates } : it
+      ),
+    }));
+  };
+
+  const removeKitItem = (kitId: string, itemId: string) => {
+    setEditableKitOverrides((prev) => ({
+      ...prev,
+      [kitId]: (prev[kitId] || kitDefinitions[kitId]?.items || []).filter((it) => it.id !== itemId),
+    }));
+  };
+
+  const handleSaveKits = async () => {
+    setSavingKits(true);
+    try {
+      await saveEditableKitOverrides(editableKitOverrides);
+      toast.success("Kits personnalisés sauvegardés");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde des kits");
+    } finally {
+      setSavingKits(false);
+    }
   };
 
   // --- Render helpers ---
@@ -765,6 +823,97 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Editable Kits Section */}
+        <Card className="mb-8 overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Kits personnalisés</CardTitle>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Définir le contenu des kits Membre arraché, Biologique et Pharmacie
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {getEditableKitIds().map((kitId) => {
+              const def = kitDefinitions[kitId];
+              if (!def) return null;
+              const items = editableKitOverrides[kitId] || def.items;
+              const isExpanded = expandedKits.has(kitId);
+              return (
+                <div key={kitId} className="border rounded-md">
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 p-3 cursor-pointer hover:bg-muted/30"
+                    onClick={() => toggleKitExpand(kitId)}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0" />
+                    )}
+                    <span className="font-medium text-sm flex-1 text-left">{def.name}</span>
+                    <span className="text-xs text-muted-foreground">{items.length} article(s)</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="px-3 pb-3 space-y-2">
+                      {items.map((item) => (
+                        <div key={item.id} className="bg-muted/30 rounded-md p-2">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={item.name}
+                              onChange={(e) => updateKitItem(kitId, item.id, { name: e.target.value })}
+                              className="flex-1 h-8 text-sm"
+                              placeholder="Nom de l'article"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                              onClick={() => removeKitItem(kitId, item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <Label className="text-xs text-muted-foreground whitespace-nowrap">Qté:</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={item.expectedQuantity}
+                              onChange={(e) =>
+                                updateKitItem(kitId, item.id, {
+                                  expectedQuantity: parseInt(e.target.value, 10) || 0,
+                                })
+                              }
+                              className="w-20 h-8 text-sm text-center"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => addKitItem(kitId)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Ajouter un article
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <Button size="sm" onClick={handleSaveKits} disabled={savingKits}>
+                <Save className="h-4 w-4 mr-1" />
+                {savingKits ? "Sauvegarde..." : "Sauvegarder les kits"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">
             Chargement des configurations...

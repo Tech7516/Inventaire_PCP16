@@ -4,10 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { loadLotConfig } from "@/lib/configStore";
-import { subEntitySections } from "@/data/lots";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { loadLotConfig, loadEditableKitOverrides } from "@/lib/configStore";
+import { subEntitySections, findKitDefinition, type KitItem } from "@/data/lots";
 import type { Lot, SubEntity, ConsumableSection } from "@/data/lots";
-import { ArrowLeft, Save, ClipboardList, Users } from "lucide-react";
+import { ArrowLeft, Save, ClipboardList, Users, ChevronDown, ChevronRight, PackageOpen } from "lucide-react";
 import { toast } from "sonner";
 import {
   saveInventoryItems,
@@ -108,6 +114,18 @@ export default function InventoryPage() {
     return null;
   })();
 
+  const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(true);
+  const [expandedKits, setExpandedKits] = useState<Set<string>>(new Set());
+  const [editableOverrides, setEditableOverrides] = useState<Record<string, KitItem[]>>({});
+
+  // Load editable kit overrides once
+  useEffect(() => {
+    loadEditableKitOverrides()
+      .then((o) => setEditableOverrides(o))
+      .catch(() => { /* ignore */ });
+  }, []);
+
   const [entries, setEntries] = useState<Record<string, InventoryEntry>>(
     () => {
       const initial: Record<string, InventoryEntry> = {};
@@ -124,8 +142,41 @@ export default function InventoryPage() {
     }
   );
 
-  const [saving, setSaving] = useState(false);
-  const [loadingExisting, setLoadingExisting] = useState(true);
+  // Initialize / update kit sub-item entries when overrides or sections change
+  useEffect(() => {
+    if (sections.length === 0) return;
+    setEntries((prev) => {
+      const updated = { ...prev };
+      let changed = false;
+      sections.forEach((section) => {
+        section.items.forEach((item) => {
+          const kitDef = findKitDefinition(item.name, editableOverrides);
+          if (kitDef) {
+            kitDef.items.forEach((subItem) => {
+              if (!updated[subItem.id]) {
+                updated[subItem.id] = {
+                  itemId: subItem.id,
+                  validated: true,
+                  customQuantity: "",
+                };
+                changed = true;
+              }
+            });
+          }
+        });
+      });
+      return changed ? updated : prev;
+    });
+  }, [editableOverrides, sections]);
+
+  const toggleKit = (itemId: string) => {
+    setExpandedKits((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  };
 
   // Load existing items from DB if session exists
   useEffect(() => {
@@ -194,7 +245,22 @@ export default function InventoryPage() {
     );
   }
 
-  const allItems = sections.flatMap((s) => s.items);
+  const allItems = (() => {
+    const items = sections.flatMap((s) => s.items);
+    // Include kit sub-items so they are part of validation/save
+    const withKitItems: typeof items = [...items];
+    items.forEach((item) => {
+      const kitDef = findKitDefinition(item.name, editableOverrides);
+      if (kitDef) {
+        kitDef.items.forEach((subItem) => {
+          if (!withKitItems.find((i) => i.id === subItem.id)) {
+            withKitItems.push(subItem);
+          }
+        });
+      }
+    });
+    return withKitItems;
+  })();
   // Ensure all items have an entry in state (safety net for dynamic section changes)
   const safeEntries = { ...entries };
   allItems.forEach((item) => {
@@ -542,6 +608,9 @@ export default function InventoryPage() {
                 <div className="space-y-2">
                   {section.items.map((item) => {
                     const entry = safeEntries[item.id] || { itemId: item.id, validated: true, customQuantity: "" };
+                    const kitDef = findKitDefinition(item.name, editableOverrides);
+                    const isKit = kitDef !== null;
+                    const isExpanded = expandedKits.has(item.id);
 
                     // Determine discrepancy status for coloring
                     let discrepancyClass = "";
@@ -568,6 +637,173 @@ export default function InventoryPage() {
                       }
                     }
 
+                    // Kit sub-item renderer
+                    const renderKitSubItem = (subItem: KitItem) => {
+                      const subEntry = safeEntries[subItem.id] || { itemId: subItem.id, validated: true, customQuantity: "" };
+                      let subDiscrepancyClass = "";
+                      let subDiscrepancyBadge = null;
+                      if (!subEntry.validated && subEntry.customQuantity.trim()) {
+                        const actual = parseInt(subEntry.customQuantity, 10);
+                        if (!isNaN(actual) && actual !== subItem.expectedQuantity) {
+                          const diff = actual - subItem.expectedQuantity;
+                          if (diff > 0) {
+                            subDiscrepancyClass = "border-blue-200 bg-blue-50/30";
+                            subDiscrepancyBadge = (
+                              <span className="text-xs text-blue-600 font-semibold ml-2 whitespace-nowrap">
+                                Excédent : +{diff}
+                              </span>
+                            );
+                          } else {
+                            subDiscrepancyClass = "border-amber-200 bg-amber-50/30";
+                            subDiscrepancyBadge = (
+                              <span className="text-xs text-amber-600 font-semibold ml-2 whitespace-nowrap">
+                                Manque : {Math.abs(diff)}
+                              </span>
+                            );
+                          }
+                        }
+                      }
+                      return (
+                        <Card key={subItem.id} className={`transition-all duration-200 ${subDiscrepancyClass}`}>
+                          <CardContent className="py-2 px-3 sm:px-4">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium text-foreground text-sm leading-snug break-words">
+                                {subItem.name}
+                              </p>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+                                Attendu : <span className="font-semibold">{subItem.expectedQuantity}</span>
+                              </span>
+                            </div>
+                            {subDiscrepancyBadge && <div className="mt-1">{subDiscrepancyBadge}</div>}
+                            <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t">
+                              <label
+                                htmlFor={`validate-${subItem.id}`}
+                                className="flex items-center gap-2 cursor-pointer select-none shrink-0"
+                              >
+                                <Checkbox
+                                  id={`validate-${subItem.id}`}
+                                  checked={subEntry.validated}
+                                  onCheckedChange={() => toggleValidation(subItem.id)}
+                                  className="cursor-pointer"
+                                />
+                                <span className="text-sm font-medium">Conforme</span>
+                              </label>
+                              <div className="flex items-center gap-1.5 ml-auto">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">ou qté :</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  placeholder={String(subItem.expectedQuantity)}
+                                  value={subEntry.customQuantity}
+                                  onChange={(e) => {
+                                    updateCustomQuantity(subItem.id, e.target.value);
+                                    if (e.target.value && e.target.value !== String(subItem.expectedQuantity)) {
+                                      setEntries((prev) => {
+                                        const existing = prev[subItem.id] || { itemId: subItem.id, validated: true, customQuantity: "" };
+                                        if (!existing.validated) return prev;
+                                        return { ...prev, [subItem.id]: { ...existing, validated: false } };
+                                      });
+                                    }
+                                  }}
+                                  onFocus={(e) => {
+                                    handleQuantityFocus(subItem.id);
+                                    setTimeout(() => e.target.select(), 0);
+                                  }}
+                                  className="w-16 sm:w-20 text-center h-8 text-sm"
+                                />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    };
+
+                    // Kit item: render as expandable accordion
+                    if (isKit && kitDef) {
+                      const kitItemCount = kitDef.items.length;
+                      const kitCheckedCount = kitDef.items.filter(
+                        (si) => safeEntries[si.id]?.validated || safeEntries[si.id]?.customQuantity?.trim()
+                      ).length;
+                      return (
+                        <div key={item.id} className="border rounded-lg overflow-hidden">
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-4 py-3 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
+                            onClick={() => toggleKit(item.id)}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 shrink-0 text-primary" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+                            )}
+                            <PackageOpen className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="font-semibold text-foreground text-sm sm:text-base flex-1 text-left">
+                              {item.name}
+                            </span>
+                            {kitItemCount > 0 && (
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {kitCheckedCount}/{kitItemCount} articles
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              Qté : <span className="font-semibold">{item.expectedQuantity}</span>
+                            </span>
+                          </button>
+                          {isExpanded && (
+                            <div className="px-3 py-3 space-y-2 bg-muted/20">
+                              {kitItemCount > 0 ? (
+                                kitDef.items.map(renderKitSubItem)
+                              ) : (
+                                <p className="text-sm text-muted-foreground italic px-2">
+                                  Kit personnalisé — articles à définir via l'onglet Administration.
+                                </p>
+                              )}
+                              {/* Kit-level conformity checkbox */}
+                              <div className="flex items-center gap-3 pt-2 border-t mt-2 px-1">
+                                <label
+                                  htmlFor={`validate-${item.id}`}
+                                  className="flex items-center gap-2 cursor-pointer select-none shrink-0"
+                                >
+                                  <Checkbox
+                                    id={`validate-${item.id}`}
+                                    checked={entry.validated}
+                                    onCheckedChange={() => toggleValidation(item.id)}
+                                    className="cursor-pointer"
+                                  />
+                                  <span className="text-sm font-medium">Kit conforme</span>
+                                </label>
+                                <div className="flex items-center gap-1.5 ml-auto">
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">ou qté :</span>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    placeholder={String(item.expectedQuantity)}
+                                    value={entry.customQuantity}
+                                    onChange={(e) => {
+                                      updateCustomQuantity(item.id, e.target.value);
+                                      if (e.target.value && e.target.value !== String(item.expectedQuantity)) {
+                                        setEntries((prev) => {
+                                          const existing = prev[item.id] || { itemId: item.id, validated: true, customQuantity: "" };
+                                          if (!existing.validated) return prev;
+                                          return { ...prev, [item.id]: { ...existing, validated: false } };
+                                        });
+                                      }
+                                    }}
+                                    onFocus={(e) => {
+                                      handleQuantityFocus(item.id);
+                                      setTimeout(() => e.target.select(), 0);
+                                    }}
+                                    className="w-16 sm:w-20 text-center h-9"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // Normal item (non-kit)
                     return (
                       <Card
                         key={item.id}

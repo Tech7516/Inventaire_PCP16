@@ -1197,3 +1197,130 @@ subEntitySections["lot-v"] = [
     ],
   },
 ];
+
+// ---------- Kit Definitions ----------
+
+export interface KitItem {
+  id: string;
+  name: string;
+  expectedQuantity: number;
+}
+
+export interface KitDefinition {
+  id: string;
+  name: string;
+  items: KitItem[];
+  editable: boolean;
+}
+
+export const kitDefinitions: Record<string, KitDefinition> = {
+  "kit-snv": {
+    id: "kit-snv",
+    name: "Kit SNV",
+    editable: false,
+    items: [
+      { id: "snv-001", name: "Garrot tourniquet", expectedQuantity: 6 },
+      { id: "snv-002", name: "Pansement imbibé de substance hémostatique", expectedQuantity: 2 },
+      { id: "snv-003", name: "Pansement compressif d'urgence", expectedQuantity: 4 },
+      { id: "snv-004", name: "Pansement absorbant 20×40", expectedQuantity: 4 },
+      { id: "snv-005", name: "Rouleau de sparadrap", expectedQuantity: 1 },
+      { id: "snv-006", name: "Compresse stérile", expectedQuantity: 10 },
+      { id: "snv-007", name: "Bande de contention élastique non stérile", expectedQuantity: 1 },
+      { id: "snv-008", name: "Paire de gants non stériles", expectedQuantity: 10 },
+      { id: "snv-009", name: "Paire de ciseaux Jesco", expectedQuantity: 1 },
+      { id: "snv-010", name: "Marqueur noir", expectedQuantity: 1 },
+    ],
+  },
+  "kit-aerv": {
+    id: "kit-aerv",
+    name: "Kit AERV",
+    editable: false,
+    items: [
+      { id: "aerv-001", name: "Paire de gants à usage unique", expectedQuantity: 2 },
+      { id: "aerv-002", name: "Compresses stériles", expectedQuantity: 10 },
+      { id: "aerv-003", name: "Dakin 120 mL", expectedQuantity: 1 },
+      { id: "aerv-004", name: "Dispositif rince œil 500 mL", expectedQuantity: 2 },
+      { id: "aerv-005", name: "Flacon type prélèvement d'urine 40 à 60 mL", expectedQuantity: 1 },
+      { id: "aerv-006", name: "Fiche Réflexe Protocole AERV", expectedQuantity: 1 },
+    ],
+  },
+  "kit-mater": {
+    id: "kit-mater",
+    name: "Kit Mater / Accouchement",
+    editable: false,
+    items: [
+      { id: "mater-001", name: "Clamp de Barr", expectedQuantity: 2 },
+      { id: "mater-002", name: "Compresses stériles", expectedQuantity: 10 },
+      { id: "mater-003", name: "Sérum physiologique unidoses 50 mL", expectedQuantity: 1 },
+      { id: "mater-004", name: "Pansement absorbant", expectedQuantity: 2 },
+      { id: "mater-005", name: "Masque chirurgical", expectedQuantity: 1 },
+      { id: "mater-006", name: "Paire de lunettes de protection", expectedQuantity: 1 },
+      { id: "mater-007", name: "Charlotte", expectedQuantity: 1 },
+      { id: "mater-008", name: "Blouse de protection", expectedQuantity: 1 },
+      { id: "mater-009", name: "Canule oropharyngée de Guedel T000 (40mm)", expectedQuantity: 1 },
+      { id: "mater-010", name: "Sonde aspiration Nourrisson (CH 8)", expectedQuantity: 1 },
+      { id: "mater-011", name: "Sonde aspiration Nouveau-né (CH 6)", expectedQuantity: 1 },
+      { id: "mater-012", name: "Paire de ciseaux ronds stériles", expectedQuantity: 1 },
+      { id: "mater-013", name: "Bonnet du nouveau-né", expectedQuantity: 1 },
+    ],
+  },
+  "kit-membre-arache": {
+    id: "kit-membre-arache",
+    name: "Kit Membre arraché",
+    editable: true,
+    items: [],
+  },
+  "kit-biologique": {
+    id: "kit-biologique",
+    name: "Kit Biologique",
+    editable: true,
+    items: [],
+  },
+  "kit-pharmacie": {
+    id: "kit-pharmacie",
+    name: "Kit Pharmacie",
+    editable: true,
+    items: [],
+  },
+};
+
+// Map inventory item names to kit definition IDs (flexible matching)
+const kitNamePatterns: [RegExp, string][] = [
+  [/\bkit\s+snv\b/i, "kit-snv"],
+  [/\bkit\s+aerv\b/i, "kit-aerv"],
+  [/\bkit\s+accident.*risque.*viral\b/i, "kit-aerv"],
+  [/\bkit\s+mater\b/i, "kit-mater"],
+  [/\bkit\s+accouchement\b/i, "kit-mater"],
+  [/\bkit\s+membre\s+arrach/i, "kit-membre-arache"],
+  [/\bkit\s+biologique\b/i, "kit-biologique"],
+  [/\bkit\s+risque\s+biologique\b/i, "kit-biologique"],
+  [/\bkit\s+pharmacie\b/i, "kit-pharmacie"],
+];
+
+/**
+ * Find a kit definition by item name.
+ * If editableOverrides is provided, editable kits will use the overridden items.
+ */
+export function findKitDefinition(
+  itemName: string,
+  editableOverrides?: Record<string, KitItem[]>
+): KitDefinition | null {
+  for (const [pattern, kitId] of kitNamePatterns) {
+    if (pattern.test(itemName)) {
+      const def = kitDefinitions[kitId];
+      if (!def) return null;
+      if (def.editable && editableOverrides && editableOverrides[kitId]) {
+        return { ...def, items: editableOverrides[kitId] };
+      }
+      return def;
+    }
+  }
+  return null;
+}
+
+/** Get all editable kit definition IDs */
+export function getEditableKitIds(): string[] {
+  return Object.values(kitDefinitions)
+    .filter((k) => k.editable)
+    .map((k) => k.id);
+}
