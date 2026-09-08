@@ -183,6 +183,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Vérifié : lots sans variante (variant_id=null) conservent une seule session active par lot
 - [x] Lint + build frontend validés après correction backend
 - [x] Vérification UI réussie (grade 4/5)
+- [x] Masquer sélecteur variante + bouton « Démarrer l'inventaire » quand toutes les variantes sont en cours ; message amber « Toutes les variantes sont en cours de vérification »
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

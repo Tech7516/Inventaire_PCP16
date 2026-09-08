@@ -160,6 +160,9 @@ export default function HomePage() {
             const lotSessions = activeSessions[lot.id] || [];
             const activeSession = lotSessions[0];
             const lockedVariantIds = new Set(lotSessions.map(s => s.variant_id).filter(Boolean) as string[]);
+            const allVariantsInProgress = hasVariants
+              ? lot.variants!.every((v) => lockedVariantIds.has(v.id))
+              : lotSessions.length > 0;
 
             return (
               <Card
@@ -187,7 +190,7 @@ export default function HomePage() {
                     </span>
                   </div>
 
-                  {hasVariants && (
+                  {hasVariants && !allVariantsInProgress && (
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-muted-foreground">
                         Choix du {lot.name} :
@@ -217,6 +220,11 @@ export default function HomePage() {
 
                     </div>
                   )}
+                  {hasVariants && allVariantsInProgress && (
+                    <p className="text-sm font-medium text-amber-600">
+                      Toutes les variantes sont en cours de vérification
+                    </p>
+                  )}
 
                   <div className="pt-3 border-t space-y-2">
                     {lotSessions.map((session) => {
@@ -236,14 +244,16 @@ export default function HomePage() {
                         </Button>
                       );
                     })}
-                    <Button
-                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-[#002D74FF] hover:bg-primary/90 text-white"
-                      disabled={hasVariants && (!selectedVariant || lockedVariantIds.has(selectedVariant))}
-                      onClick={() => handleStartInventory(lot.id, selectedVariant)}
-                    >
-                      <ClipboardList className="h-4 w-4 shrink-0" />
-                      Démarrer l'inventaire
-                    </Button>
+                    {!allVariantsInProgress && (
+                      <Button
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-[#002D74FF] hover:bg-primary/90 text-white"
+                        disabled={hasVariants && (!selectedVariant || lockedVariantIds.has(selectedVariant))}
+                        onClick={() => handleStartInventory(lot.id, selectedVariant)}
+                      >
+                        <ClipboardList className="h-4 w-4 shrink-0" />
+                        Démarrer l'inventaire
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
