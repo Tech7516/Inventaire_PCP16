@@ -175,6 +175,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Cohérence vérifiée entre Index.tsx, SubEntities.tsx, Inventory.tsx, SessionData.variant_id et préférences cloud
 - [x] completeSession() confirmé pour Lot V et inventaires directs (Inventory.tsx)
 - [x] Lint et build validés après finalisation du verrouillage variantes
+- [x] Fusion bouton « Rejoindre l'inventaire » et indicateur « En cours — DPS » en un seul bouton ambre cliquable « Rejoindre — DPS : [nom] » sur la page d'accueil
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

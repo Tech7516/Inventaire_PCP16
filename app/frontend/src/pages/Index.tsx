@@ -191,15 +191,6 @@ export default function HomePage() {
                     </span>
                   </div>
 
-                  {activeSession && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-md px-3 py-2">
-                      <Users className="h-4 w-4 shrink-0" />
-                      <span>
-                        En cours — DPS : {activeSession.dps_name}
-                      </span>
-                    </div>
-                  )}
-
                   {hasVariants && (
                     <div className="space-y-1">
                       <label className="text-sm font-medium text-muted-foreground">
@@ -235,13 +226,13 @@ export default function HomePage() {
 
                   <div className="pt-3 border-t">
                     <Button
-                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-primary/90 h-10 px-4 py-2 w-full cursor-pointer mt-[0px] mr-[0px] mb-[0px] ml-[0px] pt-[8px] pr-[16px] pb-[8px] pl-[16px] rounded-md text-[14px] font-medium text-center text-[#FFFFFF] bg-[#002D74FF] opacity-100"
-                      variant={activeSession ? "outline" : "default"}
+                      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center ${activeSession ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-[#002D74FF] hover:bg-primary/90 text-white"}`}
                       disabled={!activeSession && hasVariants && !selectedVariant}
                       onClick={() => handleStartInventory(lot.id)}
                     >
+                      <Users className="h-4 w-4 shrink-0" />
                       {activeSession
-                        ? "Rejoindre l'inventaire"
+                        ? `Rejoindre — DPS : ${activeSession.dps_name}`
                         : "Démarrer l'inventaire"}
                     </Button>
                   </div>
