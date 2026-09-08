@@ -1270,6 +1270,12 @@ export const kitDefinitions: Record<string, KitDefinition> = {
     editable: true,
     items: [],
   },
+  "kit-risque-biologique-renforce": {
+    id: "kit-risque-biologique-renforce",
+    name: "Kit de risque biologique renforcé",
+    editable: false,
+    items: [],
+  },
   "kit-biologique": {
     id: "kit-biologique",
     name: "Kit Biologique",
@@ -1293,7 +1299,8 @@ const kitNamePatterns: [RegExp, string][] = [
   [/\bkit\s+accouchement\b/i, "kit-mater"],
   [/\bkit\s+membre\s+arrach/i, "kit-membre-arache"],
   [/\bkit\s+biologique\b/i, "kit-biologique"],
-  [/\bkit\s+risque\s+biologique\b/i, "kit-biologique"],
+  [/\bkit\s+de\s+risque\s+biologique\s+renforc/i, "kit-risque-biologique-renforce"],
+  [/\bkit\s+risque\s+biologique\b/i, "kit-risque-biologique-renforce"],
   [/\bkit\s+pharmacie\b/i, "kit-pharmacie"],
 ];
 
