@@ -42,7 +42,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { getPref, setPref } = useCloudPreferences();
   const [selectedLotVariants, setSelectedLotVariants] = useState<Record<string, string>>({});
-  const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string; variant_id: string | null; intervention_type: string | null }>>({});
+  const [activeSessions, setActiveSessions] = useState<Record<string, Array<{ id: number; dps_name: string; variant_id: string | null; intervention_type: string | null }>>>({});
   const [logEntries, setLogEntries] = useState<InventoryLogData[]>([]);
   const [dynamicLots, setDynamicLots] = useState<Lot[]>(staticLots);
 
@@ -70,9 +70,10 @@ export default function HomePage() {
     setSelectedLotVariants((prev) => {
       let changed = false;
       const next = { ...prev };
-      for (const [lotId, session] of Object.entries(activeSessions)) {
-        if (session.variant_id && next[lotId] !== session.variant_id) {
-          next[lotId] = session.variant_id;
+      for (const [lotId, sessions] of Object.entries(activeSessions)) {
+        const firstSession = sessions[0];
+        if (firstSession?.variant_id && next[lotId] !== firstSession.variant_id) {
+          next[lotId] = firstSession.variant_id;
           changed = true;
         }
       }
@@ -92,10 +93,11 @@ export default function HomePage() {
           getLogEntriesFromDb(),
           getMergedLots(),
         ]);
-        const sessions: Record<string, { id: number; dps_name: string; variant_id: string | null; intervention_type: string | null }> = {};
+        const sessions: Record<string, Array<{ id: number; dps_name: string; variant_id: string | null; intervention_type: string | null }>> = {};
         for (const s of allSessions) {
           if (s.status === "active") {
-            sessions[s.lot_id] = { id: s.id, dps_name: s.dps_name, variant_id: s.variant_id, intervention_type: s.intervention_type };
+            if (!sessions[s.lot_id]) sessions[s.lot_id] = [];
+            sessions[s.lot_id].push({ id: s.id, dps_name: s.dps_name, variant_id: s.variant_id, intervention_type: s.intervention_type });
           }
         }
         setActiveSessions(sessions);
@@ -163,7 +165,9 @@ export default function HomePage() {
             const hasVariants = lot.variants && lot.variants.length > 0;
             const selectedVariant = selectedLotVariants[lot.id];
             const showLocation = lot.id === "lot-001";
-            const activeSession = activeSessions[lot.id];
+            const lotSessions = activeSessions[lot.id] || [];
+            const activeSession = lotSessions[0];
+            const lockedVariantIds = new Set(lotSessions.map(s => s.variant_id).filter(Boolean) as string[]);
 
             return (
               <Card
@@ -197,45 +201,56 @@ export default function HomePage() {
                         Choix du {lot.name} :
                       </label>
                       <Select
-                        value={activeSession?.variant_id || selectedVariant || ""}
+                        value={selectedVariant || ""}
                         onValueChange={(value) => persistLotVariant(lot.id, value)}
-                        disabled={!!activeSession}
                       >
-                        <SelectTrigger className={`w-full ${activeSession ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}>
+                        <SelectTrigger className="w-full cursor-pointer">
                           <SelectValue placeholder={`Choisir un ${lot.name}...`} />
                         </SelectTrigger>
                         <SelectContent>
-                          {lot.variants!.map((variant) => (
-                            <SelectItem
-                              key={variant.id}
-                              value={variant.id}
-                              className={`cursor-pointer ${activeSession && variant.id !== activeSession.variant_id ? "opacity-40 pointer-events-none" : ""}`}
-                            >
-                              {variant.name}
-                            </SelectItem>
-                          ))}
+                          {lot.variants!.map((variant) => {
+                            const isLocked = lockedVariantIds.has(variant.id);
+                            return (
+                              <SelectItem
+                                key={variant.id}
+                                value={variant.id}
+                                className={`cursor-pointer ${isLocked ? "opacity-40 pointer-events-none" : ""}`}
+                              >
+                                {variant.name}{isLocked ? " (en cours)" : ""}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
 
                     </div>
                   )}
 
-                  <div className="pt-3 border-t">
+                  <div className="pt-3 border-t space-y-2">
+                    {lotSessions.map((session) => {
+                      const vName = lot.variants?.find(v => v.id === session.variant_id)?.name;
+                      const prefix = vName ? `Rejoindre ${vName} —` : "Rejoindre —";
+                      const label = session.intervention_type === "desinfection"
+                        ? `${prefix} Désinfection`
+                        : `${prefix} DPS : ${session.dps_name}`;
+                      return (
+                        <Button
+                          key={session.id}
+                          className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-amber-500 hover:bg-amber-600 text-white"
+                          onClick={() => handleStartInventory(lot.id)}
+                        >
+                          <Users className="h-4 w-4 shrink-0" />
+                          {label}
+                        </Button>
+                      );
+                    })}
                     <Button
-                      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center ${activeSession ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-[#002D74FF] hover:bg-primary/90 text-white"}`}
-                      disabled={!activeSession && hasVariants && !selectedVariant}
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-[#002D74FF] hover:bg-primary/90 text-white"
+                      disabled={hasVariants && !selectedVariant}
                       onClick={() => handleStartInventory(lot.id)}
                     >
-                      <Users className="h-4 w-4 shrink-0" />
-                      {activeSession
-                        ? (() => {
-                            const vName = lot.variants?.find(v => v.id === activeSession.variant_id)?.name;
-                            const prefix = vName ? `Rejoindre ${vName} —` : "Rejoindre —";
-                            return activeSession.intervention_type === "desinfection"
-                              ? `${prefix} Désinfection`
-                              : `${prefix} DPS : ${activeSession.dps_name}`;
-                          })()
-                        : "Démarrer l'inventaire"}
+                      <ClipboardList className="h-4 w-4 shrink-0" />
+                      Démarrer l'inventaire
                     </Button>
                   </div>
                 </CardContent>
