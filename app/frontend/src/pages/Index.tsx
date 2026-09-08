@@ -64,25 +64,6 @@ export default function HomePage() {
     });
   };
 
-  // Auto-sync variant from active session into local state & cloud prefs
-  useEffect(() => {
-    if (Object.keys(activeSessions).length === 0) return;
-    setSelectedLotVariants((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const [lotId, sessions] of Object.entries(activeSessions)) {
-        const firstSession = sessions[0];
-        if (firstSession?.variant_id && next[lotId] !== firstSession.variant_id) {
-          next[lotId] = firstSession.variant_id;
-          changed = true;
-        }
-      }
-      if (changed) {
-        setPref("lot-variants", JSON.stringify(next));
-      }
-      return changed ? next : prev;
-    });
-  }, [activeSessions, setPref]);
 
   // Check for active sessions, log entries, and dynamic lots on mount + polling
   useEffect(() => {
@@ -246,7 +227,7 @@ export default function HomePage() {
                     })}
                     <Button
                       className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-10 px-4 py-2 w-full cursor-pointer rounded-md text-[14px] font-medium text-center bg-[#002D74FF] hover:bg-primary/90 text-white"
-                      disabled={hasVariants && !selectedVariant}
+                      disabled={hasVariants && (!selectedVariant || lockedVariantIds.has(selectedVariant))}
                       onClick={() => handleStartInventory(lot.id)}
                     >
                       <ClipboardList className="h-4 w-4 shrink-0" />
