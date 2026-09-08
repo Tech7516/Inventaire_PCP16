@@ -42,7 +42,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { getPref, setPref } = useCloudPreferences();
   const [selectedLotVariants, setSelectedLotVariants] = useState<Record<string, string>>({});
-  const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string; variant_id: string | null }>>({});
+  const [activeSessions, setActiveSessions] = useState<Record<string, { id: number; dps_name: string; variant_id: string | null; intervention_type: string | null }>>({});
   const [logEntries, setLogEntries] = useState<InventoryLogData[]>([]);
   const [dynamicLots, setDynamicLots] = useState<Lot[]>(staticLots);
 
@@ -92,10 +92,10 @@ export default function HomePage() {
           getLogEntriesFromDb(),
           getMergedLots(),
         ]);
-        const sessions: Record<string, { id: number; dps_name: string; variant_id: string | null }> = {};
+        const sessions: Record<string, { id: number; dps_name: string; variant_id: string | null; intervention_type: string | null }> = {};
         for (const s of allSessions) {
           if (s.status === "active") {
-            sessions[s.lot_id] = { id: s.id, dps_name: s.dps_name, variant_id: s.variant_id };
+            sessions[s.lot_id] = { id: s.id, dps_name: s.dps_name, variant_id: s.variant_id, intervention_type: s.intervention_type };
           }
         }
         setActiveSessions(sessions);
@@ -232,7 +232,9 @@ export default function HomePage() {
                     >
                       <Users className="h-4 w-4 shrink-0" />
                       {activeSession
-                        ? `Rejoindre — DPS : ${activeSession.dps_name}`
+                        ? activeSession.intervention_type === "desinfection"
+                          ? "Rejoindre — Désinfection"
+                          : `Rejoindre — DPS : ${activeSession.dps_name}`
                         : "Démarrer l'inventaire"}
                     </Button>
                   </div>
