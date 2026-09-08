@@ -831,7 +831,7 @@ export default function AdminPage() {
               <CardTitle className="text-base">Kits personnalisés</CardTitle>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Définir le contenu des kits Membre arraché, Biologique et Pharmacie
+              Définir le contenu des kits : Accouchement, AERV, SNV, Membre arraché, Risque biologique renforcé, Biologique, Pharmacie
             </p>
           </CardHeader>
           <CardContent className="space-y-3">

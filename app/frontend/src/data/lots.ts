@@ -605,12 +605,12 @@ export const subEntitySections: Record<string, ConsumableSection[]> = {
       id: "c1-kits",
       title: "Les kits",
       items: [
-        { id: "c1-001", name: "Kit pharmacie", expectedQuantity: 1 },
-        { id: "c1-002", name: "Kit accouchement", expectedQuantity: 1 },
+        { id: "c1-001", name: "Kit Pharmacie", expectedQuantity: 1 },
+        { id: "c1-002", name: "Kit Accouchement", expectedQuantity: 1 },
         { id: "c1-003", name: "Kit AERV", expectedQuantity: 1 },
         { id: "c1-004", name: "Kit de risque biologique renforcé", expectedQuantity: 1 },
         { id: "c1-005", name: "Kit SNV", expectedQuantity: 1 },
-        { id: "c1-006", name: "Kit membre arraché", expectedQuantity: 1 },
+        { id: "c1-006", name: "Kit Membre arraché", expectedQuantity: 1 },
       ],
     },
     {
@@ -905,7 +905,7 @@ subEntitySections["vps-cellule-arriere"] = [
       { id: "vps-cr-031", name: "Cales tête PDIT", expectedQuantity: 1 },
       { id: "vps-cr-032", name: "Anti-airbag et harnais pédiatrique", expectedQuantity: 1 },
       { id: "vps-cr-033", name: "Sangle araignée", expectedQuantity: 1 },
-      { id: "vps-cr-034", name: "Kit Mater", expectedQuantity: 1 },
+      { id: "vps-cr-034", name: "Kit Accouchement", expectedQuantity: 1 },
       { id: "vps-cr-035", name: "Kit AERV", expectedQuantity: 1 },
       { id: "vps-cr-036", name: "Kit SNV", expectedQuantity: 1 },
       { id: "vps-cr-037", name: "Kit Membre arraché", expectedQuantity: 1 },
@@ -1192,7 +1192,7 @@ subEntitySections["lot-v"] = [
       { id: "lv-031", name: "Lot de sucres emballés individuellement", expectedQuantity: 1 },
       { id: "lv-032", name: "Sac DASRI", expectedQuantity: 2 },
       { id: "lv-033", name: "Sac DAOM", expectedQuantity: 2 },
-      { id: "lv-034", name: "Kit accident exposition risque viral", expectedQuantity: 1 },
+      { id: "lv-034", name: "Kit AERV", expectedQuantity: 1 },
     ],
   },
 ];
@@ -1216,7 +1216,7 @@ export const kitDefinitions: Record<string, KitDefinition> = {
   "kit-snv": {
     id: "kit-snv",
     name: "Kit SNV",
-    editable: false,
+    editable: true,
     items: [
       { id: "snv-001", name: "Garrot tourniquet", expectedQuantity: 6 },
       { id: "snv-002", name: "Pansement imbibé de substance hémostatique", expectedQuantity: 2 },
@@ -1233,7 +1233,7 @@ export const kitDefinitions: Record<string, KitDefinition> = {
   "kit-aerv": {
     id: "kit-aerv",
     name: "Kit AERV",
-    editable: false,
+    editable: true,
     items: [
       { id: "aerv-001", name: "Paire de gants à usage unique", expectedQuantity: 2 },
       { id: "aerv-002", name: "Compresses stériles", expectedQuantity: 10 },
@@ -1245,8 +1245,8 @@ export const kitDefinitions: Record<string, KitDefinition> = {
   },
   "kit-mater": {
     id: "kit-mater",
-    name: "Kit Mater / Accouchement",
-    editable: false,
+    name: "Kit Accouchement",
+    editable: true,
     items: [
       { id: "mater-001", name: "Clamp de Barr", expectedQuantity: 2 },
       { id: "mater-002", name: "Compresses stériles", expectedQuantity: 10 },
@@ -1272,7 +1272,7 @@ export const kitDefinitions: Record<string, KitDefinition> = {
   "kit-risque-biologique-renforce": {
     id: "kit-risque-biologique-renforce",
     name: "Kit de risque biologique renforcé",
-    editable: false,
+    editable: true,
     items: [],
   },
   "kit-biologique": {

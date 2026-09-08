@@ -186,6 +186,9 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Masquer sélecteur variante + bouton « Démarrer l'inventaire » quand toutes les variantes sont en cours ; message amber « Toutes les variantes sont en cours de vérification »
 - [x] Supprimer mention « Dernière vérification » pour les lots avec variantes (Lot C, VPS, Lot V) ; conservée pour lots sans variante (Lot A, Lot CAI)
 - [x] Refonte UX Index.tsx : supprimer message « Toutes les variantes sont en cours de vérification », regrouper sélecteur variante + bouton « Démarrer l'inventaire » dans un même bloc visuel, boutons « Rejoindre » dans section séparée avec barre de séparation, lots sans variante gardent bouton démarrage sauf session active
+- [x] Admin : kits Accouchement, AERV, SNV et Risque biologique renforcé rendus éditables (visible dans la section Kits personnalisés) ; renommé « Kit Mater / Accouchement » en « Kit Accouchement » ; description mise à jour avec les 7 kits
+- [x] Uniformisation casse kits : « Kit pharmacie » en « Kit Pharmacie », « Kit membre arraché » en « Kit Membre arraché », « Kit accident exposition risque viral » en « Kit AERV » dans Lot V
+- [x] Lint et build validés après uniformisation casse kits
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
