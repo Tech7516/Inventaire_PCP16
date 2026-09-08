@@ -178,6 +178,11 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Fusion bouton « Rejoindre l'inventaire » et indicateur « En cours — DPS » en un seul bouton ambre cliquable « Rejoindre — DPS : [nom] » sur la page d'accueil
 - [x] Bug bouton vide « DPS : » corrigé : ajout intervention_type à l'état activeSessions, affiche « Rejoindre — Désinfection » pour les désinfections et « Rejoindre — DPS : [nom] » pour les vérifications
 - [x] Corriger second inventaire : Index.tsx passe variant+session dans handleJoinSession, Inventory.tsx lit urlVariantId/urlSessionId, checkSession ne reprend que la session correspondant à la variante URL (pas la première session active du lot), lotVariantId/lotVariantName priorisent le paramètre URL, ensureDirectSession crée avec la bonne variante
+- [x] Corriger 409 create-session : backend autorise plusieurs sessions actives par lot si variant_id différent (collaborative_inventory.py)
+- [x] Vérifié : variant_id transmis correctement par inventory-api.ts jusqu'au backend
+- [x] Vérifié : lots sans variante (variant_id=null) conservent une seule session active par lot
+- [x] Lint + build frontend validés après correction backend
+- [x] Vérification UI réussie (grade 4/5)
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

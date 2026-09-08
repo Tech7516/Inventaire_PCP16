@@ -135,18 +135,27 @@ async def get_all_active_sessions(db: AsyncSession = Depends(get_db)):
 async def create_session(data: CreateSessionRequest, db: AsyncSession = Depends(get_db)):
     """Create a new inventory session for a lot"""
     try:
-        # Check if there's already an active session for this lot
+        # Check if there's already an active session for this lot+variant
+        # Allow multiple active sessions per lot if they have different variant_id
+        conditions = [
+            Inventory_sessions.lot_id == data.lot_id,
+            Inventory_sessions.status == "active",
+        ]
+        if data.variant_id:
+            # Only block if the same variant already has an active session
+            conditions.append(Inventory_sessions.variant_id == data.variant_id)
+        else:
+            # No variant: block if any active session without variant_id exists
+            conditions.append(Inventory_sessions.variant_id.is_(None))
+
         existing = await db.execute(
-            select(Inventory_sessions)
-            .where(
-                and_(
-                    Inventory_sessions.lot_id == data.lot_id,
-                    Inventory_sessions.status == "active"
-                )
-            )
+            select(Inventory_sessions).where(and_(*conditions))
         )
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=409, detail="An active session already exists for this lot")
+            if data.variant_id:
+                raise HTTPException(status_code=409, detail=f"An active session already exists for this lot with variant {data.variant_id}")
+            else:
+                raise HTTPException(status_code=409, detail="An active session already exists for this lot")
 
         session = Inventory_sessions(
             lot_id=data.lot_id,
