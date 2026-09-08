@@ -181,14 +181,16 @@ export default function HomePage() {
                       <span>{lot.location}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CalendarClock className="h-4 w-4 shrink-0" />
-                    <span>
-                      {getLastVerificationDate(logEntries, lot.id)
-                        ? `Dernière vérification : ${getLastVerificationDate(logEntries, lot.id)}`
-                        : "Aucune vérification effectuée"}
-                    </span>
-                  </div>
+                  {!hasVariants && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CalendarClock className="h-4 w-4 shrink-0" />
+                      <span>
+                        {getLastVerificationDate(logEntries, lot.id)
+                          ? `Dernière vérification : ${getLastVerificationDate(logEntries, lot.id)}`
+                          : "Aucune vérification effectuée"}
+                      </span>
+                    </div>
+                  )}
 
                   {hasVariants && !allVariantsInProgress && (
                     <div className="space-y-1">
