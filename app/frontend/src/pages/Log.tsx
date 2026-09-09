@@ -220,11 +220,19 @@ const DESINFECTION_GROUPS: DesinfectionGroup[] = [
   { key: "lot-c-bravo", label: "Lot C Bravo", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003" && (e.lot_variant_name?.includes("Bravo") || e.variant_name?.includes("Bravo") || false) },
   { key: "vps-auteuil", label: "VPS Auteuil", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly") },
   { key: "vps-neuilly", label: "VPS Neuilly", matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly") },
-  { key: "dsa-ams", label: "DSA et AMS", matchFn: isDsaOrAmsEntry },
   { key: "lot-v-poussin", label: "Lot V Poussin", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("poussin") || e.variant_name?.toLowerCase().includes("poussin") || false) },
   { key: "lot-v-passy", label: "Lot V Passy", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-v" && (e.lot_variant_name?.toLowerCase().includes("passy") || e.variant_name?.toLowerCase().includes("passy") || false) },
   { key: "lot-cai", label: "Lot CAI", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-cai" },
 ];
+
+/** Extract individual DSA/AMS label from an entry (e.g. "DSA Charlie", "AMS Bravo") */
+const getDsaAmsLabel = (e: InventoryLogData): string => {
+  if (isAmsEntry(e)) return e.variant_name || "AMS";
+  const vl = e.variant_name || "";
+  const dashIdx = vl.lastIndexOf(" — ");
+  if (dashIdx >= 0) return vl.substring(dashIdx + 3).trim();
+  return vl || "DSA";
+};
 
 const REQUIRED_PER_ROLLING_YEAR = 3;
 
@@ -456,93 +464,55 @@ export default function LogPage() {
     );
   }
 
-  // Shared component for a single désinfection entry row
-  const renderDesinfectionEntry = (entry: InventoryLogData, idx: number, total: number) => {
+  // Shared component for a single condensed désinfection entry row (date + menu)
+  const renderCondensedEntry = (entry: InventoryLogData) => {
     const isConfirmDelete = deleteConfirmId === entry.id;
 
     return (
-      <Card key={entry.id} className="transition-all">
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-sm font-mono text-muted-foreground w-6 text-right shrink-0">
-                #{total - idx}
-              </span>
-              <span className="font-medium text-foreground text-sm truncate">
-                {isDsaOrAmsEntry(entry)
-                  ? (() => {
-                      if (isAmsEntry(entry)) {
-                        return entry.variant_name || "AMS";
-                      }
-                      const vl = entry.variant_name || "";
-                      const dashIdx = vl.lastIndexOf(" — ");
-                      if (dashIdx >= 0) {
-                        return vl.substring(dashIdx + 3).trim();
-                      }
-                      return vl || "Désinfection";
-                    })()
-                  : "Désinfection"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
-                {formatMonthYear(entry.created_at || "")}
-              </span>
-              {isConfirmDelete ? (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-destructive font-medium">Supprimer ?</span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteEntry(entry.id)}
-                    className="cursor-pointer h-7 text-xs px-2"
-                  >
-                    Oui
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeleteConfirmId(null)}
-                    className="cursor-pointer h-7 text-xs px-2"
-                  >
-                    Non
-                  </Button>
-                </div>
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="cursor-pointer h-7 w-7 p-0"
-                      title="Options"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => handleOpenEditDate(entry)}
-                      className="cursor-pointer"
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Modifier la date
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setDeleteConfirmId(entry.id)}
-                      className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Supprimer
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+      <div key={entry.id} className="flex items-center justify-end gap-2">
+        <span className="text-xs text-muted-foreground">
+          {formatMonthYear(entry.created_at || "")}
+        </span>
+        {isConfirmDelete ? (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-destructive font-medium">Suppr. ?</span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleDeleteEntry(entry.id)}
+              className="cursor-pointer h-5 text-xs px-1"
+            >
+              Oui
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteConfirmId(null)}
+              className="cursor-pointer h-5 text-xs px-1"
+            >
+              Non
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="cursor-pointer h-5 w-5 p-0" title="Options">
+                <MoreVertical className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleOpenEditDate(entry)} className="cursor-pointer">
+                <Pencil className="h-4 w-4 mr-2" />
+                Modifier la date
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDeleteConfirmId(entry.id)} className="cursor-pointer text-destructive focus:text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
     );
   };
 
@@ -845,57 +815,98 @@ export default function LogPage() {
             </div>
           </TabsContent>
 
-          {/* ===== Onglet Désinfection ===== */}
+          {/* ===== Onglet Désinfection (condensé) ===== */}
           <TabsContent value="desinfection">
-            <div className="space-y-8">
+            <div className="space-y-1">
+              {/* Standard groups (lots) */}
               {DESINFECTION_GROUPS.map((group) => {
                 const groupEntries = desinfectionGrouped[group.key] || [];
                 const countRolling = desinfectionCountRolling[group.key] || 0;
                 const isOnTrack = countRolling >= REQUIRED_PER_ROLLING_YEAR;
 
                 return (
-                  <div key={group.key}>
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${isOnTrack ? "bg-emerald-500" : "bg-amber-500"}`} />
-                        {group.label}
-                      </h2>
+                  <div key={group.key} className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`h-2 w-2 rounded-full shrink-0 ${isOnTrack ? "bg-emerald-500" : "bg-amber-500"}`} />
+                      <span className="font-medium text-foreground text-sm truncate">{group.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {groupEntries.length > 0 ? (
+                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end">
+                          {groupEntries.map((entry) => renderCondensedEntry(entry))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">—</span>
+                      )}
                       <span
-                        className={`text-sm font-medium px-2.5 py-0.5 rounded-full ${
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                           isOnTrack
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                             : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                         }`}
                       >
-                        {countRolling}/{REQUIRED_PER_ROLLING_YEAR} (12 mois glissants)
+                        {countRolling}/{REQUIRED_PER_ROLLING_YEAR}
                       </span>
                     </div>
-
-                    {groupEntries.length > 0 ? (
-                      <div className="space-y-2">
-                        {groupEntries.map((entry, idx) =>
-                          renderDesinfectionEntry(entry, idx, groupEntries.length)
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic py-2">
-                        Aucune désinfection enregistrée
-                      </p>
-                    )}
                   </div>
                 );
               })}
 
+              {/* DSA/AMS individual entries */}
+              {(() => {
+                const dsaAmsEntries = desinfectionEntries.filter(isDsaOrAmsEntry);
+                if (dsaAmsEntries.length === 0) return null;
+
+                // Group by individual label (e.g. "DSA Charlie", "AMS Bravo")
+                const individualGroups = new Map<string, InventoryLogData[]>();
+                for (const entry of dsaAmsEntries) {
+                  const label = getDsaAmsLabel(entry);
+                  if (!individualGroups.has(label)) individualGroups.set(label, []);
+                  individualGroups.get(label)!.push(entry);
+                }
+
+                // Sort groups alphabetically
+                const sortedLabels = Array.from(individualGroups.keys()).sort();
+
+                return sortedLabels.map((label) => {
+                  const groupEntries = individualGroups.get(label) || [];
+                  const countRolling = groupEntries.filter((e) => isWithinRollingYear(e.created_at || "")).length;
+                  const isOnTrack = countRolling >= REQUIRED_PER_ROLLING_YEAR;
+
+                  return (
+                    <div key={`dsa-ams-${label}`} className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`h-2 w-2 rounded-full shrink-0 ${isOnTrack ? "bg-emerald-500" : "bg-amber-500"}`} />
+                        <span className="font-medium text-foreground text-sm truncate">{label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end">
+                          {groupEntries.map((entry) => renderCondensedEntry(entry))}
+                        </div>
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            isOnTrack
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          }`}
+                        >
+                          {countRolling}/{REQUIRED_PER_ROLLING_YEAR}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+
+              {/* Other entries */}
               {desinfectionGrouped["other"] && desinfectionGrouped["other"].length > 0 && (
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-muted-foreground" />
                     Autres
                   </h2>
-                  <div className="space-y-2">
-                    {desinfectionGrouped["other"].map((entry, idx) =>
-                      renderDesinfectionEntry(entry, idx, desinfectionGrouped["other"].length)
-                    )}
+                  <div className="space-y-1">
+                    {desinfectionGrouped["other"].map((entry) => renderCondensedEntry(entry))}
                   </div>
                 </div>
               )}
