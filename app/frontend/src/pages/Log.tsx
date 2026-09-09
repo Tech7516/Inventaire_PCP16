@@ -157,7 +157,7 @@ const LOG_GROUPS: LogGroup[] = [
     key: "lot-a",
     label: "Lot A",
     reportKey: "lot-a-central",
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-001",
+    matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-001",
   },
   {
     key: "lot-b",
@@ -169,19 +169,19 @@ const LOG_GROUPS: LogGroup[] = [
     key: "lot-c",
     label: "Lot C",
     reportKey: null,
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-003",
+    matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-003",
   },
   {
     key: "vps-auteuil",
     label: "VPS Auteuil",
     reportKey: "vps-auteuil-central",
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly"),
+    matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && !e.lot_variant_name?.includes("Neuilly"),
   },
   {
     key: "vps-neuilly",
     label: "VPS Neuilly",
     reportKey: "vps-neuilly-central",
-    matchFn: (e) => !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly"),
+    matchFn: (e) => !isDsaOrAmsEntry(e) && !isLotBEntry(e) && e.lot_id === "lot-vps" && e.lot_variant_name?.includes("Neuilly"),
   },
   {
     key: "dsa-ams",
@@ -193,13 +193,13 @@ const LOG_GROUPS: LogGroup[] = [
     key: "lot-v",
     label: "Lot V",
     reportKey: null,
-    matchFn: (e) => e.lot_id === "lot-v",
+    matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-v",
   },
   {
     key: "lot-cai",
     label: "Lot CAI",
     reportKey: "lot-cai-central",
-    matchFn: (e) => e.lot_id === "lot-cai",
+    matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-cai",
   },
 ];
 
