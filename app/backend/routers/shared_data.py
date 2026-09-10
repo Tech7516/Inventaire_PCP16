@@ -123,8 +123,33 @@ async def get_all_logs(
 
 @router.post("/logs", response_model=InventoryLogResponse)
 async def add_log_entry(data: AddLogEntryRequest, db: AsyncSession = Depends(get_db)):
-    """Add or update an inventory log entry (idempotent by completed_key)"""
+    """Add an inventory log entry.
+    
+    For désinfections (intervention_type="desinfection"), always create a new entry
+    because each désinfection is a distinct event (multiple per year are expected).
+    
+    For vérifications, remain idempotent by completed_key (update existing entry).
+    """
     try:
+        # Désinfections: always insert (multiple entries per completed_key are valid)
+        if data.intervention_type == "desinfection":
+            entry = Inventory_logs(
+                lot_id=data.lot_id,
+                lot_name=data.lot_name,
+                sub_entity_name=data.sub_entity_name,
+                variant_name=data.variant_name,
+                lot_variant_name=data.lot_variant_name,
+                sac_type=data.sac_type,
+                dps_name=data.dps_name,
+                intervention_type=data.intervention_type,
+                completed_key=data.completed_key,
+            )
+            db.add(entry)
+            await db.commit()
+            await db.refresh(entry)
+            return entry
+
+        # Vérifications: idempotent by completed_key (update if exists)
         existing = await db.execute(
             select(Inventory_logs).where(Inventory_logs.completed_key == data.completed_key).limit(1)
         )

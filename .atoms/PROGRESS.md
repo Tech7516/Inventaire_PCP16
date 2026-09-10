@@ -192,6 +192,9 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Fichier requirements.md créé avec toutes les informations d hébergement (langages, BDD, stack, déploiement, checklist)
 - [x] Bug journal DSA Charlie dans Lot A : ajout !isDsaOrAmsEntry(e) dans tous les LOG_GROUPS non-DSA (lot-a, lot-c, vps-auteuil, vps-neuilly, lot-v, lot-cai) ; lint + build validés
 - [x] Onglet Désinfection condensé : une ligne par lot/variante (nom + dates + X/3), suppression redondance #N/Désinfection, DSA/AMS listés individuellement (ex: DSA Charlie, AMS Bravo), helper getDsaAmsLabel, retrait groupe dsa-ams de DESINFECTION_GROUPS ; lint + build validés
+- [x] Bug désinfections multiples : backend add_log_entry insère toujours une nouvelle entrée pour intervention_type=desinfection (plus d'idempotence par completed_key) ; vérifications restent idempotentes
+- [x] DSA/AMS/T7 manquants : définitions statiques DSA_VARIANTS (Alpha/Bravo/Charlie/Delta), T7_VARIANTS (Alpha/Bravo), AMS_VARIANTS (Alpha/Bravo/Charlie/Delta) toujours affichées dans l'onglet Désinfection
+- [x] Refonte UX Désinfection : format carte dépliable regroupée par lot (Lot A, Lot B, Lot C, VPS, Lot V, Lot CAI, DSA/T7/AMS) — carte repliée = nom + dernière date + X/3 + bouton déplier, carte dépliée = historique complet avec menu ⋮ ; lint + build validés
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

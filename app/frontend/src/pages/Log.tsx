@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, Pencil, ShieldCheck, Calendar, MoreVertical } from "lucide-react";
+import { ArrowLeft, ScrollText, Clock, Trash2, FileText, Loader2, Pencil, ShieldCheck, Calendar, MoreVertical, ChevronDown, ChevronRight } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -225,13 +225,46 @@ const DESINFECTION_GROUPS: DesinfectionGroup[] = [
   { key: "lot-cai", label: "Lot CAI", matchFn: (e) => !isDsaOrAmsEntry(e) && e.lot_id === "lot-cai" },
 ];
 
-/** Extract individual DSA/AMS label from an entry (e.g. "DSA Charlie", "AMS Bravo") */
+// Static DSA/AMS/T7 variant definitions (always shown even without entries)
+const DSA_VARIANTS = [
+  { name: "DSA Alpha", key: "dsa-alpha" },
+  { name: "DSA Bravo", key: "dsa-bravo" },
+  { name: "DSA Charlie", key: "dsa-charlie" },
+  { name: "DSA Delta", key: "dsa-delta" },
+];
+const T7_VARIANTS = [
+  { name: "T7 Alpha", key: "t7-alpha" },
+  { name: "T7 Bravo", key: "t7-bravo" },
+];
+const AMS_VARIANTS = [
+  { name: "AMS Alpha", key: "ams-alpha" },
+  { name: "AMS Bravo", key: "ams-bravo" },
+  { name: "AMS Charlie", key: "ams-charlie" },
+  { name: "AMS Delta", key: "ams-delta" },
+];
+
+/** Extract individual DSA/AMS/T7 label from an entry (e.g. "DSA Charlie", "AMS Bravo", "T7 Alpha") */
 const getDsaAmsLabel = (e: InventoryLogData): string => {
   if (isAmsEntry(e)) return e.variant_name || "AMS";
   const vl = e.variant_name || "";
   const dashIdx = vl.lastIndexOf(" — ");
   if (dashIdx >= 0) return vl.substring(dashIdx + 3).trim();
   return vl || "DSA";
+};
+
+/** Match a DSA/AMS/T7 entry to a static variant key */
+const getDsaAmsVariantKey = (e: InventoryLogData): string | null => {
+  const label = getDsaAmsLabel(e).toLowerCase();
+  if (isAmsEntry(e)) {
+    for (const v of AMS_VARIANTS) if (label.includes(v.key.replace("ams-", ""))) return v.key;
+    return null;
+  }
+  if (label.includes("t7")) {
+    for (const v of T7_VARIANTS) if (label.includes(v.key.replace("t7-", ""))) return v.key;
+    return null;
+  }
+  for (const v of DSA_VARIANTS) if (label.includes(v.key.replace("dsa-", ""))) return v.key;
+  return null;
 };
 
 const REQUIRED_PER_ROLLING_YEAR = 3;
@@ -263,6 +296,18 @@ export default function LogPage() {
 
   // Confirm delete state
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  // Expanded cards state for désinfection tab
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  const toggleCard = (key: string) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const reloadEntries = useCallback(async () => {
     const data = await getLogEntriesFromDb();
@@ -445,17 +490,6 @@ export default function LogPage() {
     return groups;
   }, [desinfectionEntries]);
 
-  // Count desinfections in rolling 12-month window per group
-  const desinfectionCountRolling = useMemo(() => {
-    const counts: Record<string, number> = {};
-    Object.keys(desinfectionGrouped).forEach((key) => {
-      counts[key] = desinfectionGrouped[key].filter((e) =>
-        isWithinRollingYear(e.created_at || "")
-      ).length;
-    });
-    return counts;
-  }, [desinfectionGrouped]);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -463,58 +497,6 @@ export default function LogPage() {
       </div>
     );
   }
-
-  // Shared component for a single condensed désinfection entry row (date + menu)
-  const renderCondensedEntry = (entry: InventoryLogData) => {
-    const isConfirmDelete = deleteConfirmId === entry.id;
-
-    return (
-      <div key={entry.id} className="flex items-center justify-end gap-2">
-        <span className="text-xs text-muted-foreground">
-          {formatMonthYear(entry.created_at || "")}
-        </span>
-        {isConfirmDelete ? (
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-destructive font-medium">Suppr. ?</span>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleDeleteEntry(entry.id)}
-              className="cursor-pointer h-5 text-xs px-1"
-            >
-              Oui
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDeleteConfirmId(null)}
-              className="cursor-pointer h-5 text-xs px-1"
-            >
-              Non
-            </Button>
-          </div>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="cursor-pointer h-5 w-5 p-0" title="Options">
-                <MoreVertical className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleOpenEditDate(entry)} className="cursor-pointer">
-                <Pencil className="h-4 w-4 mr-2" />
-                Modifier la date
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDeleteConfirmId(entry.id)} className="cursor-pointer text-destructive focus:text-destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -815,102 +797,145 @@ export default function LogPage() {
             </div>
           </TabsContent>
 
-          {/* ===== Onglet Désinfection (condensé) ===== */}
+          {/* ===== Onglet Désinfection — cartes dépliables regroupées par lot ===== */}
           <TabsContent value="desinfection">
-            <div className="space-y-1">
-              {/* Standard groups (lots) */}
-              {DESINFECTION_GROUPS.map((group) => {
-                const groupEntries = desinfectionGrouped[group.key] || [];
-                const countRolling = desinfectionCountRolling[group.key] || 0;
-                const isOnTrack = countRolling >= REQUIRED_PER_ROLLING_YEAR;
+            {(() => {
+              // Build lot groups with their variant cards
+              const LOT_SECTIONS = [
+                { lotLabel: "Lot A", lotKey: "lot-a", variantKeys: ["lot-a"] },
+                { lotLabel: "Lot B", lotKey: "lot-b", variantKeys: ["lot-b-alpha", "lot-b-bravo", "lot-b-auteuil", "lot-b-neuilly"] },
+                { lotLabel: "Lot C", lotKey: "lot-c", variantKeys: ["lot-c-alpha", "lot-c-bravo"] },
+                { lotLabel: "VPS", lotKey: "vps", variantKeys: ["vps-auteuil", "vps-neuilly"] },
+                { lotLabel: "Lot V", lotKey: "lot-v", variantKeys: ["lot-v-poussin", "lot-v-passy"] },
+                { lotLabel: "Lot CAI", lotKey: "lot-cai", variantKeys: ["lot-cai"] },
+              ];
 
+              // DSA/AMS/T7: group entries by variant key, merge with static definitions
+              const dsaAmsEntries = desinfectionEntries.filter(isDsaOrAmsEntry);
+              const dsaAmsByVariant = new Map<string, InventoryLogData[]>();
+              for (const entry of dsaAmsEntries) {
+                const vk = getDsaAmsVariantKey(entry) || getDsaAmsLabel(entry);
+                if (!dsaAmsByVariant.has(vk)) dsaAmsByVariant.set(vk, []);
+                dsaAmsByVariant.get(vk)!.push(entry);
+              }
+              // Sort entries newest first
+              dsaAmsByVariant.forEach((arr) => arr.sort((a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()));
+
+              const allDsaAmsVariants = [
+                ...DSA_VARIANTS.map((v) => ({ ...v, entries: dsaAmsByVariant.get(v.key) || [] })),
+                ...T7_VARIANTS.map((v) => ({ ...v, entries: dsaAmsByVariant.get(v.key) || [] })),
+                ...AMS_VARIANTS.map((v) => ({ ...v, entries: dsaAmsByVariant.get(v.key) || [] })),
+              ];
+              // Also include any entries that didn't match a static key
+              const matchedKeys = new Set([...DSA_VARIANTS, ...T7_VARIANTS, ...AMS_VARIANTS].map((v) => v.key));
+              for (const [vk, ents] of dsaAmsByVariant) {
+                if (!matchedKeys.has(vk) && ents.length > 0) {
+                  allDsaAmsVariants.push({ name: vk, key: vk, entries: ents });
+                }
+              }
+
+              const renderHistoryEntry = (entry: InventoryLogData) => {
+                const isConfirmDelete = deleteConfirmId === entry.id;
                 return (
-                  <div key={group.key} className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={`h-2 w-2 rounded-full shrink-0 ${isOnTrack ? "bg-emerald-500" : "bg-amber-500"}`} />
-                      <span className="font-medium text-foreground text-sm truncate">{group.label}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {groupEntries.length > 0 ? (
-                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end">
-                          {groupEntries.map((entry) => renderCondensedEntry(entry))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">—</span>
-                      )}
-                      <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          isOnTrack
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                        }`}
-                      >
-                        {countRolling}/{REQUIRED_PER_ROLLING_YEAR}
-                      </span>
-                    </div>
+                  <div key={entry.id} className="flex items-center justify-between gap-2 py-1 border-b border-border/30 last:border-b-0">
+                    <span className="text-sm text-muted-foreground">{formatMonthYear(entry.created_at || "")}</span>
+                    {isConfirmDelete ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-destructive font-medium">Suppr. ?</span>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeleteEntry(entry.id)} className="cursor-pointer h-6 text-xs px-1.5">Oui</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)} className="cursor-pointer h-6 text-xs px-1.5">Non</Button>
+                      </div>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="cursor-pointer h-6 w-6 p-0" title="Options"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleOpenEditDate(entry)} className="cursor-pointer"><Pencil className="h-4 w-4 mr-2" />Modifier la date</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setDeleteConfirmId(entry.id)} className="cursor-pointer text-destructive focus:text-destructive"><Trash2 className="h-4 w-4 mr-2" />Supprimer</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 );
-              })}
+              };
 
-              {/* DSA/AMS individual entries */}
-              {(() => {
-                const dsaAmsEntries = desinfectionEntries.filter(isDsaOrAmsEntry);
-                if (dsaAmsEntries.length === 0) return null;
+              const renderVariantCard = (cardKey: string, label: string, cardEntries: InventoryLogData[]) => {
+                const countRolling = cardEntries.filter((e) => isWithinRollingYear(e.created_at || "")).length;
+                const isOnTrack = countRolling >= REQUIRED_PER_ROLLING_YEAR;
+                const isExpanded = expandedCards.has(cardKey);
+                const lastDate = cardEntries.length > 0 ? formatMonthYear(cardEntries[0].created_at || "") : null;
 
-                // Group by individual label (e.g. "DSA Charlie", "AMS Bravo")
-                const individualGroups = new Map<string, InventoryLogData[]>();
-                for (const entry of dsaAmsEntries) {
-                  const label = getDsaAmsLabel(entry);
-                  if (!individualGroups.has(label)) individualGroups.set(label, []);
-                  individualGroups.get(label)!.push(entry);
-                }
-
-                // Sort groups alphabetically
-                const sortedLabels = Array.from(individualGroups.keys()).sort();
-
-                return sortedLabels.map((label) => {
-                  const groupEntries = individualGroups.get(label) || [];
-                  const countRolling = groupEntries.filter((e) => isWithinRollingYear(e.created_at || "")).length;
-                  const isOnTrack = countRolling >= REQUIRED_PER_ROLLING_YEAR;
-
-                  return (
-                    <div key={`dsa-ams-${label}`} className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className={`h-2 w-2 rounded-full shrink-0 ${isOnTrack ? "bg-emerald-500" : "bg-amber-500"}`} />
-                        <span className="font-medium text-foreground text-sm truncate">{label}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end">
-                          {groupEntries.map((entry) => renderCondensedEntry(entry))}
+                return (
+                  <Card key={cardKey} className="transition-all">
+                    <CardContent className="py-2.5 px-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`h-2 w-2 rounded-full shrink-0 ${isOnTrack ? "bg-emerald-500" : "bg-amber-500"}`} />
+                          <span className="font-medium text-foreground text-sm truncate">{label}</span>
                         </div>
-                        <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            isOnTrack
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                          }`}
-                        >
-                          {countRolling}/{REQUIRED_PER_ROLLING_YEAR}
-                        </span>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {lastDate && <span className="text-xs text-muted-foreground">{lastDate}</span>}
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isOnTrack ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>
+                            {countRolling}/{REQUIRED_PER_ROLLING_YEAR}
+                          </span>
+                          <Button variant="ghost" size="sm" onClick={() => toggleCard(cardKey)} className="cursor-pointer h-6 w-6 p-0" title={isExpanded ? "Replier" : "Déplier"}>
+                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="mt-2 pl-4 border-l-2 border-border/50">
+                          {cardEntries.length > 0 ? (
+                            cardEntries.map((entry) => renderHistoryEntry(entry))
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic py-1">Aucune désinfection enregistrée</p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              };
+
+              return (
+                <div className="space-y-6">
+                  {LOT_SECTIONS.map((section) => {
+                    const sectionCards = section.variantKeys.map((vk) => {
+                      const group = DESINFECTION_GROUPS.find((g) => g.key === vk);
+                      return { key: vk, label: group?.label || vk, entries: desinfectionGrouped[vk] || [] };
+                    });
+
+                    return (
+                      <div key={section.lotKey}>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">{section.lotLabel}</h3>
+                        <div className="space-y-2">
+                          {sectionCards.map((c) => renderVariantCard(c.key, c.label, c.entries))}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* DSA / T7 / AMS section */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">DSA / T7 / AMS</h3>
+                    <div className="space-y-2">
+                      {allDsaAmsVariants.map((v) => renderVariantCard(v.key, v.name, v.entries))}
+                    </div>
+                  </div>
+
+                  {/* Other entries */}
+                  {desinfectionGrouped["other"] && desinfectionGrouped["other"].length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Autres</h3>
+                      <div className="space-y-2">
+                        {desinfectionGrouped["other"].map((entry) => renderHistoryEntry(entry))}
                       </div>
                     </div>
-                  );
-                });
-              })()}
-
-              {/* Other entries */}
-              {desinfectionGrouped["other"] && desinfectionGrouped["other"].length > 0 && (
-                <div>
-                  <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                    Autres
-                  </h2>
-                  <div className="space-y-1">
-                    {desinfectionGrouped["other"].map((entry) => renderCondensedEntry(entry))}
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </TabsContent>
 
 
