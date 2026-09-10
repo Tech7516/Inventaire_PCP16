@@ -1142,11 +1142,20 @@ export default function SubEntitiesPage() {
                             <SelectValue placeholder={`Choisir ${sub.inventoryType === "lot-b" ? "un lot B" : sub.inventoryType === "dsa" ? "une variante DSA" : sub.inventoryType === "ams" ? "une variante AMS" : `un ${sub.name.toLowerCase()}`}...`} />
                           </SelectTrigger>
                           <SelectContent>
-                            {sub.variants!.map((variant) => (
-                              <SelectItem key={variant.id} value={variant.id} className="cursor-pointer">
-                                {variant.name}
-                              </SelectItem>
-                            ))}
+                            {sub.variants!.map((variant) => {
+                              const isDsaUsed = sub.inventoryType === "dsa" && getUsedDsaVariants(sub.id).has(variant.id);
+                              return (
+                                <SelectItem
+                                  key={variant.id}
+                                  value={variant.id}
+                                  disabled={isDsaUsed}
+                                  className={`cursor-pointer ${isDsaUsed ? "opacity-50" : ""}`}
+                                >
+                                  {variant.name}
+                                  {isDsaUsed ? " (déjà sélectionné)" : ""}
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1548,7 +1557,7 @@ export default function SubEntitiesPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {dsaVSub.variants!.map((variant) => {
-                              const isUsed = usedVariants.has(variant.id);
+                              const isUsed = getUsedDsaVariants(instanceKey).has(variant.id);
                               return (
                                 <SelectItem
                                   key={variant.id}
