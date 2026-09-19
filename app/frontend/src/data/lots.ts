@@ -158,6 +158,8 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
       variants: [
         { id: "alpha", name: "Lot B Alpha" },
         { id: "bravo", name: "Lot B Bravo" },
+        { id: "auteuil", name: "Lot B Auteuil" },
+        { id: "michel-ange", name: "Lot B Michel Ange" },
       ],
     },
     {

@@ -198,6 +198,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Bug 1 : validation Lot A/C débloquée — bouton Sauvegarder actif même sans Lot B/DSA/AMS vérifiés (suppression condition disabled + validation bloquante dans handleSave)
 - [x] Bug 2 : anti-doublon DSA enrichi — getUsedDsaVariants inclut les DSA standalone (selectedVariants sur sub.inventoryType==="dsa") en plus des DSA attachés aux Lot B ; anti-doublon réciproque : sélecteur DSA standalone grise les DSA pris par Lot B, sélecteur DSA Lot B grise les DSA pris par standalone, sélecteur DSA VPS utilise getUsedDsaVariants au lieu de getUsedDsaInstanceVariants
 - [x] Bug 3 : sous-ensembles loggés en désinfection — Lot B instances, DSA instances (VPS + standalone), AMS, et autres variantes loggés avec intervention_type="desinfection" quand le lot parent est désinfecté ; lint + build + Python validés
+- [x] Lot C : ajout variantes Lot B Auteuil et Michel Ange au menu déroulant Lot B (4 options : Alpha, Bravo, Auteuil, Michel Ange) ; sections consommables héritées automatiquement via alias lot-b-c-soin/o2/dsa ; lint + build validés
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
