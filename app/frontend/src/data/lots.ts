@@ -159,7 +159,7 @@ export const lotSubEntities: Record<string, SubEntity[]> = {
         { id: "alpha", name: "Lot B Alpha" },
         { id: "bravo", name: "Lot B Bravo" },
         { id: "auteuil", name: "Lot B Auteuil" },
-        { id: "michel-ange", name: "Lot B Michel Ange" },
+        { id: "neuilly", name: "Lot B Neuilly" },
       ],
     },
     {
