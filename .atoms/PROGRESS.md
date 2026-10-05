@@ -200,6 +200,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Bug 3 : sous-ensembles loggés en désinfection — Lot B instances, DSA instances (VPS + standalone), AMS, et autres variantes loggés avec intervention_type="desinfection" quand le lot parent est désinfecté ; lint + build + Python validés
 - [x] Lot C : ajout variantes Lot B Auteuil et Michel Ange au menu déroulant Lot B (4 options : Alpha, Bravo, Auteuil, Michel Ange) ; sections consommables héritées automatiquement via alias lot-b-c-soin/o2/dsa ; lint + build validés
 - [x] Lot C : renommé variante Lot B « Michel Ange » en « Neuilly » (id: neuilly) ; lint + build validés
+- [x] Bug Admin sauvegarde : configStore.ts utilisait client.apiCall.invoke avec arguments positionnels (non fonctionnels) — remplacé par helper sharedApi avec pattern objet ({url, method, data}) ; kits redirigés de /shared/data (inexistant) vers /shared/preferences (existant) ; lint + build validés
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log

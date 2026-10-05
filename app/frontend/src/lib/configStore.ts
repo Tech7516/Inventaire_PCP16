@@ -33,6 +33,22 @@ export interface LotConfigData {
   is_custom: boolean | null;
 }
 
+// ---------- Shared API helper ----------
+
+/** Call the shared backend API using the object pattern (same as inventoryApi) */
+async function sharedApi<T = any>(
+  method: "GET" | "POST" | "DELETE" | "PATCH",
+  path: string,
+  data?: Record<string, unknown>
+): Promise<T> {
+  const res = await client.apiCall.invoke({
+    url: `/api/v1/shared${path}`,
+    method,
+    data: data || {},
+  });
+  return res.data as T;
+}
+
 // ---------- Helpers ----------
 
 /** Convert static lots data into a LotConfig for a given lotId */
@@ -69,9 +85,9 @@ function staticToConfig(lotId: string): LotConfig | null {
 export async function loadAllLotConfigs(): Promise<LotConfig[]> {
   const dbConfigs: LotConfigData[] = [];
   try {
-    const res = await client.apiCall.invoke("GET", "/api/v1/shared/lot-configs");
+    const res = await sharedApi<LotConfigData[]>("GET", "/lot-configs");
     if (res && Array.isArray(res)) {
-      dbConfigs.push(...(res as LotConfigData[]));
+      dbConfigs.push(...res);
     }
   } catch {
     // DB not available, use static only
@@ -110,7 +126,7 @@ export async function loadAllLotConfigs(): Promise<LotConfig[]> {
 export async function loadLotConfig(lotId: string): Promise<LotConfig | null> {
   // Try DB first (shared API bypasses RLS)
   try {
-    const res = await client.apiCall.invoke("GET", `/api/v1/shared/lot-configs/${lotId}`);
+    const res = await sharedApi<LotConfigData>("GET", `/lot-configs/${lotId}`);
     if (res && res.config_json) {
       const parsed = JSON.parse(res.config_json) as LotConfig;
       if (parsed.lot && parsed.lot.id) return parsed;
@@ -139,10 +155,9 @@ export async function getMergedSubEntities(lotId: string): Promise<SubEntity[]> 
 export async function getMergedSections(subEntityId: string): Promise<ConsumableSection[]> {
   // Try to find in DB configs (shared API bypasses RLS)
   try {
-    const res = await client.apiCall.invoke("GET", "/api/v1/shared/lot-configs");
+    const res = await sharedApi<LotConfigData[]>("GET", "/lot-configs");
     if (res && Array.isArray(res)) {
-      const items = res as LotConfigData[];
-      for (const item of items) {
+      for (const item of res) {
         if (item.config_json) {
           try {
             const parsed = JSON.parse(item.config_json) as LotConfig;
@@ -168,7 +183,7 @@ export async function saveLotConfig(config: LotConfig): Promise<void> {
   const configJson = JSON.stringify(config);
   const lotId = config.lot.id;
 
-  await client.apiCall.invoke("POST", "/api/v1/shared/lot-configs", {
+  await sharedApi("POST", "/lot-configs", {
     lot_id: lotId,
     config_json: configJson,
   });
@@ -177,7 +192,7 @@ export async function saveLotConfig(config: LotConfig): Promise<void> {
 /** Delete a lot config from DB via shared API */
 export async function deleteLotConfig(lotId: string): Promise<void> {
   try {
-    await client.apiCall.invoke("DELETE", `/api/v1/shared/lot-configs/${lotId}`);
+    await sharedApi("DELETE", `/lot-configs/${lotId}`);
   } catch {
     // ignore
   }
@@ -245,12 +260,15 @@ export function createEmptySubVariant(variantId: string, name: string): SubEntit
 
 const KIT_CONFIG_KEY = "editable-kit-overrides";
 
-/** Load editable kit item overrides from DB (shared_data) */
+/** Load editable kit item overrides from DB (via preferences API) */
 export async function loadEditableKitOverrides(): Promise<Record<string, KitItem[]>> {
   try {
-    const res = await client.apiCall.invoke("GET", `/api/v1/shared/data/${KIT_CONFIG_KEY}`);
-    if (res && res.data) {
-      const parsed = JSON.parse(res.data) as Record<string, KitItem[]>;
+    const res = await sharedApi<{ pref_key: string; pref_value: string | null }>(
+      "GET",
+      `/preferences/${KIT_CONFIG_KEY}`
+    );
+    if (res && res.pref_value) {
+      const parsed = JSON.parse(res.pref_value) as Record<string, KitItem[]>;
       return parsed;
     }
   } catch {
@@ -259,16 +277,18 @@ export async function loadEditableKitOverrides(): Promise<Record<string, KitItem
   return {};
 }
 
-/** Save editable kit item overrides to DB (shared_data) */
+/** Save editable kit item overrides to DB (via preferences API) */
 export async function saveEditableKitOverrides(overrides: Record<string, KitItem[]>): Promise<void> {
-  await client.apiCall.invoke("POST", "/api/v1/shared/data", {
-    key: KIT_CONFIG_KEY,
-    data: JSON.stringify(overrides),
+  await sharedApi("POST", "/preferences", {
+    pref_key: KIT_CONFIG_KEY,
+    pref_value: JSON.stringify(overrides),
   });
 }
 
 /** Get all editable kit definitions with their current items (merged with overrides) */
-export async function getEditableKitsWithOverrides(): Promise<Record<string, { id: string; name: string; items: KitItem[] }>> {
+export async function getEditableKitsWithOverrides(): Promise<
+  Record<string, { id: string; name: string; items: KitItem[] }>
+> {
   const overrides = await loadEditableKitOverrides();
   const result: Record<string, { id: string; name: string; items: KitItem[] }> = {};
   for (const kitId of getEditableKitIds()) {
