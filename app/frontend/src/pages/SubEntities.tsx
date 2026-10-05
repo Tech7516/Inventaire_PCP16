@@ -430,20 +430,8 @@ export default function SubEntitiesPage() {
       const isDesinfection = effectiveInterventionType === "desinfection";
 
       if (isDesinfection) {
-        // Désinfection : une ligne par lot + une ligne par sous-ensemble vérifié
-        if (lotId && lotId !== "lot-b") {
-          logPromises.push(addLogEntryToDb({
-            lot_id: lotId,
-            lot_name: lot?.name || "",
-            sub_entity_name: lot?.name || "",
-            variant_name: null,
-            lot_variant_name: currentLotVariantName,
-            sac_type: null,
-            dps_name: dpsNameValue,
-            intervention_type: "desinfection",
-            completed_key: `${lotId}-desinfection${currentLotVariantName ? `-${currentLotVariantName}` : ""}`,
-          }));
-        }
+        // Désinfection : logger uniquement les sous-ensembles effectivement vérifiés
+        // Le lot parent n'est loggé que si au moins un sous-ensemble direct a été vérifié
 
         // Lot B (standalone) : une seule ligne pour le lot entier
         if (lotId === "lot-b") {
@@ -558,7 +546,51 @@ export default function SubEntitiesPage() {
           }
         });
 
-        // Other variant sub-entities (e.g. VPS Auteuil/Neuilly)
+        // Lot B sub-entities for Lot C/V/VPS (Lot A handled above as multi-instance)
+        if (lotId !== "lot-001" && lotId !== "lot-b") {
+          subEntities.forEach((sub) => {
+            if (sub.inventoryType !== "lot-b") return;
+            const selectedVariant = selectedVariants[sub.id];
+            if (!selectedVariant) return;
+            const variantObj = sub.variants?.find((v) => v.id === selectedVariant);
+
+            const soinCheck = checks.find((c) => c.sub_entity_id === sub.id && c.variant_id === selectedVariant && c.sac_type === "soin");
+            const o2Check = checks.find((c) => c.sub_entity_id === sub.id && c.variant_id === selectedVariant && c.sac_type === "o2");
+            const dsaCheck = checks.find((c) => c.sub_entity_id === sub.id && c.variant_id === selectedVariant && c.sac_type === "dsa");
+
+            if (soinCheck) {
+              logPromises.push(addLogEntryToDb({
+                lot_id: "lot-b", lot_name: "Lot B", sub_entity_name: sub.name,
+                variant_name: variantObj?.name || null, lot_variant_name: currentLotVariantName, sac_type: "soin",
+                dps_name: dpsNameValue, intervention_type: "desinfection",
+                completed_key: `lot-b-${selectedVariant}-soin-desinfection`,
+              }));
+            }
+            if (o2Check) {
+              logPromises.push(addLogEntryToDb({
+                lot_id: "lot-b", lot_name: "Lot B", sub_entity_name: sub.name,
+                variant_name: variantObj?.name || null, lot_variant_name: currentLotVariantName, sac_type: "o2",
+                dps_name: dpsNameValue, intervention_type: "desinfection",
+                completed_key: `lot-b-${selectedVariant}-o2-desinfection`,
+              }));
+            }
+            if (dsaCheck) {
+              const dsaVariantId = selectedDsaVariants[sub.id];
+              const dsaVariantObj = dsaVariants.find((dv) => dv.id === dsaVariantId);
+              logPromises.push(addLogEntryToDb({
+                lot_id: "lot-b", lot_name: "Lot B", sub_entity_name: sub.name,
+                variant_name: dsaVariantObj ? `${variantObj?.name || ""} — ${dsaVariantObj.name}` : variantObj?.name || null,
+                lot_variant_name: currentLotVariantName, sac_type: "dsa",
+                dps_name: dpsNameValue, intervention_type: "desinfection",
+                completed_key: `lot-b-${selectedVariant}-dsa${dsaVariantId ? `-${dsaVariantId}` : ""}-desinfection`,
+              }));
+            }
+          });
+        }
+
+        // Other variant sub-entities (e.g. VPS Auteuil/Neuilly, POM, Caisse)
+        // Track which direct sub-entities were verified for conditional parent logging
+        const directSubEntityVerified = new Set<string>();
         subEntities.forEach((sub) => {
           if (sub.inventoryType === "lot-b" || sub.inventoryType === "dsa" || sub.inventoryType === "ams") return;
           if (lotId === "lot-001" && sub.id === "lot-b") return;
@@ -568,6 +600,7 @@ export default function SubEntitiesPage() {
           if (hasVariants && selectedVariant) {
             const check = checks.find((c) => c.sub_entity_id === sub.id && c.variant_id === selectedVariant && !c.sac_type);
             if (check) {
+              directSubEntityVerified.add(sub.id);
               const variantObj = sub.variants!.find((v) => v.id === selectedVariant);
               logPromises.push(addLogEntryToDb({
                 lot_id: lotId || "", lot_name: lot?.name || "", sub_entity_name: sub.name,
@@ -579,6 +612,7 @@ export default function SubEntitiesPage() {
           } else if (!hasVariants) {
             const check = checks.find((c) => c.sub_entity_id === sub.id && !c.variant_id && !c.sac_type);
             if (check) {
+              directSubEntityVerified.add(sub.id);
               logPromises.push(addLogEntryToDb({
                 lot_id: lotId || "", lot_name: lot?.name || "", sub_entity_name: sub.name,
                 variant_name: null, lot_variant_name: currentLotVariantName, sac_type: null,
@@ -588,6 +622,21 @@ export default function SubEntitiesPage() {
             }
           }
         });
+
+        // Log lot parent only if at least one direct sub-entity was verified
+        if (lotId && lotId !== "lot-b" && directSubEntityVerified.size > 0) {
+          logPromises.push(addLogEntryToDb({
+            lot_id: lotId,
+            lot_name: lot?.name || "",
+            sub_entity_name: lot?.name || "",
+            variant_name: null,
+            lot_variant_name: currentLotVariantName,
+            sac_type: null,
+            dps_name: dpsNameValue,
+            intervention_type: "desinfection",
+            completed_key: `${lotId}-desinfection${currentLotVariantName ? `-${currentLotVariantName}` : ""}`,
+          }));
+        }
       } else {
         // Vérification : log par sous-entité
       subEntities.forEach((sub) => {
