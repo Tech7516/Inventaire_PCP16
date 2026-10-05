@@ -685,7 +685,7 @@ export default function InventoryPage() {
                     {displayTitle}
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    {isDirectInventory ? (lotVariantName || lot.name) : `${lot.name} — ${lot.location}`}
+                    {isDirectInventory ? (lotVariantName || lot.name) : (lot.location && lotId === "lot-001" ? `${lot.name} — ${lot.location}` : lot.name)}
                     {sections.length > 0 && ` · ${processedCount}/${allItems.length} articles traités`}
                   </p>
                 </div>

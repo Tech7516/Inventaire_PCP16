@@ -66,7 +66,7 @@ export const lots: Lot[] = [
   {
     id: "lot-003",
     name: "Lot C",
-    location: "Passy",
+    location: "",
     lastInventory: null,
     status: "pending",
     variants: [
@@ -77,7 +77,7 @@ export const lots: Lot[] = [
   {
     id: "lot-vps",
     name: "VPS",
-    location: "Passy",
+    location: "",
     lastInventory: null,
     status: "pending",
     variants: [
@@ -88,7 +88,7 @@ export const lots: Lot[] = [
   {
     id: "lot-v",
     name: "Lot V",
-    location: "Passy",
+    location: "",
     lastInventory: null,
     status: "pending",
     variants: [
@@ -100,7 +100,7 @@ export const lots: Lot[] = [
   {
     id: "lot-cai",
     name: "Lot CAI",
-    location: "Passy",
+    location: "",
     lastInventory: null,
     status: "pending",
     directInventory: true,

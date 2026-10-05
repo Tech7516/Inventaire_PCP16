@@ -202,6 +202,7 @@ Application d'inventaire de lots. Page d'accueil avec sélection de lot, page fo
 - [x] Lot C : renommé variante Lot B « Michel Ange » en « Neuilly » (id: neuilly) ; lint + build validés
 - [x] Bug Admin sauvegarde : configStore.ts utilisait client.apiCall.invoke avec arguments positionnels (non fonctionnels) — remplacé par helper sharedApi avec pattern objet ({url, method, data}) ; kits redirigés de /shared/data (inexistant) vers /shared/preferences (existant) ; lint + build validés
 - [x] Bug logging désinfection : lot parent loggé inconditionnellement même sans sous-ensemble direct vérifié ; sous-ensembles Lot B (Lot C/V/VPS) non loggés en désinfection — corrigé : Lot B loggés avec soin/o2/dsa, lot parent loggé uniquement si au moins un sous-ensemble direct (POM, Caisse, etc.) vérifié ; lint + build validés
+- [x] Bug affichage « Passy » : retiré location "Passy" de tous les lots sauf Lot A dans lots.ts ; Inventory.tsx conditionne l'affichage à lotId==="lot-001" ; Index.tsx déjà conditionné ; lint + build validés
 
 ## Progress Log
 - 2026-07-06: Inventaire : supprimé vert, ajout orange (manque) et bleu (excédent) sur les consommables ; Journal : regroupement personnalisé (VPS Auteuil, VPS Neuilly, Lot A, Lot C Alpha, Lot C Bravo, Lot B, Lot V) ; rapport centralisé par groupe ; "Pas de rapport disponible" ; navigation retour corrigée vers log
