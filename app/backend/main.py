@@ -190,6 +190,12 @@ async def general_exception_handler(request: Request, exc: Exception):
         )
 
 
+# ---------- Health check (must be before SPA catch-all) ----------
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
+
 # ---------- Serve compiled frontend (Heroku) ----------
 # Determine dist directory relative to main.py location (not cwd)
 DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -205,19 +211,15 @@ if FRONTEND_AVAILABLE:
         return FileResponse(DIST_DIR / "index.html")
 
     # SPA fallback: any non-API route returns index.html for React Router
+    # This MUST be the very last route — registered after /health, /api/*, /docs, etc.
     @app.get("/{path:path}")
     async def spa_fallback(request: Request, path: str):
         """Return index.html for frontend routes (React Router SPA fallback).
 
-        Only triggers for requests that don't match any API/docs/health route.
-        FastAPI matches routes in registration order, so API routes registered
-        earlier always take priority.
+        Only triggers for requests that don't match any previously registered route.
+        FastAPI matches routes in registration order, so /health, /api/*, /docs,
+        /redoc, /openapi.json all take priority over this catch-all.
         """
-        # Skip API, docs, health, and OpenAPI routes
-        if path.startswith("api/") or path in (
-            "health", "docs", "redoc", "openapi.json",
-        ):
-            raise HTTPException(status_code=404, detail="Not found")
         return FileResponse(DIST_DIR / "index.html")
 
     logger = logging.getLogger(__name__)
@@ -226,11 +228,6 @@ else:
     @app.get("/")
     def root():
         return {"message": "FastAPI Modular Template is running"}
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
 
 
 def run_in_debug_mode(app: FastAPI):
