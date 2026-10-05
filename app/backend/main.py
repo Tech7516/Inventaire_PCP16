@@ -11,6 +11,9 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pathlib import Path
+from starlette.responses import FileResponse
+from starlette.staticfiles import StaticFiles
 
 # MODULE_IMPORTS_START
 from services.database import initialize_database, close_database
@@ -187,9 +190,42 @@ async def general_exception_handler(request: Request, exc: Exception):
         )
 
 
-@app.get("/")
-def root():
-    return {"message": "FastAPI Modular Template is running"}
+# ---------- Serve compiled frontend (Heroku) ----------
+# Determine dist directory relative to main.py location (not cwd)
+DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+FRONTEND_AVAILABLE = DIST_DIR.is_dir()
+
+if FRONTEND_AVAILABLE:
+    # Mount Vite assets under /assets so StaticFiles serves them directly
+    app.mount("/assets", StaticFiles(directory=DIST_DIR / "assets"), name="static-assets")
+
+    @app.get("/")
+    async def serve_index():
+        """Serve the compiled frontend index.html."""
+        return FileResponse(DIST_DIR / "index.html")
+
+    # SPA fallback: any non-API route returns index.html for React Router
+    @app.get("/{path:path}")
+    async def spa_fallback(request: Request, path: str):
+        """Return index.html for frontend routes (React Router SPA fallback).
+
+        Only triggers for requests that don't match any API/docs/health route.
+        FastAPI matches routes in registration order, so API routes registered
+        earlier always take priority.
+        """
+        # Skip API, docs, health, and OpenAPI routes
+        if path.startswith("api/") or path in (
+            "health", "docs", "redoc", "openapi.json",
+        ):
+            raise HTTPException(status_code=404, detail="Not found")
+        return FileResponse(DIST_DIR / "index.html")
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"Frontend dist detected at {DIST_DIR} — serving compiled frontend")
+else:
+    @app.get("/")
+    def root():
+        return {"message": "FastAPI Modular Template is running"}
 
 
 @app.get("/health")
