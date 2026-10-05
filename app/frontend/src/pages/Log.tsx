@@ -422,6 +422,15 @@ export default function LogPage() {
 
   // Deduplicate DSA/AMS/T7 entries: keep only the most recent per variant label
   // (e.g. "T7 Alpha", "DSA Charlie", "AMS Bravo") — avoids duplicates across lots
+  const DSA_AMS_SORT_ORDER = [
+    "t7 alpha", "t7 bravo",
+    "dsa alpha", "dsa bravo", "dsa charlie", "dsa delta",
+    "ams alpha", "ams bravo", "ams charlie", "ams delta",
+  ];
+  const dsaAmsSortIndex = (label: string): number => {
+    const idx = DSA_AMS_SORT_ORDER.indexOf(label.toLowerCase());
+    return idx >= 0 ? idx : DSA_AMS_SORT_ORDER.length;
+  };
   const dedupedDsaAms = (() => {
     const seen = new Map<string, InventoryLogData>();
     for (const entry of groupedEntries["dsa-ams"] || []) {
@@ -431,9 +440,12 @@ export default function LogPage() {
         seen.set(dedupKey, entry);
       }
     }
-    return Array.from(seen.values()).sort(
-      (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
-    );
+    return Array.from(seen.values()).sort((a, b) => {
+      const ai = dsaAmsSortIndex(getDsaAmsLabel(a));
+      const bi = dsaAmsSortIndex(getDsaAmsLabel(b));
+      if (ai !== bi) return ai - bi;
+      return new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime();
+    });
   })();
   groupedEntries["dsa-ams"] = dedupedDsaAms;
 
@@ -499,9 +511,19 @@ export default function LogPage() {
 
     // Sort newest first within each group
     Object.keys(groups).forEach((key) => {
-      groups[key].sort(
-        (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
-      );
+      if (key === "dsa-ams") {
+        // Custom sort: T7 Alpha, T7 Bravo, DSA Alpha/Bravo/Charlie/Delta, AMS Alpha/Bravo/Charlie/Delta
+        groups[key].sort((a, b) => {
+          const ai = dsaAmsSortIndex(getDsaAmsLabel(a));
+          const bi = dsaAmsSortIndex(getDsaAmsLabel(b));
+          if (ai !== bi) return ai - bi;
+          return new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime();
+        });
+      } else {
+        groups[key].sort(
+          (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
+        );
+      }
     });
 
     return groups;
