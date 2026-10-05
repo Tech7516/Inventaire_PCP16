@@ -420,6 +420,23 @@ export default function LogPage() {
   })();
   groupedEntries["lot-b"] = dedupedLotB;
 
+  // Deduplicate DSA/AMS/T7 entries: keep only the most recent per variant label
+  // (e.g. "T7 Alpha", "DSA Charlie", "AMS Bravo") — avoids duplicates across lots
+  const dedupedDsaAms = (() => {
+    const seen = new Map<string, InventoryLogData>();
+    for (const entry of groupedEntries["dsa-ams"] || []) {
+      const label = getDsaAmsLabel(entry);
+      const dedupKey = `${label}::${entry.sac_type || ""}`;
+      if (!seen.has(dedupKey)) {
+        seen.set(dedupKey, entry);
+      }
+    }
+    return Array.from(seen.values()).sort(
+      (a, b) => new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
+    );
+  })();
+  groupedEntries["dsa-ams"] = dedupedDsaAms;
+
   const getLotBVariantNames = (groupEntries: InventoryLogData[]): string[] => {
     const variants = new Set<string>();
     groupEntries.forEach((e) => {
