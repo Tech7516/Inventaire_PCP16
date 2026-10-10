@@ -1295,7 +1295,7 @@ export default function SubEntitiesPage() {
                           disabled={!selectedVariant}
                           onClick={() => {
                             if (selectedVariant) {
-                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}?session=${session.id}`);
+                              navigate(`/inventory/${lotId}/${sub.id}/${selectedVariant}?session=${session.id}&dsaVariant=${selectedVariant}`);
                             }
                           }}
                         >
